@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Styld — your personal style, simplified.">
+  <title>Styld</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-inner">
+      <a href="/" class="logo">styld</a>
+      <nav class="nav">
+        <a href="#features">Features</a>
+        <a href="#about">About</a>
+        <a href="#contact" class="nav-cta">Get in touch</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-inner">
+        <p class="eyebrow">Coming soon</p>
+        <h1>Your style, <span class="accent">perfected.</span></h1>
+        <p class="hero-text">
+          Styld helps you discover, organize, and express your personal style — all in one place.
+        </p>
+        <div class="hero-actions">
+          <a href="#contact" class="btn btn-primary">Join the waitlist</a>
+          <a href="#features" class="btn btn-secondary">Learn more</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="features">
+      <div class="container">
+        <h2>Everything you need to look your best</h2>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="feature-icon">✦</div>
+            <h3>Curate your wardrobe</h3>
+            <p>Build a digital closet and mix outfits effortlessly.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">◎</div>
+            <h3>Discover new looks</h3>
+            <p>Get personalized style inspiration tailored to you.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">→</div>
+            <h3>Shop smarter</h3>
+            <p>Find pieces that fit your aesthetic and your budget.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="about">
+      <div class="container about-inner">
+        <h2>About Styld</h2>
+        <p>
+          We're building Styld for people who care about how they look but don't want style to feel complicated.
+          Simple tools, clean design, and a focus on what matters — you.
+        </p>
+      </div>
+    </section>
+
+    <section id="contact" class="contact">
+      <div class="container contact-inner">
+        <h2>Stay in the loop</h2>
+        <p>Be the first to know when Styld launches.</p>
+        <form class="waitlist-form" onsubmit="handleSubmit(event)">
+          <input type="email" placeholder="you@email.com" required aria-label="Email address">
+          <button type="submit" class="btn btn-primary">Notify me</button>
+        </form>
+        <p id="form-message" class="form-message" hidden>Thanks! We'll be in touch.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span class="logo">styld</span>
+      <p>&copy; 2026 Styld. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    function handleSubmit(e) {
+      e.preventDefault();
+      e.target.reset();
+      document.getElementById('form-message').hidden = false;
+    }
+  </script>
+</body>
+</html>
