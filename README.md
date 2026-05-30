@@ -1,10 +1,8 @@
 # Styld
 
-A simple landing page for the Styld app.
+Coming soon landing page for **Styld** — a CRM app for hair salons and braiders.
 
-## Local preview
-
-Open `index.html` in your browser, or run a local server:
+## Preview locally
 
 ```bash
 npx serve .
@@ -12,4 +10,4 @@ npx serve .
 
 ## Deploy
 
-This is a static site — deploy to GitHub Pages, Netlify, Vercel, or any static host.
+Static site — deploy to GitHub Pages, Netlify, or Vercel.

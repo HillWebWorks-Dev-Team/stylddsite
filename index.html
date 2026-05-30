@@ -3,90 +3,221 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Styld — your personal style, simplified.">
-  <title>Styld</title>
+  <meta name="description" content="Styld — the CRM app for hair salons and braiders. Coming soon to the App Store.">
+  <title>Styld — Coming Soon</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
 </head>
 <body>
+  <div class="announce-bar">
+    <span class="pulse-dot"></span>
+    Coming soon to the App Store — get on the list before we drop
+  </div>
+
   <header class="header">
-    <div class="container header-inner">
-      <a href="/" class="logo">styld</a>
-      <nav class="nav">
-        <a href="#features">Features</a>
-        <a href="#about">About</a>
-        <a href="#contact" class="nav-cta">Get in touch</a>
-      </nav>
+    <div class="wrap header-row">
+      <a href="/" class="brand">styld</a>
+      <a href="#notify" class="header-btn">Notify me</a>
     </div>
   </header>
 
   <main>
     <section class="hero">
-      <div class="container hero-inner">
-        <p class="eyebrow">Coming soon</p>
-        <h1>Your style, <span class="accent">perfected.</span></h1>
-        <p class="hero-text">
-          Styld helps you discover, organize, and express your personal style — all in one place.
-        </p>
-        <div class="hero-actions">
-          <a href="#contact" class="btn btn-primary">Join the waitlist</a>
-          <a href="#features" class="btn btn-secondary">Learn more</a>
+      <div class="hero-bg"></div>
+      <div class="wrap hero-layout">
+        <div class="hero-content">
+          <span class="tag">Coming Soon</span>
+          <h1>The CRM your <span class="highlight">salon</span> actually needed.</h1>
+          <p class="lead">
+            Bookings, clients, deposits, reminders — all in one app built for salons
+            and braiders. No more juggling DMs and notebooks. We're putting the whole
+            business in your pocket. <strong>Almost there.</strong>
+          </p>
+
+          <div class="store-block">
+            <p class="store-label">Download on the App Store</p>
+            <a href="#notify" class="app-store-badge" aria-label="Styld — Coming soon to the App Store">
+              <svg class="apple-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+              </svg>
+              <span class="badge-text">
+                <small>Download on the</small>
+                <strong>App Store</strong>
+              </span>
+              <span class="soon-chip">Soon</span>
+            </a>
+            <p class="store-note">iOS launch loading… tap to join the waitlist &amp; get notified first.</p>
+          </div>
+        </div>
+
+        <div class="phone-wrap">
+          <div class="phone">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <div class="screen-header">
+                <span>Good morning 👋</span>
+                <span class="soon-pill">Beta soon</span>
+              </div>
+              <div class="screen-card">
+                <span class="card-label">Today</span>
+                <p class="card-big">3 bookings</p>
+                <p class="card-sub">Next up: Knotless braids · 10 AM</p>
+              </div>
+              <div class="screen-row">
+                <div class="mini-card">
+                  <span>Clients</span>
+                  <strong>148</strong>
+                </div>
+                <div class="mini-card accent">
+                  <span>This week</span>
+                  <strong>$2.8k</strong>
+                </div>
+              </div>
+              <div class="screen-list">
+                <div class="list-item"><span>Jasmine R.</span><em>Confirmed</em></div>
+                <div class="list-item"><span>Michelle T.</span><em>Deposit paid</em></div>
+                <div class="list-item"><span>Keisha L.</span><em>2:30 PM</em></div>
+              </div>
+            </div>
+          </div>
+          <div class="float-card float-1">📅 Bookings locked in</div>
+          <div class="float-card float-2">💬 Client notes saved</div>
+        </div>
+      </div>
+
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee-track">
+          <span>Coming Soon</span><span>•</span><span>Salons &amp; Braiders</span><span>•</span>
+          <span>Track Bookings</span><span>•</span><span>Own Your Business</span><span>•</span>
+          <span>Coming Soon</span><span>•</span><span>Salons &amp; Braiders</span><span>•</span>
+          <span>Track Bookings</span><span>•</span><span>Own Your Business</span><span>•</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="pitch">
+      <div class="wrap pitch-grid">
+        <div class="pitch-copy">
+          <span class="tag">What's Styld?</span>
+          <h2>Your chair stays busy.<br>Your backend stays clean.</h2>
+          <p>
+            Styld is the app-based CRM for hair salons and braiders who are tired of
+            losing clients in the group chat. Track every appointment, keep relationships
+            tight, and run your whole operation without the stress.
+          </p>
+        </div>
+        <div class="pitch-stats">
+          <div class="stat"><strong>Book</strong><span>Smart scheduling</span></div>
+          <div class="stat"><strong>Track</strong><span>Client history</span></div>
+          <div class="stat"><strong>Grow</strong><span>Business insights</span></div>
+          <div class="stat"><strong>Run</strong><span>Full control</span></div>
         </div>
       </div>
     </section>
 
     <section id="features" class="features">
-      <div class="container">
-        <h2>Everything you need to look your best</h2>
-        <div class="feature-grid">
-          <article class="feature-card">
-            <div class="feature-icon">✦</div>
-            <h3>Curate your wardrobe</h3>
-            <p>Build a digital closet and mix outfits effortlessly.</p>
+      <div class="wrap">
+        <div class="section-head">
+          <span class="tag">Features</span>
+          <h2>Everything in one app.<br><em>Not</em> ten different ones.</h2>
+        </div>
+        <div class="bento">
+          <article class="bento-item wide">
+            <div class="bento-icon">📅</div>
+            <h3>Booking management</h3>
+            <p>See your day, week, and month. Block time off. No more double-bookings or "wait, what time was that?"</p>
           </article>
-          <article class="feature-card">
-            <div class="feature-icon">◎</div>
-            <h3>Discover new looks</h3>
-            <p>Get personalized style inspiration tailored to you.</p>
+          <article class="bento-item">
+            <div class="bento-icon">👥</div>
+            <h3>Client CRM</h3>
+            <p>Profiles, visit history, preferences, and notes — all in one place.</p>
           </article>
-          <article class="feature-card">
-            <div class="feature-icon">→</div>
-            <h3>Shop smarter</h3>
-            <p>Find pieces that fit your aesthetic and your budget.</p>
+          <article class="bento-item">
+            <div class="bento-icon">🔔</div>
+            <h3>Auto reminders</h3>
+            <p>Confirmations and follow-ups so no-shows don't wreck your week.</p>
+          </article>
+          <article class="bento-item">
+            <div class="bento-icon">💰</div>
+            <h3>Deposits &amp; payments</h3>
+            <p>Collect upfront for braids, color, cuts — track what's paid and what's owed.</p>
+          </article>
+          <article class="bento-item wide">
+            <div class="bento-icon">📊</div>
+            <h3>Business dashboard</h3>
+            <p>Revenue, repeat clients, busiest days — real numbers so you know where you stand.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <section id="about" class="about">
-      <div class="container about-inner">
-        <h2>About Styld</h2>
-        <p>
-          We're building Styld for people who care about how they look but don't want style to feel complicated.
-          Simple tools, clean design, and a focus on what matters — you.
-        </p>
+    <section class="who">
+      <div class="wrap">
+        <div class="section-head center">
+          <span class="tag">Built for the culture</span>
+          <h2>Salons. Braiders. Independent stylists.<br>Y'all are who we built this for.</h2>
+        </div>
+        <div class="who-cards">
+          <article>
+            <h3>Hair salons</h3>
+            <p>Multiple stylists, one calendar, zero chaos.</p>
+          </article>
+          <article>
+            <h3>Hair braiders</h3>
+            <p>Long sessions, deposits, and style notes — handled.</p>
+          </article>
+          <article>
+            <h3>Solo stylists</h3>
+            <p>Your clients, your schedule, your business — in your pocket.</p>
+          </article>
+        </div>
       </div>
     </section>
 
-    <section id="contact" class="contact">
-      <div class="container contact-inner">
-        <h2>Stay in the loop</h2>
-        <p>Be the first to know when Styld launches.</p>
-        <form class="waitlist-form" onsubmit="handleSubmit(event)">
-          <input type="email" placeholder="you@email.com" required aria-label="Email address">
-          <button type="submit" class="btn btn-primary">Notify me</button>
+    <section id="notify" class="notify">
+      <div class="wrap notify-box">
+        <span class="tag light">Don't miss the drop</span>
+        <h2>Get notified when we hit the App Store</h2>
+        <p>Early access goes to the waitlist first. Be in the chair before everyone else.</p>
+
+        <a href="#notify" class="app-store-badge light-badge" aria-label="Styld — Coming soon to the App Store">
+          <svg class="apple-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+          </svg>
+          <span class="badge-text">
+            <small>Download on the</small>
+            <strong>App Store</strong>
+          </span>
+          <span class="soon-chip dark">Soon</span>
+        </a>
+
+        <form class="notify-form" onsubmit="handleSubmit(event)">
+          <input type="email" placeholder="Drop your email" required aria-label="Email address">
+          <button type="submit">Notify me</button>
         </form>
-        <p id="form-message" class="form-message" hidden>Thanks! We'll be in touch.</p>
+        <p id="form-msg" class="form-msg" hidden>You're on the list — we'll hit you when we launch. 🔥</p>
       </div>
     </section>
   </main>
 
   <footer class="footer">
-    <div class="container footer-inner">
-      <span class="logo">styld</span>
-      <p>&copy; 2026 Styld. All rights reserved.</p>
+    <div class="wrap footer-row">
+      <div>
+        <span class="brand">styld</span>
+        <p>CRM for salons &amp; braiders · Coming soon</p>
+      </div>
+      <a href="#notify" class="app-store-badge small-badge" aria-label="Download on the App Store — Coming soon">
+        <svg class="apple-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+        </svg>
+        <span class="badge-text">
+          <small>Download on the</small>
+          <strong>App Store</strong>
+        </span>
+      </a>
+      <p class="copy">&copy; 2026 Styld</p>
     </div>
   </footer>
 
@@ -94,7 +225,7 @@
     function handleSubmit(e) {
       e.preventDefault();
       e.target.reset();
-      document.getElementById('form-message').hidden = false;
+      document.getElementById('form-msg').hidden = false;
     }
   </script>
 </body>
