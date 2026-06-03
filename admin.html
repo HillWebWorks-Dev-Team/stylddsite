@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Admin dashboard for Your brand name bookings." />
+    <title>Admin Dashboard | Your brand name</title>
+    <link rel="icon" href="assets/favicon-32.png?v=4" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=4" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/main.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.10/main.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.10/main.min.css" rel="stylesheet" />
+    <!-- Vercel Web Analytics: enable in Vercel Project Settings > Analytics -->
+    <script src="js/vercel-analytics-init.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
+  </head>
+  <body class="page-admin page-site">
+    <div id="admin-booking-detail" class="admin-detail-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="admin-booking-detail-title">
+      <div class="admin-detail-shell">
+        <div class="admin-detail-toolbar">
+          <h2 id="admin-booking-detail-title">Booking details</h2>
+          <button type="button" class="btn btn-outline admin-detail-close" data-admin-detail-close aria-label="Close">Close</button>
+        </div>
+        <div class="admin-detail-scroll">
+          <div class="booking-details-receipt admin-detail-receipt">
+            <div class="booking-details-receipt__brand admin-detail-receipt__brand">
+              <img src="assets/placeholders/logo.svg" width="56" height="56" alt="" decoding="async" />
+              <div>
+                <strong class="booking-details-receipt__title">Your brand name</strong>
+                <span class="booking-details-receipt__sub">By appointment — studio details shared when you book</span>
+              </div>
+            </div>
+            <p class="booking-details-receipt__ribbon" aria-hidden="true">Official booking summary</p>
+
+            <div class="booking-details-id-block">
+              <span class="booking-details-id-block__label">Your booking ID</span>
+              <code id="admin-detail-booking-id" class="booking-details-id-block__code"></code>
+              <span id="admin-detail-booking-short" class="booking-details-id-block__chip" hidden></span>
+              <p class="booking-details-id-block__hint">
+                Same layout as the customer confirmation page. Quote this ID for support or lookup.
+              </p>
+            </div>
+
+            <p id="admin-detail-status" class="booking-details-status-pill" role="status"></p>
+
+            <div class="booking-details-sections">
+              <section class="booking-details-section">
+                <h3 class="booking-details-section__title">Contact</h3>
+                <dl class="booking-details-dl" id="admin-dl-contact"></dl>
+              </section>
+              <section class="booking-details-section">
+                <h3 class="booking-details-section__title">Appointment</h3>
+                <dl class="booking-details-dl" id="admin-dl-appointment"></dl>
+              </section>
+              <section class="booking-details-section">
+                <h3 class="booking-details-section__title">Service</h3>
+                <dl class="booking-details-dl" id="admin-dl-service"></dl>
+              </section>
+              <section class="booking-details-section booking-details-section--payment">
+                <h3 class="booking-details-section__title">Payment</h3>
+                <dl class="booking-details-dl" id="admin-dl-payment"></dl>
+              </section>
+              <section class="booking-details-section" id="admin-section-extra" hidden>
+                <h3 class="booking-details-section__title">Files &amp; admin</h3>
+                <dl class="booking-details-dl" id="admin-dl-extra"></dl>
+              </section>
+            </div>
+
+            <div class="admin-detail-actions">
+              <button type="button" class="btn btn-outline" id="admin-cancel-booking-btn" hidden>
+                Cancel booking
+              </button>
+            </div>
+
+            <p class="booking-details-receipt__fineprint">
+              Internal dashboard view · Customer line:
+              <a href="tel:+15550100199">(555) 010-0199</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="admin-client-detail" class="admin-detail-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="admin-client-detail-title">
+      <div class="admin-detail-shell">
+        <div class="admin-detail-toolbar">
+          <h2 id="admin-client-detail-title">Client Profile</h2>
+          <button type="button" class="btn btn-outline admin-detail-close" data-admin-client-close aria-label="Close">Close</button>
+        </div>
+        <div class="admin-detail-scroll">
+          <div id="admin-client-profile" class="admin-client-profile">
+            <div class="admin-kpis admin-client-kpis" id="admin-client-kpis"></div>
+            <div class="admin-grid-2">
+              <div>
+                <h3 class="admin-client-subheading">Contact</h3>
+                <dl class="booking-details-dl admin-client-dl" id="admin-client-contact"></dl>
+              </div>
+              <div>
+                <h3 class="admin-client-subheading">Most booked styles</h3>
+                <div class="admin-list" id="admin-client-styles"></div>
+              </div>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table" id="admin-client-history-table">
+                <thead>
+                  <tr>
+                    <th>Booked</th>
+                    <th>Appointment</th>
+                    <th>Style</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Deposit</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="admin-email-preview-modal" class="admin-detail-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="admin-email-preview-title">
+      <div class="admin-detail-shell admin-email-preview-shell">
+        <div class="admin-detail-toolbar">
+          <h2 id="admin-email-preview-title">Email previews</h2>
+          <button type="button" class="btn btn-outline admin-detail-close" data-admin-email-preview-close aria-label="Close">Close</button>
+        </div>
+        <div class="admin-detail-scroll">
+          <div class="admin-email-preview-links" id="admin-email-preview-links">
+            <button type="button" class="admin-email-preview-link is-active" data-email-preview-link="salon-booking">Salon: new booking</button>
+            <button type="button" class="admin-email-preview-link" data-email-preview-link="customer-confirmation">Customer: booking received</button>
+            <button type="button" class="admin-email-preview-link" data-email-preview-link="customer-reminder">Customer: reminder</button>
+            <button type="button" class="admin-email-preview-link" data-email-preview-link="daily-digest">Owner: daily digest</button>
+            <button type="button" class="admin-email-preview-link" data-email-preview-link="deposit-received">Customer: deposit received</button>
+            <button type="button" class="admin-email-preview-link" data-email-preview-link="salon-cancelled">Salon: cancelled</button>
+            <button type="button" class="admin-email-preview-link" data-email-preview-link="customer-cancelled">Customer: cancelled</button>
+            <button type="button" class="admin-email-preview-link" data-email-preview-link="salon-rescheduled">Salon: rescheduled</button>
+            <button type="button" class="admin-email-preview-link" data-email-preview-link="customer-rescheduled">Customer: rescheduled</button>
+          </div>
+          <iframe id="admin-email-preview-frame" class="admin-email-preview-frame" title="Email preview"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-gate" class="admin-gate" role="dialog" aria-modal="true" aria-labelledby="admin-gate-title">
+      <div class="admin-gate__card">
+        <h1 id="admin-gate-title">Admin Access</h1>
+        <p>Enter admin code to continue.</p>
+        <form id="admin-gate-form" class="admin-gate__form">
+          <label for="admin-code">Access code</label>
+          <input id="admin-code" type="password" inputmode="numeric" autocomplete="one-time-code" required />
+          <button type="submit" class="btn btn-primary">Open dashboard</button>
+          <p id="admin-gate-error" class="admin-gate__error" aria-live="polite"></p>
+        </form>
+      </div>
+    </div>
+
+    <header class="hero-nav hero-nav--site">
+      <div class="container hero-nav__inner">
+        <a class="hero-brand" href="index.html">
+          <img class="hero-brand__logo" src="assets/placeholders/logo.svg" width="44" height="44" alt="" decoding="async" />
+          <span class="hero-brand__text">Your brand name</span>
+        </a>
+
+        <button
+          type="button"
+          class="hero-nav__burger"
+          id="hero-nav-toggle"
+          aria-expanded="false"
+          aria-controls="hero-nav-panel"
+        >
+          <span class="hero-nav__burger-box" aria-hidden="true">
+            <span class="hero-nav__burger-line"></span>
+            <span class="hero-nav__burger-line"></span>
+            <span class="hero-nav__burger-line"></span>
+          </span>
+          <span class="visually-hidden">Menu</span>
+        </button>
+
+        <div id="hero-nav-panel" class="hero-nav__panel">
+          <nav class="hero-nav__links" aria-label="Main">
+            <a href="index.html">Home</a>
+            <a href="styles-catalog.html">Menu</a>
+            <a href="gallery.html">Gallery</a>
+          </nav>
+          <div class="hero-nav__actions">
+            <a class="hero-btn hero-btn--nav" href="booking.html">
+              <svg class="hero-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Book Now
+              <svg class="hero-icon hero-icon--chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </a>
+            <a class="hero-nav__lookup" href="booking-lookup.html">
+              <svg class="hero-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.75" />
+                <path d="M20 20l-3-3" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+              </svg>
+              Lookup Booking
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="container page-hero">
+        <h1>Booking Management</h1>
+        <p>Live stats, service trends, client breakdowns, and appointment calendar.</p>
+      </div>
+
+      <div class="container admin-tabs-bar" role="tablist" aria-label="Dashboard sections">
+        <button type="button" class="admin-tab is-active" role="tab" data-admin-tab="stats" aria-selected="true">
+          Stats
+        </button>
+        <button type="button" class="admin-tab" role="tab" data-admin-tab="schedule" aria-selected="false">
+          Schedule
+        </button>
+        <button type="button" class="admin-tab" role="tab" data-admin-tab="calendar" aria-selected="false">
+          Calendar
+        </button>
+      </div>
+
+      <section class="section section-alt" id="admin-panel-stats" data-admin-panel="stats">
+        <div class="container admin-controls">
+          <div class="admin-control">
+            <label for="admin-range">Date range</label>
+            <select id="admin-range">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="365">Last 12 months</option>
+              <option value="all">All time</option>
+            </select>
+          </div>
+          <button id="admin-refresh" class="btn btn-outline" type="button">Refresh</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container" id="admin-panel-stats-inner" data-admin-panel="stats">
+          <div id="admin-loading" class="admin-banner">Loading booking metrics...</div>
+          <div id="admin-error" class="admin-banner admin-banner--error" hidden></div>
+
+          <div class="admin-kpis" id="admin-kpis"></div>
+
+          <div class="admin-grid-2">
+            <article class="admin-panel">
+              <h2>Popular Services</h2>
+              <div id="admin-services" class="admin-list"></div>
+            </article>
+            <article class="admin-panel">
+              <h2>Top Clients</h2>
+              <div id="admin-clients" class="admin-list"></div>
+            </article>
+          </div>
+
+
+          <div class="admin-grid-2">
+            <article class="admin-panel">
+              <h2>Bookings by Day</h2>
+              <div id="admin-days" class="admin-list"></div>
+            </article>
+            <article class="admin-panel">
+              <h2>Options Breakdown</h2>
+              <div id="admin-options" class="admin-list"></div>
+            </article>
+          </div>
+
+          <article class="admin-panel">
+            <h2>Upcoming Appointments</h2>
+            <div class="admin-table-wrap">
+              <table class="admin-table" id="admin-upcoming-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Slot</th>
+                    <th>Client</th>
+                    <th>Style</th>
+                    <th>Phone</th>
+                    <th>Deposit</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="admin-panel">
+            <h2>Recent Booking Requests</h2>
+            <div class="admin-table-wrap">
+              <table class="admin-table" id="admin-recent-table">
+                <thead>
+                  <tr>
+                    <th>Created</th>
+                    <th>Client</th>
+                    <th>Email</th>
+                    <th>Style</th>
+                    <th>Total</th>
+                    <th>Source</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <section class="section section-alt admin-schedule" id="admin-panel-schedule-wrap" hidden data-admin-panel="schedule">
+        <div class="container">
+          <header class="admin-schedule__header">
+            <h2 class="admin-schedule__title">Schedule</h2>
+            <p class="admin-schedule__lead">
+              Block time on the public calendar or add an appointment manually. Both sync through Supabase so clients only see real availability.
+            </p>
+          </header>
+
+          <div class="admin-grid-2 admin-schedule__grid">
+            <article class="admin-panel admin-schedule__card">
+              <h3 class="admin-schedule__card-title">Block time</h3>
+              <p class="admin-inquiries-note admin-schedule__card-desc">
+                Saves busy intervals to <code>blocked_intervals</code> — online booking treats them like booked time.
+              </p>
+              <form id="admin-block-form" class="admin-schedule-form">
+                <div class="admin-control">
+                  <label for="admin-block-date">Date</label>
+                  <p class="admin-inquiries-note" style="margin: 0 0 0.5rem">
+                    Same calendar rules as online booking (3 full days lead time, blackouts).
+                  </p>
+                  <div class="appointment-calendar booking-calendar-wrap">
+                    <div class="booking-calendar" role="application" aria-label="Choose block date">
+                      <div class="booking-calendar__header">
+                        <button type="button" class="booking-calendar__nav" id="admin-block-cal-prev" aria-label="Previous month">
+                          ‹
+                        </button>
+                        <p class="booking-calendar__month" id="admin-block-cal-month-label">Month YYYY</p>
+                        <button type="button" class="booking-calendar__nav" id="admin-block-cal-next" aria-label="Next month">
+                          ›
+                        </button>
+                      </div>
+                      <div class="booking-calendar__weekdays" aria-hidden="true">
+                        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span
+                        ><span>Sat</span>
+                      </div>
+                      <div class="booking-calendar__grid" id="admin-block-cal-grid"></div>
+                      <p class="booking-calendar__selected" id="admin-block-cal-selected-line">Selected date: —</p>
+                    </div>
+                  </div>
+                  <input type="hidden" id="admin-block-date" name="admin-block-date" value="" autocomplete="off" />
+                </div>
+                <div class="admin-control admin-schedule__checkbox-row">
+                  <label class="admin-schedule__checkbox-label">
+                    <input type="checkbox" id="admin-block-fullday" checked />
+                    <span>Full-day block (standard salon window · Eastern)</span>
+                  </label>
+                </div>
+                <div class="admin-control admin-block-partial" hidden>
+                  <label for="admin-block-start">Start</label>
+                  <input id="admin-block-start" type="time" value="08:00" />
+                </div>
+                <div class="admin-control admin-block-partial" hidden>
+                  <label for="admin-block-end">End</label>
+                  <input id="admin-block-end" type="time" value="19:30" />
+                </div>
+                <div class="admin-control">
+                  <label for="admin-block-note">Note (optional)</label>
+                  <input id="admin-block-note" type="text" placeholder="Shown on admin calendar" autocomplete="off" />
+                </div>
+                <div class="admin-schedule-actions">
+                  <button type="submit" class="hero-btn hero-btn--nav">
+                    <svg class="hero-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                    Save block
+                    <svg class="hero-icon hero-icon--chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
+                </div>
+              </form>
+            </article>
+
+            <article class="admin-panel admin-schedule__card">
+              <h3 class="admin-schedule__card-title">Add appointment</h3>
+              <p class="admin-inquiries-note admin-schedule__card-desc">
+                Inserts a confirmed booking so it occupies the slot on the client booking flow (same as a paid appointment).
+              </p>
+              <form id="admin-manual-booking-form" class="admin-schedule-form">
+                <p class="admin-schedule__section-title">Contact</p>
+                <div class="admin-control">
+                  <label for="admin-manual-name">Client name</label>
+                  <input id="admin-manual-name" type="text" required autocomplete="name" />
+                </div>
+                <div class="admin-control">
+                  <label for="admin-manual-phone">Phone</label>
+                  <input id="admin-manual-phone" type="tel" required autocomplete="tel" />
+                </div>
+                <div class="admin-control">
+                  <label for="admin-manual-email">Email</label>
+                  <input id="admin-manual-email" type="email" required autocomplete="email" />
+                </div>
+
+                <p class="admin-schedule__section-title">Service details</p>
+                <div class="admin-control">
+                  <label for="admin-manual-style">Choose style *</label>
+                  <select id="admin-manual-style" required></select>
+                  <p class="admin-inquiries-note" style="margin-top: 0.35rem">
+                    Prices match our <a href="styles-catalog.html">styles &amp; pricing</a> menu — same options as the public booking page.
+                  </p>
+                </div>
+                <div class="admin-control" id="admin-manual-house-address-wrap" hidden>
+                  <label for="admin-manual-service-address">House-call service address *</label>
+                  <textarea
+                    id="admin-manual-service-address"
+                    name="admin-manual-service-address"
+                    rows="3"
+                    autocomplete="street-address"
+                    placeholder="Street address, apartment or unit, city, state, ZIP"
+                  ></textarea>
+                </div>
+                <div class="admin-control" id="admin-manual-hair-length-wrap" hidden>
+                  <label for="admin-manual-hair-length">Extra hair length (optional)</label>
+                  <select id="admin-manual-hair-length" name="admin-manual-hair-length">
+                    <option value="" selected>Standard — menu length (no extra charge)</option>
+                    <option value="lower-back">Lower Back Length (+$15 · +30 min)</option>
+                    <option value="butt">Butt Length (+$25 · +60 min)</option>
+                    <option value="knee">Knee Length (+$35 · +90 min)</option>
+                  </select>
+                  <p class="admin-inquiries-note" style="margin-top: 0.35rem">
+                    When enabled, matches the ids handled in booking.js (<code>styleSupportsExtraHairLength</code>).
+                  </p>
+                </div>
+                <div class="admin-control">
+                  <label for="admin-manual-photo-hair">Current hair photo *</label>
+                  <input id="admin-manual-photo-hair" type="file" accept="image/*" required />
+                  <p class="admin-inquiries-note" style="margin-top: 0.35rem">
+                    Clear, recent photo of the client’s natural hair — helps prepare for the service.
+                  </p>
+                </div>
+                <div class="admin-control">
+                  <label for="admin-manual-photo-ref">Reference image (optional)</label>
+                  <input id="admin-manual-photo-ref" type="file" accept="image/*" />
+                </div>
+                <div class="admin-control">
+                  <label for="admin-manual-notes">Additional notes (optional)</label>
+                  <textarea id="admin-manual-notes" rows="3" placeholder="Allergies, part preferences, timing…"></textarea>
+                </div>
+
+                <p class="admin-schedule__section-title">Appointment</p>
+                <div class="admin-control">
+                  <label for="admin-manual-date">Date</label>
+                  <p class="admin-inquiries-note" style="margin: 0 0 0.5rem">
+                    Same rules as the public booking page (including 3 full days lead time).
+                  </p>
+                  <div class="appointment-calendar booking-calendar-wrap">
+                    <div class="booking-calendar" role="application" aria-label="Choose appointment date">
+                      <div class="booking-calendar__header">
+                        <button type="button" class="booking-calendar__nav" id="admin-manual-cal-prev" aria-label="Previous month">
+                          ‹
+                        </button>
+                        <p class="booking-calendar__month" id="admin-manual-cal-month-label">Month YYYY</p>
+                        <button type="button" class="booking-calendar__nav" id="admin-manual-cal-next" aria-label="Next month">
+                          ›
+                        </button>
+                      </div>
+                      <div class="booking-calendar__weekdays" aria-hidden="true">
+                        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span
+                        ><span>Sat</span>
+                      </div>
+                      <div class="booking-calendar__grid" id="admin-manual-cal-grid"></div>
+                      <p class="booking-calendar__selected" id="admin-manual-cal-selected-line">Selected date: —</p>
+                    </div>
+                  </div>
+                  <input type="hidden" id="admin-manual-date" name="admin-manual-date" value="" autocomplete="off" />
+                </div>
+                <div class="admin-control">
+                  <label for="admin-manual-slot">Start time</label>
+                  <select id="admin-manual-slot" required></select>
+                </div>
+                <div class="admin-schedule-actions">
+                  <button type="submit" class="hero-btn hero-btn--nav">
+                    <svg class="hero-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                    Save appointment
+                    <svg class="hero-icon hero-icon--chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
+                </div>
+              </form>
+            </article>
+          </div>
+
+          <article class="admin-panel admin-schedule__blocks">
+            <h3 class="admin-schedule__card-title">Blocked intervals</h3>
+            <div class="admin-table-wrap">
+              <table class="admin-table" id="admin-blocks-table">
+                <thead>
+                  <tr>
+                    <th>Starts (ET)</th>
+                    <th>Ends (ET)</th>
+                    <th>Note</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section section-alt" id="admin-panel-calendar-wrap" hidden data-admin-panel="calendar">
+        <div class="container">
+          <div class="fc-toolbar-custom">
+            <div class="fc-toolbar-custom__nav">
+              <button type="button" id="fc-prev" aria-label="Previous">&lsaquo;</button>
+              <button type="button" id="fc-today">Today</button>
+              <button type="button" id="fc-next" aria-label="Next">&rsaquo;</button>
+            </div>
+            <div class="fc-toolbar-custom__title" id="fc-range-title">&nbsp;</div>
+            <div class="fc-toolbar-custom__views">
+              <button type="button" data-fc-view="dayGridMonth">Month</button>
+              <button type="button" data-fc-view="timeGridWeek">Week</button>
+              <button type="button" data-fc-view="timeGridDay">Day</button>
+            </div>
+          </div>
+          <div id="admin-fullcalendar"></div>
+
+          <article class="admin-panel">
+            <h2>All Bookings</h2>
+            <div class="admin-all-controls">
+              <div class="admin-control">
+                <label for="admin-booking-status">Status</label>
+                <select id="admin-booking-status">
+                  <option value="all">All Status</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="pending_payment">Pending payment</option>
+                  <option value="pending">Pending</option>
+                  <option value="rescheduled">Rescheduled</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+              <div class="admin-control" style="flex: 1; min-width: 220px">
+                <label for="admin-booking-search">Search</label>
+                <input id="admin-booking-search" type="search" placeholder="Search bookings" autocomplete="off" />
+              </div>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table" id="admin-all-bookings-table">
+                <thead>
+                  <tr>
+                    <th>Time booked</th>
+                    <th>Client</th>
+                    <th>Service</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="section section-alt">
+        <div class="container">
+          <p class="admin-email-preview-footer-links">
+            Email previews:
+            <button type="button" class="admin-email-preview-footer-link" data-open-email-previews>open popup</button>
+            ·
+            <button type="button" class="admin-email-preview-footer-link" data-email-preview-link="customer-confirmation">customer confirmation</button>
+            ·
+            <button type="button" class="admin-email-preview-footer-link" data-email-preview-link="daily-digest">daily digest</button>
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-bottom">
+        <p>&copy; 2026 Your brand name. Internal dashboard.</p>
+        <p class="footer-built-by">
+          <span class="footer-built-by__link" style="opacity: 0.75;">Add footer credit here</span>
+        </p>
+      </div>
+    </footer>
+
+    <div id="admin-schedule-toast" class="admin-schedule-toast" hidden aria-live="polite" aria-hidden="true">
+      <button type="button" class="admin-schedule-toast__backdrop" aria-label="Dismiss notification"></button>
+      <div
+        id="admin-schedule-toast-card"
+        class="admin-feedback-card admin-schedule-toast__surface"
+        role="status"
+      >
+        <div class="admin-feedback-card__strip" aria-hidden="true"></div>
+        <div class="admin-feedback-card__inner">
+          <p class="admin-feedback-card__title"></p>
+          <p class="admin-feedback-card__text"></p>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script type="module">
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+      const c = window.__SALON_SITE_SUPABASE;
+      if (c && c.url && c.anonKey) {
+        window.salonSupabaseClient = createClient(c.url, c.anonKey);
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.5.0/build/global/luxon.min.js"></script>
+    <script src="js/booking-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <script defer src="js/admin-dashboard.js"></script>
+    <script src="js/hero-nav.js" defer></script>
+  </body>
+</html>

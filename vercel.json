@@ -1,17 +1,10 @@
 {
-  "cleanUrls": true,
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "npm run build",
+  "outputDirectory": ".",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Permissions-Policy",
-          "value": "clipboard-write=*"
-        }
-      ]
-    }
+    { "source": "/tenant", "destination": "/tenant/index.html" },
+    { "source": "/marketing", "destination": "/marketing/index.html" }
   ]
 }

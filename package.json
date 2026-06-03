@@ -1,0 +1,10 @@
+{
+  "name": "stylddsite",
+  "private": true,
+  "scripts": {
+    "build": "node -e \"process.exit(0)\""
+  },
+  "dependencies": {
+    "@vercel/functions": "^2.0.0"
+  }
+}

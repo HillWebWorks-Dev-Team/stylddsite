@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Your Your brand name booking confirmation — save or print your details."
+    />
+    <title>Booking details | Your brand name</title>
+    <link rel="icon" href="assets/favicon-32.png?v=4" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=4" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+    <!-- Vercel Web Analytics: enable in Vercel Project Settings > Analytics -->
+    <script src="js/vercel-analytics-init.js"></script>
+    <script defer src="/_vercel/insights/script.js"></script>
+  </head>
+  <body class="page-site">
+    <header class="hero-nav hero-nav--site">
+      <div class="container hero-nav__inner">
+        <a class="hero-brand" href="index.html">
+          <img class="hero-brand__logo" src="assets/placeholders/logo.svg" width="44" height="44" alt="" decoding="async" />
+          <span class="hero-brand__text">Your brand name</span>
+        </a>
+
+        <button
+          type="button"
+          class="hero-nav__burger"
+          id="hero-nav-toggle"
+          aria-expanded="false"
+          aria-controls="hero-nav-panel"
+        >
+          <span class="hero-nav__burger-box" aria-hidden="true">
+            <span class="hero-nav__burger-line"></span>
+            <span class="hero-nav__burger-line"></span>
+            <span class="hero-nav__burger-line"></span>
+          </span>
+          <span class="visually-hidden">Menu</span>
+        </button>
+
+        <div id="hero-nav-panel" class="hero-nav__panel">
+          <nav class="hero-nav__links" aria-label="Main">
+            <a href="index.html">Home</a>
+            <a href="styles-catalog.html">Menu</a>
+            <a href="gallery.html">Gallery</a>
+          </nav>
+          <div class="hero-nav__actions">
+            <a class="hero-btn hero-btn--nav" href="booking.html">
+              <svg class="hero-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Book Now
+              <svg class="hero-icon hero-icon--chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </a>
+            <a class="hero-nav__lookup" href="booking-lookup.html">
+              <svg class="hero-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.75" />
+                <path d="M20 20l-3-3" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+              </svg>
+              Lookup Booking
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="container booking-details-page">
+        <div class="page-hero page-hero--compact booking-details-hero">
+          <p class="booking-details-hero__eyebrow">Confirmation</p>
+          <h1>Your appointment is on the books</h1>
+          <p class="booking-details-hero__lead">
+            Keep your <strong>booking reference</strong> below — you will need it for changes or lookup. Download a PNG
+            copy for your records.
+          </p>
+        </div>
+
+        <div class="booking-details-actions" id="booking-details-actions">
+          <button type="button" class="btn btn-primary" id="btn-download-png">Save as PNG</button>
+          <a class="btn btn-outline" href="booking-lookup.html">Lookup / change appointment</a>
+          <a class="btn btn-outline" href="booking.html">Book another appointment</a>
+        </div>
+
+        <p id="booking-details-notice" class="booking-details-notice" role="status" hidden></p>
+
+        <div id="booking-details-error" class="booking-details-error" hidden>
+          <p id="booking-details-error-msg"></p>
+          <p><a href="booking.html">Return to booking</a></p>
+        </div>
+
+        <div id="booking-details-capture" class="booking-details-receipt" hidden>
+          <div class="booking-details-receipt__brand">
+            <img src="assets/placeholders/logo.svg" width="56" height="56" alt="" decoding="async" />
+            <div>
+              <strong class="booking-details-receipt__title">Your brand name</strong>
+              <span class="booking-details-receipt__sub">By appointment — studio details shared when you book</span>
+            </div>
+          </div>
+
+          <p class="booking-details-receipt__ribbon" aria-hidden="true">Official booking summary</p>
+
+          <div class="booking-details-id-block">
+            <span class="booking-details-id-block__label">Your booking ID</span>
+            <code id="receipt-booking-id" class="booking-details-id-block__code"></code>
+            <span id="receipt-booking-short" class="booking-details-id-block__chip" hidden></span>
+            <p class="booking-details-id-block__hint">Save a screenshot or use &ldquo;Save as PNG&rdquo; above. Quote this ID when you call or text the salon.</p>
+          </div>
+
+          <p id="receipt-status-line" class="booking-details-status-pill" role="status"></p>
+
+          <div class="booking-details-sections">
+            <section class="booking-details-section">
+              <h2 class="booking-details-section__title">Contact</h2>
+              <dl class="booking-details-dl" id="receipt-dl-contact"></dl>
+            </section>
+            <section class="booking-details-section">
+              <h2 class="booking-details-section__title">Appointment</h2>
+              <dl class="booking-details-dl" id="receipt-dl-appointment"></dl>
+            </section>
+            <section class="booking-details-section">
+              <h2 class="booking-details-section__title">Service</h2>
+              <dl class="booking-details-dl" id="receipt-dl-service"></dl>
+            </section>
+            <section class="booking-details-section booking-details-section--payment">
+              <h2 class="booking-details-section__title">Payment</h2>
+              <dl class="booking-details-dl" id="receipt-dl-payment"></dl>
+            </section>
+            <section class="booking-details-section" id="receipt-section-extra" hidden>
+              <h2 class="booking-details-section__title">Files &amp; source</h2>
+              <dl class="booking-details-dl" id="receipt-dl-extra"></dl>
+            </section>
+          </div>
+
+          <p class="booking-details-receipt__fineprint">
+            Bring this summary to your visit. Questions? Call
+            <a href="tel:+15550100199">(555) 010-0199</a>.
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-main">
+          <div class="footer-brand">
+            <a class="footer-brand__link" href="index.html">
+              <img
+                class="footer-brand__logo"
+                src="assets/placeholders/logo.svg"
+                width="80"
+                height="80"
+                alt="Your brand name logo"
+                decoding="async"
+              />
+              <span class="footer-brand__text">
+                <span class="footer-brand__name">Your brand name</span>
+                <span class="footer-brand__tagline">Put your tagline here · Swap this for your own line</span>
+                <span class="footer-brand__meta">yoursite.com</span>
+              </span>
+            </a>
+            <p class="footer-brand__address">Your City, ST · By appointment — studio details shared when you book</p>
+          </div>
+          <div class="footer-col">
+            <h3 class="footer-heading">Contact</h3>
+            <p><a href="tel:+15550100199">(555) 010-0199</a></p>
+            <p><a href="mailto:hello@yoursite.com">hello@yoursite.com</a></p>
+          </div>
+          <div class="footer-col">
+            <h3 class="footer-heading">Explore</h3>
+            <ul class="footer-links">
+              <li><a href="index.html">Home</a></li>
+              <li><a href="booking.html">Book appointment</a></li>
+              <li><a href="booking-lookup.html">Lookup booking</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="container footer-bottom">
+        <p>&copy; 2026 Your brand name. All rights reserved.</p>
+        <p class="footer-built-by">
+          <span class="footer-built-by__link" style="opacity: 0.75;">Add footer credit here</span>
+        </p>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script type="module">
+      import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+      const c = window.__SALON_SITE_SUPABASE;
+      if (c && c.url && c.anonKey) {
+        window.salonSupabaseClient = createClient(c.url, c.anonKey);
+      }
+    </script>
+    <script defer src="js/booking-details.js"></script>
+      <script src="js/hero-nav.js" defer></script>
+  </body>
+</html>
