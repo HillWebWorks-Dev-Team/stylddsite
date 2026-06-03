@@ -11,6 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- Marketing site: styldd.com / www -->
+  <div id="marketing-site">
   <div class="announce-bar">
     <span class="pulse-dot"></span>
     Coming soon to the App Store — get on the list before we drop
@@ -220,12 +222,78 @@
       <p class="copy">&copy; 2026 Styld</p>
     </div>
   </footer>
+  </div>
 
+  <!-- Tenant site: {business}.styldd.com -->
+  <div id="tenant-site" hidden>
+    <header class="tenant-header">
+      <div class="wrap tenant-header-row">
+        <a href="https://styldd.com" class="brand">styld</a>
+        <span class="tenant-badge">Booking page</span>
+      </div>
+    </header>
+
+    <main class="tenant-main">
+      <section class="tenant-hero">
+        <div class="wrap tenant-hero-inner">
+          <p class="tenant-eyebrow">Powered by Styld</p>
+          <h1 id="tenant-name">Your Salon</h1>
+          <p class="tenant-slug-line"><span id="tenant-slug">salon.styldd.com</span></p>
+          <p class="tenant-lead">
+            Book appointments, view services, and stay connected — your business hub on Styld.
+          </p>
+          <button type="button" class="btn btn-primary tenant-cta" id="tenant-book-btn">Book an appointment</button>
+        </div>
+      </section>
+
+      <section class="tenant-services">
+        <div class="wrap">
+          <h2>Services</h2>
+          <ul class="service-list">
+            <li><span>Consultation</span><em>30 min</em></li>
+            <li><span>Hair braiding</span><em>3–6 hrs</em></li>
+            <li><span>Cut &amp; style</span><em>1 hr</em></li>
+            <li><span>Color / treatment</span><em>2+ hrs</em></li>
+          </ul>
+          <p class="tenant-note">Full online booking opens when the Styld app launches. Request a slot below.</p>
+        </div>
+      </section>
+
+      <section id="tenant-booking" class="tenant-booking">
+        <div class="wrap tenant-booking-box">
+          <h2>Request a booking</h2>
+          <p>We'll confirm your appointment soon.</p>
+          <form class="tenant-form" onsubmit="handleTenantSubmit(event)">
+            <input type="text" name="name" placeholder="Your name" required aria-label="Your name">
+            <input type="email" name="email" placeholder="Your email" required aria-label="Your email">
+            <input type="tel" name="phone" placeholder="Phone number" aria-label="Phone number">
+            <input type="text" name="service" placeholder="Service (e.g. knotless braids)" aria-label="Service requested">
+            <button type="submit" class="btn btn-primary">Send request</button>
+          </form>
+          <p id="tenant-form-msg" class="form-msg" hidden>Request sent — we'll be in touch!</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="tenant-footer">
+      <div class="wrap">
+        <p>Powered by <a href="https://styldd.com">Styld</a> · <span id="tenant-url"></span></p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="subdomain.js"></script>
   <script>
     function handleSubmit(e) {
       e.preventDefault();
       e.target.reset();
       document.getElementById('form-msg').hidden = false;
+    }
+
+    function handleTenantSubmit(e) {
+      e.preventDefault();
+      e.target.reset();
+      document.getElementById('tenant-form-msg').hidden = false;
     }
   </script>
 </body>
