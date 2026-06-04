@@ -3,7 +3,11 @@
     var img = explorer.querySelector('.screenshot-explorer__img');
     var cards = explorer.querySelectorAll('.screenshot-explorer__card');
     var dotsWrap = explorer.querySelector('.screenshot-explorer__dots');
+    var prev = explorer.querySelector('.screenshot-explorer__nav--prev');
+    var next = explorer.querySelector('.screenshot-explorer__nav--next');
     if (!img || !cards.length || !dotsWrap) return;
+
+    var currentIndex = 0;
 
     cards.forEach(function (card, index) {
       var dot = document.createElement('button');
@@ -19,8 +23,10 @@
     var dots = dotsWrap.querySelectorAll('.screenshot-explorer__dot');
 
     function select(index) {
+      if (index < 0 || index >= cards.length || index === currentIndex) return;
+
       var card = cards[index];
-      if (!card || card.classList.contains('is-active')) return;
+      currentIndex = index;
 
       cards.forEach(function (item, i) {
         var active = i === index;
@@ -43,7 +49,9 @@
         img.classList.remove('is-fading');
       }, 140);
 
-      card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      if (window.matchMedia('(min-width: 961px)').matches) {
+        card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
     }
 
     cards.forEach(function (card, index) {
@@ -51,5 +59,17 @@
         select(index);
       });
     });
+
+    if (prev) {
+      prev.addEventListener('click', function () {
+        select((currentIndex - 1 + cards.length) % cards.length);
+      });
+    }
+
+    if (next) {
+      next.addEventListener('click', function () {
+        select((currentIndex + 1) % cards.length);
+      });
+    }
   });
 })();

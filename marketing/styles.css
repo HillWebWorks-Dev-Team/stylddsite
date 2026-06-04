@@ -1243,6 +1243,14 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   color: var(--white-muted);
 }
 
+.screenshot-explorer__caption-shell {
+  display: contents;
+}
+
+.screenshot-explorer__nav {
+  display: none;
+}
+
 .video-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2005,29 +2013,127 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
     grid-template-columns: unset;
   }
 
-  .screenshot-explorer {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+  .app-screenshots {
+    padding: 3.5rem 0;
   }
 
   .screenshot-explorer {
+    grid-template-columns: 1fr;
+    gap: 1rem;
     align-items: stretch;
   }
 
+  .screenshot-explorer__preview {
+    gap: 0.85rem;
+    width: 100%;
+  }
+
   .screenshot-explorer__phone {
-    max-width: none;
-    min-height: 26rem;
-    padding: 1.5rem 1rem 1.15rem;
+    order: 1;
+    max-width: min(320px, 100%);
+    width: 100%;
+    min-height: auto;
+    margin: 0 auto;
+    padding: 1rem 0.75rem 0.85rem;
+    border-radius: 1.35rem;
   }
 
   .screenshot-explorer__img {
-    width: min(280px, 72vw);
+    width: min(220px, 62vw);
+  }
+
+  .screenshot-explorer__dots {
+    order: 2;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    padding: 0 0.5rem;
+    max-width: 100%;
+  }
+
+  .screenshot-explorer__dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    flex-shrink: 0;
+  }
+
+  .screenshot-explorer__caption-shell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .screenshot-explorer__nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--white);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .screenshot-explorer__nav:hover {
+    background: rgba(255, 45, 138, 0.12);
+    border-color: rgba(255, 45, 138, 0.45);
+    color: var(--pink);
+  }
+
+  .screenshot-explorer__nav:focus-visible {
+    outline: 2px solid var(--pink);
+    outline-offset: 2px;
   }
 
   .screenshot-explorer__list {
+    flex: 1;
+    min-width: 0;
     max-height: none;
     overflow: visible;
     padding-right: 0;
+    gap: 0;
+  }
+
+  .screenshot-explorer__card:not(.is-active) {
+    display: none;
+  }
+
+  .screenshot-explorer__card.is-active {
+    text-align: left;
+    padding: 1.1rem 1.15rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 45, 138, 0.55);
+    border-radius: 1.1rem;
+    box-shadow: 0 0 0 1px rgba(255, 45, 138, 0.12) inset;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .screenshot-explorer__card.is-active h3 {
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .screenshot-explorer__card.is-active p {
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    max-width: none;
+    margin: 0;
+  }
+
+  .screenshot-explorer__hint {
+    font-size: 0.9rem;
+    padding: 0 0.25rem;
   }
 
   .feature-card,

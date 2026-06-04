@@ -7,7 +7,7 @@
   <title>Styld — CRM for Salons &amp; Braiders</title>
   <link rel="icon" href="/assets/styld-icon.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/styld-icon.png">
-  <link rel="stylesheet" href="/marketing/styles.css?v=45">
+  <link rel="stylesheet" href="/marketing/styles.css?v=47">
   <link rel="stylesheet" href="../css/hero-effects.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -249,7 +249,7 @@
         <div class="section-head center">
           <span class="tag">Screenshots</span>
           <h2>See Styld in action.</h2>
-          <p class="section-sub">Tap any card to preview clients, calendar, appointments, services, and more.</p>
+          <p class="section-sub screenshot-explorer__hint">Browse each screen with the arrows, dots, or cards below.</p>
         </div>
         <div class="screenshot-explorer" data-screenshot-explorer>
           <div class="screenshot-explorer__preview">
@@ -265,7 +265,9 @@
               >
             </figure>
           </div>
-          <div class="screenshot-explorer__list" role="tablist" aria-label="App screenshots">
+          <div class="screenshot-explorer__caption-shell">
+            <button type="button" class="screenshot-explorer__nav screenshot-explorer__nav--prev" aria-label="Previous screenshot">‹</button>
+            <div class="screenshot-explorer__list" role="tablist" aria-label="App screenshots">
             <button
               type="button"
               class="screenshot-explorer__card is-active"
@@ -343,6 +345,8 @@
               <h3>Styles &amp; services</h3>
               <p>Set your menu, durations, and pricing the way you actually work.</p>
             </button>
+            </div>
+            <button type="button" class="screenshot-explorer__nav screenshot-explorer__nav--next" aria-label="Next screenshot">›</button>
           </div>
         </div>
       </div>
@@ -574,7 +578,7 @@
   <script src="/marketing/hero-parallax.js?v=1" defer></script>
   <script src="/marketing/scroll-reveal.js?v=3"></script>
   <script src="/marketing/media-carousel.js?v=2" defer></script>
-  <script src="/marketing/screenshot-explorer.js?v=1" defer></script>
+  <script src="/marketing/screenshot-explorer.js?v=2" defer></script>
   <script src="../js/hero-effects.js"></script>
   <script>
     (function () {
