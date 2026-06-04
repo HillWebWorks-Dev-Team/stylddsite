@@ -1117,40 +1117,130 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   background: linear-gradient(180deg, var(--black) 0%, rgba(255, 45, 138, 0.04) 50%, var(--black) 100%);
 }
 
-.screenshot-grid {
+.screenshot-explorer {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 2.5rem 3rem;
+  align-items: end;
 }
 
-.screenshot-card {
+.screenshot-explorer__preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.screenshot-explorer__phone {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
   margin: 0;
-  background: rgba(255, 255, 255, 0.02);
+  padding: 1.75rem 1.15rem 1.35rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  min-height: 32rem;
+  background:
+    radial-gradient(ellipse 75% 70% at 50% 88%, rgba(255, 45, 138, 0.16) 0%, transparent 72%),
+    rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
-  border-radius: 1.25rem;
-  padding: 0.75rem 0.75rem 0.65rem;
-  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  border-radius: 1.75rem;
 }
 
-.screenshot-card:hover {
-  border-color: rgba(255, 45, 138, 0.45);
-  transform: translateY(-4px);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+.screenshot-explorer__img {
+  display: block;
+  width: min(310px, 88%);
+  height: auto;
+  border-radius: 1.15rem;
+  box-shadow:
+    0 28px 56px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition: opacity 0.28s ease;
 }
 
-.screenshot-card img {
+.screenshot-explorer__img.is-fading {
+  opacity: 0;
+}
+
+.screenshot-explorer__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.screenshot-explorer__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.screenshot-explorer__dot.is-active {
+  background: var(--pink);
+  transform: scale(1.15);
+}
+
+.screenshot-explorer__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.screenshot-explorer__list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.screenshot-explorer__list::-webkit-scrollbar-thumb {
+  background: rgba(255, 45, 138, 0.35);
+  border-radius: 999px;
+}
+
+.screenshot-explorer__card {
   display: block;
   width: 100%;
-  height: auto;
-  border-radius: 0.85rem;
+  text-align: left;
+  padding: 1.1rem 1.2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 1.1rem;
+  cursor: pointer;
+  transition:
+    border-color 0.22s ease,
+    background 0.22s ease,
+    box-shadow 0.22s ease;
 }
 
-.screenshot-card figcaption {
-  margin-top: 0.65rem;
+.screenshot-explorer__card:hover {
+  border-color: rgba(255, 45, 138, 0.35);
+  background: rgba(255, 45, 138, 0.04);
+}
+
+.screenshot-explorer__card.is-active {
+  border-color: rgba(255, 45, 138, 0.55);
+  background: rgba(255, 45, 138, 0.08);
+  box-shadow: 0 0 0 1px rgba(255, 45, 138, 0.12) inset;
+}
+
+.screenshot-explorer__card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.35rem;
+  color: var(--white);
+}
+
+.screenshot-explorer__card p {
   font-size: 0.8125rem;
-  font-weight: 600;
+  line-height: 1.6;
   color: var(--white-muted);
-  text-align: center;
 }
 
 .video-grid {
@@ -1905,7 +1995,6 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   }
 
   .media-carousel__track,
-  .screenshot-grid,
   .video-grid,
   .feature-showcase,
   .steps-list,
@@ -1916,10 +2005,34 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
     grid-template-columns: unset;
   }
 
+  .screenshot-explorer {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .screenshot-explorer {
+    align-items: stretch;
+  }
+
+  .screenshot-explorer__phone {
+    max-width: none;
+    min-height: 26rem;
+    padding: 1.5rem 1rem 1.15rem;
+  }
+
+  .screenshot-explorer__img {
+    width: min(280px, 72vw);
+  }
+
+  .screenshot-explorer__list {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
   .feature-card,
   .steps-list > li,
-  .audience-card,
-  .screenshot-card {
+  .audience-card {
     flex: 0 0 min(82vw, 300px);
     scroll-snap-align: center;
   }
