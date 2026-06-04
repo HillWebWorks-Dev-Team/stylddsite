@@ -1,0 +1,279 @@
+:root {
+  --hero-effect-pink: #ff4fa3;
+  --hero-effect-pink-soft: rgba(255, 79, 163, 0.35);
+  --hero-effect-pink-glow: rgba(255, 79, 163, 0.28);
+}
+
+.hero-section {
+  --mx: 0;
+  --my: 0;
+  isolation: isolate;
+}
+
+.hero-section .hero-grid-lines {
+  opacity: 0.04;
+  animation: heroGridDrift 26s linear infinite;
+  will-change: background-position;
+}
+
+.hero-section .hero-glow {
+  translate: var(--hero-glow-x, 0px) var(--hero-glow-y, 0px);
+  transition: opacity 0.4s ease;
+  will-change: translate;
+}
+
+.hero-phone-wrap {
+  --hero-phone-x: 0px;
+  --hero-phone-y: 0px;
+  pointer-events: auto;
+  translate: var(--hero-phone-x) var(--hero-phone-y);
+  animation: heroPhoneFloat 8s ease-in-out infinite;
+  will-change: translate, opacity, filter;
+}
+
+.hero-phone-wrap .parallax-layer--phone {
+  transition: filter 0.4s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero-phone {
+  opacity: 0;
+  transform: translateY(40px);
+  animation: heroPhoneReveal 1s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+  transition: transform 0.4s ease, filter 0.4s ease;
+  will-change: transform, opacity;
+}
+
+.hero-phone-wrap:hover .hero-phone {
+  transform: translateY(0) scale(1.02);
+}
+
+.hero-phone-wrap:hover .parallax-layer--phone {
+  filter:
+    drop-shadow(0 58px 112px rgba(0, 0, 0, 0.88))
+    drop-shadow(0 0 38px rgba(255, 79, 163, 0.28));
+}
+
+.float-card {
+  --card-parallax-x: 0px;
+  --card-parallax-y: 0px;
+  opacity: 0;
+  pointer-events: auto;
+  translate: var(--card-parallax-x) var(--card-parallax-y);
+  transform: translateY(32px);
+  will-change: translate, rotate, transform, opacity;
+}
+
+.float-card--tl {
+  animation:
+    heroCardEnter 0.78s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both,
+    heroCardFloatA 5s ease-in-out 1s infinite;
+}
+
+.float-card--tr {
+  animation:
+    heroCardEnter 0.78s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both,
+    heroCardFloatB 6.5s ease-in-out 1.1s infinite;
+}
+
+.float-card--ml {
+  animation:
+    heroCardEnter 0.78s cubic-bezier(0.22, 1, 0.36, 1) 0.45s both,
+    heroCardFloatC 7s ease-in-out 1.2s infinite;
+}
+
+.float-card--mr {
+  animation:
+    heroCardEnter 0.78s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both,
+    heroCardFloatD 8s ease-in-out 1.3s infinite;
+}
+
+.float-card--bl {
+  animation:
+    heroCardEnter 0.78s cubic-bezier(0.22, 1, 0.36, 1) 0.75s both,
+    heroCardFloatB 7.5s ease-in-out 1.4s infinite reverse;
+}
+
+.float-card--br {
+  animation:
+    heroCardEnter 0.78s cubic-bezier(0.22, 1, 0.36, 1) 0.9s both,
+    heroCardFloatA 6s ease-in-out 1.5s infinite reverse;
+}
+
+.float-card-inner {
+  transform-origin: 50% 50%;
+  translate: 0 0;
+  scale: 1;
+  transition:
+    border-color 0.4s ease,
+    box-shadow 0.4s ease,
+    scale 0.4s ease,
+    translate 0.4s ease,
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, translate, scale, border-color, box-shadow;
+}
+
+.float-card:hover .float-card-inner {
+  translate: 0 -10px;
+  scale: 1.04;
+  border-color: rgba(255, 79, 163, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(255, 79, 163, 0.18) inset,
+    0 30px 80px rgba(0, 0, 0, 0.72),
+    0 0 42px rgba(255, 79, 163, 0.18);
+}
+
+.cursor-spotlight {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 600px;
+  height: 600px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(-50%, -50%, 0);
+  background: radial-gradient(
+    circle,
+    rgba(255, 79, 163, 0.15),
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+  transition: opacity 0.35s ease;
+  will-change: transform, opacity;
+}
+
+.cursor-spotlight.is-visible {
+  opacity: 1;
+}
+
+@keyframes heroPhoneReveal {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroPhoneFloat {
+  0%,
+  100% {
+    translate: var(--hero-phone-x) var(--hero-phone-y);
+  }
+  50% {
+    translate: var(--hero-phone-x) calc(var(--hero-phone-y) - 12px);
+  }
+}
+
+@keyframes heroCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes heroCardFloatA {
+  0%,
+  100% {
+    translate: var(--card-parallax-x) var(--card-parallax-y);
+    rotate: -0.35deg;
+  }
+  50% {
+    translate: calc(var(--card-parallax-x) + 5px) calc(var(--card-parallax-y) - 9px);
+    rotate: 0.65deg;
+  }
+}
+
+@keyframes heroCardFloatB {
+  0%,
+  100% {
+    translate: var(--card-parallax-x) var(--card-parallax-y);
+    rotate: 0.45deg;
+  }
+  50% {
+    translate: calc(var(--card-parallax-x) - 7px) calc(var(--card-parallax-y) - 11px);
+    rotate: -0.55deg;
+  }
+}
+
+@keyframes heroCardFloatC {
+  0%,
+  100% {
+    translate: var(--card-parallax-x) var(--card-parallax-y);
+    rotate: -0.2deg;
+  }
+  50% {
+    translate: calc(var(--card-parallax-x) + 8px) calc(var(--card-parallax-y) - 8px);
+    rotate: 0.45deg;
+  }
+}
+
+@keyframes heroCardFloatD {
+  0%,
+  100% {
+    translate: var(--card-parallax-x) var(--card-parallax-y);
+    rotate: 0.2deg;
+  }
+  50% {
+    translate: calc(var(--card-parallax-x) - 5px) calc(var(--card-parallax-y) - 12px);
+    rotate: -0.7deg;
+  }
+}
+
+@keyframes heroGridDrift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 -120px;
+  }
+}
+
+@media (max-width: 960px) {
+  .hero-phone-wrap {
+    animation: none;
+    translate: none;
+  }
+
+  .hero-phone {
+    animation: heroPhoneReveal 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+    transform: none;
+  }
+
+  .hero-section .hero-grid-lines {
+    opacity: 0.03;
+    animation-duration: 40s;
+  }
+
+  .hero-section .hero-glow {
+    height: 50%;
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-section .hero-grid-lines,
+  .hero-phone-wrap,
+  .hero-phone,
+  .float-card {
+    animation: none !important;
+  }
+
+  .hero-phone,
+  .float-card {
+    opacity: 1;
+    transform: none;
+  }
+
+  .cursor-spotlight {
+    display: none;
+  }
+}

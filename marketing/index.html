@@ -7,23 +7,19 @@
   <title>Styld — CRM for Salons &amp; Braiders</title>
   <link rel="icon" href="/assets/styld-icon.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/styld-icon.png">
-  <link rel="stylesheet" href="/marketing/styles.css?v=22">
+  <link rel="stylesheet" href="/marketing/styles.css?v=38">
+  <link rel="stylesheet" href="../css/hero-effects.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="announce-bar">
-    <span class="pulse-dot" aria-hidden="true"></span>
-    Coming soon to the App Store — join the waitlist
-  </div>
-
-  <section class="hero" aria-label="Styld app overview">
+  <section class="hero hero-section" aria-label="Styld app overview">
     <div class="hero-grid-lines" aria-hidden="true"></div>
     <div class="hero-glow" aria-hidden="true"></div>
 
     <header class="site-header">
-      <div class="site-header__shell">
+      <div class="site-header__shell hero-entrance">
         <div class="site-header__bar">
         <a href="/" class="brand-lockup">
           <img class="brand-lockup__icon" src="/assets/styld-icon.png" width="36" height="36" alt="" decoding="async">
@@ -32,16 +28,12 @@
 
         <nav class="site-nav" aria-label="Primary">
           <a href="#features">Features</a>
+          <a href="#screenshots">Screenshots</a>
+          <a href="#videos">Videos</a>
           <a href="#how-it-works">How it works</a>
-          <a href="#notify">Waitlist</a>
         </nav>
 
         <div class="header-actions">
-          <a href="#notify" class="header-icon-btn" aria-label="Join waitlist">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-              <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke-linecap="round"/>
-            </svg>
-          </a>
           <div class="app-store-wrap">
             <button type="button" class="app-store-badge app-store-badge--header" aria-label="Download on the App Store — Coming soon" disabled>
               <svg class="apple-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -62,13 +54,14 @@
 
         <div id="mobile-nav" class="mobile-nav" hidden>
           <a href="#features">Features</a>
+          <a href="#screenshots">Screenshots</a>
+          <a href="#videos">Videos</a>
           <a href="#how-it-works">How it works</a>
-          <a href="#notify">Waitlist</a>
         </div>
       </div>
     </header>
 
-    <div class="wrap hero-copy">
+    <div class="wrap hero-copy hero-entrance">
       <div class="hero-copy__main">
         <h1 class="hero-title">
           Run your <span class="hero-title__accent">business</span><br>
@@ -80,75 +73,90 @@
           Styld helps hair braiders and salon owners manage bookings, clients, services,
           and payments — plus a booking site where customers book and pay online.
         </p>
-        <a class="hero-link" href="#notify">Join the waitlist <span aria-hidden="true">→</span></a>
       </div>
     </div>
 
-    <div class="hero-stage">
+    <div class="hero-stage hero-entrance">
       <div class="hero-stage__canvas">
-        <div class="hero-orbit">
-          <article class="float-card float-card--stat float-card--tl">
-            <span class="float-card__pill">Built for salons &amp; braiders</span>
-            <p class="float-card__metric">One <span>app</span></p>
-            <p class="float-card__label">Client management</p>
-          </article>
+        <div class="hero-orbit" id="hero-orbit">
+          <div class="hero-scene" aria-hidden="true">
+            <article class="float-card float-card--stat float-card--tl">
+              <div class="parallax-layer float-card-inner" data-depth="1.2">
+                <span class="float-card__pill">Built for salons &amp; braiders</span>
+                <p class="float-card__metric">One <span>app</span></p>
+                <p class="float-card__label">Client management</p>
+              </div>
+            </article>
 
-          <article class="float-card float-card--rich float-card--tr">
-            <div class="float-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-                <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <p class="float-card__title">Booking<br>management</p>
-          </article>
+            <article class="float-card float-card--rich float-card--tr">
+              <div class="parallax-layer float-card-inner" data-depth="1.35">
+                <div class="float-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <p class="float-card__title">Booking<br>management</p>
+              </div>
+            </article>
 
-          <article class="float-card float-card--rich float-card--pay float-card--ml">
-            <p class="float-card__head">Payments</p>
-            <div class="float-card__body">
-              <span>Deposit paid</span>
-              <strong>$120</strong>
-            </div>
-          </article>
+            <article class="float-card float-card--rich float-card--pay float-card--ml">
+              <div class="parallax-layer float-card-inner" data-depth="0.95">
+                <p class="float-card__head">Payments</p>
+                <div class="float-card__body">
+                  <span>Deposit paid</span>
+                  <strong>$120</strong>
+                </div>
+              </div>
+            </article>
 
-          <article class="float-card float-card--rich float-card--mr">
-            <p class="float-card__head">Your booking site</p>
-            <div class="float-card__body mock-templates">
-              <div class="mock-tpl mock-tpl--active" aria-hidden="true"></div>
-              <div class="mock-tpl" aria-hidden="true"></div>
-            </div>
-          </article>
+            <article class="float-card float-card--rich float-card--mr">
+              <div class="parallax-layer float-card-inner" data-depth="1.1">
+                <p class="float-card__head">Your booking site</p>
+                <div class="float-card__body mock-templates">
+                  <div class="mock-tpl mock-tpl--active" aria-hidden="true"></div>
+                  <div class="mock-tpl" aria-hidden="true"></div>
+                </div>
+              </div>
+            </article>
 
-          <article class="float-card float-card--rich float-card--bl">
-            <p class="float-card__head">Analytics</p>
-            <div class="float-card__body mock-bars" aria-hidden="true">
-              <span></span><span></span><span></span><span></span>
-            </div>
-          </article>
+            <article class="float-card float-card--rich float-card--bl">
+              <div class="parallax-layer float-card-inner" data-depth="0.85">
+                <p class="float-card__head">Analytics</p>
+                <div class="float-card__body mock-bars" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+            </article>
 
-          <article class="float-card float-card--compact float-card--br">
-            <div class="float-card__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-                <path d="M12 2v20M2 12h20" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <p class="float-card__title">Clients book<br>&amp; pay online</p>
-          </article>
+            <article class="float-card float-card--compact float-card--br">
+              <div class="parallax-layer float-card-inner" data-depth="1.25">
+                <div class="float-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <path d="M12 2v20M2 12h20" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <p class="float-card__title">Clients book<br>&amp; pay online</p>
+              </div>
+            </article>
 
-          <figure class="hero-device">
-            <img
-              class="hero-device__img"
-              src="/images/AppPreview.gif"
-              width="480"
-              height="480"
-              alt="Styld app — edit your booking site, manage design and publish"
-              decoding="async"
-            >
-          </figure>
+            <figure class="hero-device hero-phone-wrap">
+              <div class="parallax-layer parallax-layer--phone" data-depth="0.55">
+                <img
+                  class="hero-device__img hero-phone"
+                  src="/images/AppPreview.gif"
+                  width="480"
+                  height="480"
+                  alt="Styld app — edit your booking site, manage design and publish"
+                  decoding="async"
+                >
+              </div>
+            </figure>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="marquee" aria-hidden="true">
+    <div class="marquee hero-entrance" aria-hidden="true">
       <div class="marquee-track">
         <div class="marquee-group">
           <span>Salons &amp; Braiders</span><span class="marquee-dot">·</span>
@@ -169,68 +177,246 @@
   </section>
 
   <main>
-    <section class="pitch">
-      <div class="wrap pitch-grid">
-        <div class="pitch-copy">
+    <section class="pitch scroll-reveal">
+      <div class="wrap pitch-layout">
+        <div class="pitch-intro">
           <span class="tag">Why Styld</span>
-          <h2>Less chaos. More chairs filled.</h2>
+          <h2>Less chaos.<br><span class="text-accent">More chairs filled.</span></h2>
           <p>
             Stop losing clients in DMs and notebooks. Styld keeps your schedule, client
             history, and money organized so you can focus on the work — not the admin.
           </p>
         </div>
-        <div class="pitch-stats">
-          <div class="stat"><strong>Save time</strong><span>One app for your whole day</span></div>
-          <div class="stat"><strong>Stay organized</strong><span>Clients, styles, notes</span></div>
-          <div class="stat"><strong>Get booked</strong><span>Clients book &amp; pay online</span></div>
-          <div class="stat"><strong>Run smarter</strong><span>Analytics &amp; dashboard</span></div>
+        <div class="media-carousel" data-media-carousel>
+          <div class="media-carousel__shell">
+            <button type="button" class="media-carousel__btn media-carousel__btn--prev" aria-label="Previous benefit">‹</button>
+            <div class="media-carousel__viewport">
+              <ul class="pitch-benefits media-carousel__track">
+          <li class="pitch-benefit">
+            <span class="pitch-benefit__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <div>
+              <strong>Save time</strong>
+              <span>One app for your whole day</span>
+            </div>
+          </li>
+          <li class="pitch-benefit">
+            <span class="pitch-benefit__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M4 7h16M4 12h10M4 17h14" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <div>
+              <strong>Stay organized</strong>
+              <span>Clients, styles, and notes together</span>
+            </div>
+          </li>
+          <li class="pitch-benefit">
+            <span class="pitch-benefit__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h4M7 13h8" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <div>
+              <strong>Get booked</strong>
+              <span>Clients book and pay online</span>
+            </div>
+          </li>
+          <li class="pitch-benefit">
+            <span class="pitch-benefit__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M4 18V6M4 18h16M8 14v-3M12 14V9M16 14V11" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <div>
+              <strong>Run smarter</strong>
+              <span>Analytics and revenue insights</span>
+            </div>
+          </li>
+              </ul>
+            </div>
+            <button type="button" class="media-carousel__btn media-carousel__btn--next" aria-label="Next benefit">›</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="features" class="features">
+    <section id="screenshots" class="app-screenshots scroll-reveal">
+      <div class="wrap">
+        <div class="section-head center">
+          <span class="tag">Screenshots</span>
+          <h2>See Styld in action.</h2>
+          <p class="section-sub">Clients, calendar, appointments, services, and your booking site — all in one app.</p>
+        </div>
+        <div class="media-carousel" data-media-carousel>
+          <div class="media-carousel__shell">
+            <button type="button" class="media-carousel__btn media-carousel__btn--prev" aria-label="Previous screenshot">‹</button>
+            <div class="media-carousel__viewport">
+              <div class="screenshot-grid media-carousel__track">
+          <figure class="screenshot-card">
+            <img src="/images/1.png?v=3" width="521" height="1049" alt="Styld client list with bookings and revenue per client" loading="lazy" decoding="async">
+            <figcaption>Client list</figcaption>
+          </figure>
+          <figure class="screenshot-card">
+            <img src="/images/2.png?v=3" width="521" height="1049" alt="Styld client profile with booking history and contact details" loading="lazy" decoding="async">
+            <figcaption>Client profile</figcaption>
+          </figure>
+          <figure class="screenshot-card">
+            <img src="/images/3.png?v=3" width="521" height="1049" alt="Styld calendar day view with scheduled appointment" loading="lazy" decoding="async">
+            <figcaption>Calendar — day view</figcaption>
+          </figure>
+          <figure class="screenshot-card">
+            <img src="/images/4.png?v=3" width="521" height="1049" alt="Styld calendar month view with appointment indicators" loading="lazy" decoding="async">
+            <figcaption>Calendar — month view</figcaption>
+          </figure>
+          <figure class="screenshot-card">
+            <img src="/images/5.png?v=3" width="521" height="1049" alt="Styld upcoming appointments list" loading="lazy" decoding="async">
+            <figcaption>Upcoming appointments</figcaption>
+          </figure>
+          <figure class="screenshot-card">
+            <img src="/images/6.png?v=3" width="521" height="1049" alt="Styld appointment details with payment and client info" loading="lazy" decoding="async">
+            <figcaption>Appointment details</figcaption>
+          </figure>
+          <figure class="screenshot-card">
+            <img src="/images/7.png?v=3" width="521" height="1049" alt="Styld styles and services menu with pricing" loading="lazy" decoding="async">
+            <figcaption>Styles &amp; services</figcaption>
+          </figure>
+              </div>
+            </div>
+            <button type="button" class="media-carousel__btn media-carousel__btn--next" aria-label="Next screenshot">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="videos" class="app-videos scroll-reveal">
+      <div class="wrap">
+        <div class="section-head center">
+          <span class="tag">Videos</span>
+          <h2>Watch how it works.</h2>
+          <p class="section-sub">Quick previews of booking, scheduling, and customizing your site.</p>
+        </div>
+        <div class="media-carousel" data-media-carousel>
+          <div class="media-carousel__shell">
+            <button type="button" class="media-carousel__btn media-carousel__btn--prev" aria-label="Previous video">‹</button>
+            <div class="media-carousel__viewport">
+              <div class="video-grid media-carousel__track">
+          <figure class="video-card">
+            <div class="video-card__media">
+              <img src="/images/AppPreview.gif" width="480" height="480" alt="Styld app — customize your booking site design and publish" loading="lazy" decoding="async">
+            </div>
+            <figcaption>Customize your booking site</figcaption>
+          </figure>
+          <figure class="video-card">
+            <div class="video-card__media">
+              <img src="/images/CalendarPreview.gif" width="480" height="480" alt="Styld app — manage your calendar and schedule" loading="lazy" decoding="async">
+            </div>
+            <figcaption>Manage your schedule</figcaption>
+          </figure>
+          <figure class="video-card">
+            <div class="video-card__media">
+              <img src="/images/NewAppointment.gif" width="480" height="480" alt="Styld app — create a new appointment" loading="lazy" decoding="async">
+            </div>
+            <figcaption>Book new appointments</figcaption>
+          </figure>
+              </div>
+            </div>
+            <button type="button" class="media-carousel__btn media-carousel__btn--next" aria-label="Next video">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-divider" aria-hidden="true">
+
+    <section id="features" class="features scroll-reveal">
       <div class="wrap">
         <div class="section-head center">
           <span class="tag">Features</span>
           <h2>Everything you need to run your chair.</h2>
           <p class="section-sub">Bookings, clients, services, payments, and your customer-facing site — without juggling ten apps.</p>
         </div>
-        <div class="bento">
-          <article class="bento-item wide">
+        <div class="media-carousel" data-media-carousel>
+          <div class="media-carousel__shell">
+            <button type="button" class="media-carousel__btn media-carousel__btn--prev" aria-label="Previous feature">‹</button>
+            <div class="media-carousel__viewport">
+              <div class="feature-showcase media-carousel__track">
+          <article class="feature-card feature-card--lead">
+            <span class="feature-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke-linecap="round"/>
+              </svg>
+            </span>
             <h3>Booking management</h3>
             <p>Calendar, appointments, and tracking — see your day at a glance and avoid double-bookings.</p>
           </article>
-          <article class="bento-item">
+          <article class="feature-card">
+            <span class="feature-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke-linecap="round"/>
+              </svg>
+            </span>
             <h3>Client CRM</h3>
             <p>Profiles, visit history, preferences, and notes in one place.</p>
           </article>
-          <article class="bento-item">
+          <article class="feature-card">
+            <span class="feature-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M6 6h12v12H6z"/><path d="M9 9h6M9 12h6M9 15h4" stroke-linecap="round"/>
+              </svg>
+            </span>
             <h3>Service &amp; style menu</h3>
             <p>Manage offerings, durations, and pricing the way you actually work.</p>
           </article>
-          <article class="bento-item">
+          <article class="feature-card">
+            <span class="feature-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18" stroke-linecap="round"/>
+              </svg>
+            </span>
             <h3>Deposits &amp; payments</h3>
             <p>Collect upfront and track what's paid — braids, color, cuts, all of it.</p>
           </article>
-          <article class="bento-item">
+          <article class="feature-card">
+            <span class="feature-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M4 18V6M4 18h16M8 14v-3M12 14V9M16 14V11" stroke-linecap="round"/>
+              </svg>
+            </span>
             <h3>Admin dashboard</h3>
             <p>Revenue, repeat clients, and busiest days — real numbers for your business.</p>
           </article>
-          <article class="bento-item wide">
+          <article class="feature-card feature-card--wide">
+            <span class="feature-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18" stroke-linecap="round"/>
+              </svg>
+            </span>
             <h3>Your booking website</h3>
             <p>Launch a site on your Styld subdomain so clients visit, book services, and pay online.</p>
           </article>
+              </div>
+            </div>
+            <button type="button" class="media-carousel__btn media-carousel__btn--next" aria-label="Next feature">›</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="how-it-works" class="steps">
+    <section id="how-it-works" class="steps scroll-reveal">
       <div class="wrap">
         <div class="section-head center">
           <span class="tag">How it works</span>
           <h2>Up and running in three steps</h2>
         </div>
-        <ol class="steps-list">
+        <div class="media-carousel" data-media-carousel>
+          <div class="media-carousel__shell">
+            <button type="button" class="media-carousel__btn media-carousel__btn--prev" aria-label="Previous step">‹</button>
+            <div class="media-carousel__viewport">
+              <ol class="steps-list media-carousel__track">
           <li>
             <span class="steps-num">1</span>
             <h3>Set up your business</h3>
@@ -246,59 +432,64 @@
             <h3>Let clients book online</h3>
             <p>Share your Styld site — they pick a service, book, and pay from their phone.</p>
           </li>
-        </ol>
+              </ol>
+            </div>
+            <button type="button" class="media-carousel__btn media-carousel__btn--next" aria-label="Next step">›</button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="who">
+    <section class="who scroll-reveal">
       <div class="wrap">
         <div class="section-head center">
           <span class="tag">Who it's for</span>
-          <h2>Salons. Braiders. Independent stylists.</h2>
+          <h2>Built for how you actually work.</h2>
+          <p class="section-sub">Whether you run a salon, braid from a chair, or build your brand solo — Styld fits your flow.</p>
         </div>
-        <div class="who-cards">
-          <article>
+        <div class="media-carousel" data-media-carousel>
+          <div class="media-carousel__shell">
+            <button type="button" class="media-carousel__btn media-carousel__btn--prev" aria-label="Previous audience">‹</button>
+            <div class="media-carousel__viewport">
+              <div class="audience-grid media-carousel__track">
+          <article class="audience-card">
+            <span class="audience-card__label">Salons</span>
             <h3>Hair salons</h3>
             <p>Multiple stylists, one system, less front-desk chaos.</p>
+            <ul class="audience-card__list">
+              <li>Shared calendar visibility</li>
+              <li>Per-stylist client records</li>
+              <li>Front-desk friendly booking</li>
+            </ul>
           </article>
-          <article>
+          <article class="audience-card audience-card--featured">
+            <span class="audience-card__label">Braiders</span>
             <h3>Hair braiders</h3>
             <p>Long sessions, deposits, and style notes — built for how you work.</p>
+            <ul class="audience-card__list">
+              <li>Deposit tracking per client</li>
+              <li>Style history and preferences</li>
+              <li>Long appointment durations</li>
+            </ul>
           </article>
-          <article>
-            <h3>Solo stylists</h3>
+          <article class="audience-card">
+            <span class="audience-card__label">Solo</span>
+            <h3>Independent stylists</h3>
             <p>Your clients, schedule, and business — in your pocket.</p>
+            <ul class="audience-card__list">
+              <li>Run everything from your phone</li>
+              <li>Your own booking site</li>
+              <li>Payments without the back-and-forth</li>
+            </ul>
           </article>
+              </div>
+            </div>
+            <button type="button" class="media-carousel__btn media-carousel__btn--next" aria-label="Next audience">›</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="notify" class="notify">
-      <div class="wrap notify-box">
-        <span class="tag tag--on-dark">Don't miss launch</span>
-        <h2>Get notified when we hit the App Store</h2>
-        <p>Early access goes to the waitlist first.</p>
-
-        <div class="app-store-wrap app-store-wrap--center">
-          <button type="button" class="app-store-badge app-store-badge--light" aria-label="Download on the App Store — Coming soon" disabled>
-            <svg class="apple-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-            </svg>
-            <span class="badge-text">
-              <small>Download on the</small>
-              <strong>App Store</strong>
-            </span>
-          </button>
-          <span class="soon-chip" aria-hidden="true">Soon</span>
-        </div>
-
-        <form class="notify-form" onsubmit="handleSubmit(event)">
-          <input type="email" placeholder="Your email" required aria-label="Email address">
-          <button type="submit">Notify me</button>
-        </form>
-        <p id="form-msg" class="form-msg" hidden>You're on the list — we'll email you at launch.</p>
-      </div>
-    </section>
   </main>
 
   <footer class="footer">
@@ -324,13 +515,11 @@
   </footer>
 
   <script src="/marketing/marquee.js?v=1" defer></script>
+  <script src="/marketing/hero-parallax.js?v=1" defer></script>
+  <script src="/marketing/scroll-reveal.js?v=3"></script>
+  <script src="/marketing/media-carousel.js?v=2" defer></script>
+  <script src="../js/hero-effects.js"></script>
   <script>
-    function handleSubmit(e) {
-      e.preventDefault();
-      e.target.reset();
-      document.getElementById('form-msg').hidden = false;
-    }
-
     (function () {
       var toggle = document.querySelector('.nav-toggle');
       var panel = document.getElementById('mobile-nav');
