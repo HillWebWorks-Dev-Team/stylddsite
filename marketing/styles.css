@@ -1664,8 +1664,18 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
     gap: 0.4rem;
   }
 
+  .brand-lockup {
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .brand-lockup__icon {
+    width: 32px;
+    height: 32px;
+  }
+
   .brand-lockup__name {
-    display: none;
+    font-size: 1.05rem;
   }
 
   .app-store-badge--header {
