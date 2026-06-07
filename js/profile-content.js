@@ -40,7 +40,7 @@
     return content.hiddenLocationParts.indexOf(part) !== -1;
   }
 
-  function buildServiceCardWithCategory(style, cardClass, logoFallback) {
+  function buildServiceCardWithCategory(style, cardClass, logoFallback, isOutlined) {
     var cat = (style.category || '').trim();
     var desc = (style.description || '').trim();
     var imageUrl = (style.imageUrl || logoFallback || '').trim();
@@ -66,14 +66,16 @@
         '<div class="profile-service-card__desc" hidden>' + escapeHtml(desc) + '</div>'
       : '';
 
-    return '<div class="profile-service-card-wrap"' +
+    return '<div class="profile-service-card-wrap' +
+      (isOutlined ? ' profile-service-card-wrap--outlined' : '') + '"' +
       (cat ? ' data-category="' + escapeHtml(cat) + '"' : '') +
       '>' + cardHtml + expandHtml + '</div>';
   }
 
   function buildProfileServiceCards(styles, theme) {
     var layout = theme && theme.styleCardLayout;
-    var cardClass = layout === 'outlined'
+    var isOutlined = layout === 'outlined';
+    var cardClass = isOutlined
       ? 'profile-service-card profile-service-card--outlined'
       : 'profile-service-card';
     var logoFallback = theme && theme.logoImageUrl ? theme.logoImageUrl : '';
@@ -90,7 +92,7 @@
     }
 
     return styles.slice(0, 24)
-      .map(function (s) { return buildServiceCardWithCategory(s, cardClass, logoFallback); })
+      .map(function (s) { return buildServiceCardWithCategory(s, cardClass, logoFallback, isOutlined); })
       .join('');
   }
 

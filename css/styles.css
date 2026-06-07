@@ -6156,7 +6156,18 @@ ul.price-menu__policy-list {
 }
 .profile-service-card--outlined:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  border-color: var(--ink);
+  border-color: var(--card-outline, var(--ink));
+}
+.profile-service-card-wrap--outlined {
+  border: 1.5px solid var(--card-outline, var(--ink));
+  background: var(--cream);
+}
+.profile-service-card-wrap--outlined:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-color: var(--card-outline, var(--ink));
+}
+.profile-service-card-wrap--outlined .profile-service-card:hover {
+  border-color: transparent;
 }
 .profile-service-card__img {
   width: 64px;
