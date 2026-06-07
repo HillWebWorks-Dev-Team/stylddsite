@@ -42,22 +42,33 @@
 
   function buildServiceCardWithCategory(style, cardClass, logoFallback) {
     var cat = (style.category || '').trim();
+    var desc = (style.description || '').trim();
     var imageUrl = (style.imageUrl || logoFallback || '').trim();
     var imgStyle = imageUrl
       ? ' style="background-image:url(\'' + String(imageUrl).replace(/'/g, '%27') + '\');background-size:cover;background-position:center;"'
       : '';
     var bookHref = style.id ? '/booking?style=' + encodeURIComponent(style.id) : '/booking';
-    return (
-      '<a class="' + cardClass + '" href="' + escapeHtml(bookHref) + '"' +
-      (cat ? ' data-category="' + escapeHtml(cat) + '"' : '') +
-      '>' +
+
+    var cardHtml =
+      '<a class="' + cardClass + '" href="' + escapeHtml(bookHref) + '">' +
       '<div class="profile-service-card__img" aria-hidden="true"' + imgStyle + '></div>' +
       '<div class="profile-service-card__body">' +
       '<div class="profile-service-card__name">' + escapeHtml(style.title || '') + '</div>' +
       (style.priceLabel ? '<div class="profile-service-card__price">' + escapeHtml(style.priceLabel) + '</div>' : '') +
       (style.durationLabel ? '<div class="profile-service-card__duration">' + escapeHtml(style.durationLabel) + '</div>' : '') +
-      '</div></a>'
-    );
+      '</div></a>';
+
+    var expandHtml = desc
+      ? '<button class="profile-service-card__expand-btn" type="button" aria-expanded="false">' +
+        '<span class="profile-service-card__expand-label">About this service</span>' +
+        '<svg class="profile-service-card__expand-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>' +
+        '</button>' +
+        '<div class="profile-service-card__desc" hidden>' + escapeHtml(desc) + '</div>'
+      : '';
+
+    return '<div class="profile-service-card-wrap"' +
+      (cat ? ' data-category="' + escapeHtml(cat) + '"' : '') +
+      '>' + cardHtml + expandHtml + '</div>';
   }
 
   function buildProfileServiceCards(styles, theme) {
@@ -116,11 +127,12 @@
     filtersEl.hidden = false;
 
     function applyFilter(filter) {
-      grid.querySelectorAll('.profile-service-card').forEach(function (card) {
-        var cat = card.getAttribute('data-category') || '';
-        var hide = filter !== '__all__' && cat !== filter;
-        card.hidden = hide;
-        card.classList.toggle('profile-service-card--filtered', hide);
+      grid.querySelectorAll('.profile-service-card-wrap').forEach(function (wrap) {
+        if (filter === '__all__') {
+          wrap.hidden = false;
+        } else {
+          wrap.hidden = (wrap.dataset.category || '') !== filter;
+        }
       });
     }
 
@@ -261,6 +273,23 @@
     if (serviceGrid) {
       serviceGrid.innerHTML = buildProfileServiceCards(styles, theme);
       setupMenuFilters(styles, serviceGrid);
+      if (!serviceGrid.dataset.expandBound) {
+        serviceGrid.dataset.expandBound = '1';
+        serviceGrid.addEventListener('click', function (e) {
+          var btn = e.target && e.target.closest ? e.target.closest('.profile-service-card__expand-btn') : null;
+          if (!btn) return;
+          e.preventDefault();
+          e.stopPropagation();
+          var wrap = btn.closest('.profile-service-card-wrap');
+          if (!wrap) return;
+          var descEl = wrap.querySelector('.profile-service-card__desc');
+          if (!descEl) return;
+          var opening = descEl.hidden;
+          descEl.hidden = !opening;
+          btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+          btn.classList.toggle('is-open', opening);
+        });
+      }
     }
 
     // Location

@@ -142,6 +142,7 @@
         cardOutlineColor: theme.cardOutlineColor || null,
         styleCardLayout: theme.styleCardLayout || 'card',
         fontFamily: theme.fontFamily || 'cormorant',
+        hideBookNowButton: !!theme.hideBookNowButton,
         templateId: templateId,
       };
 
@@ -249,9 +250,21 @@
 
       window.__STYLD_SITE_STYLES__ = styles;
 
+      if (theme.hideBookNowButton) {
+        document.querySelectorAll('.profile-book-btn').forEach(function (btn) {
+          btn.style.display = 'none';
+        });
+      }
+
       if (statusEl) statusEl.hidden = true;
       if (window.applyStyldPreviewContent) {
         window.applyStyldPreviewContent();
+      }
+
+      if (theme.hideBookNowButton) {
+        document.querySelectorAll('.profile-book-btn').forEach(function (btn) {
+          btn.style.display = 'none';
+        });
       }
 
       var logo = document.querySelector('.hero-brand__logo');
