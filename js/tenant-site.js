@@ -225,6 +225,7 @@
         root.style.setProperty('--hero-pink-deep', darken(primary, 0.68));
         root.style.setProperty('--pink-light', lighten(primary, 0.22));
         root.style.setProperty('--ink', secondary);
+        root.style.setProperty('--nav-text', secondary);
 
         var secRgb = hexToRgb(secondary);
         if (secRgb) {

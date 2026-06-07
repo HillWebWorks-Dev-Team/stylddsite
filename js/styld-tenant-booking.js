@@ -41,6 +41,26 @@
     document.body.appendChild(script);
   }
 
+  function applyBrandToPage(theme, content) {
+    theme = theme || {};
+    content = content || {};
+    var root = document.documentElement;
+    var secondary = theme.secondaryColor || '#0a0a0a';
+    root.style.setProperty('--ink', secondary);
+    root.style.setProperty('--nav-text', secondary);
+
+    var navBg = (theme.navbarColor || '').trim();
+    if (navBg && /^#[0-9a-fA-F]{6}$/.test(navBg)) {
+      root.style.setProperty('--nav-bg', navBg);
+      root.style.setProperty('--nav-bg-solid', navBg);
+    }
+
+    var brandNameEl = document.getElementById('profile-brand-name');
+    if (brandNameEl && content.brandName) {
+      brandNameEl.textContent = content.brandName;
+    }
+  }
+
   window.StyldTenant.loadPublishedSite()
     .then(function (site) {
       window.__STYLD_BOOKING_PAYMENT__ = site.bookingPayment || {};
@@ -48,6 +68,7 @@
       window.__STYLD_BOOKING_STYLES__ = site.bookingStyles || [];
       window.__STYLD_BOOKING_FORM__ = window.StyldTenant.applyBookingFormSettings(site.bookingPayment);
 
+      applyBrandToPage(site.theme, site.content);
       populateStyleSelect(site.bookingStyles);
 
       if (statusEl) statusEl.hidden = true;
