@@ -195,7 +195,7 @@
           root.style.setProperty('--nav-bg-solid', navBg);
         }
 
-        var cardOutline = (theme.cardOutlineColor || '').trim();
+        var cardOutline = (theme.cardOutlineColor || theme.secondaryColor || secondary || '').trim();
         if (cardOutline && /^#[0-9a-fA-F]{6}$/.test(cardOutline)) {
           root.style.setProperty('--card-outline', cardOutline);
         }

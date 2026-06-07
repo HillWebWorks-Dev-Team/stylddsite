@@ -40,7 +40,7 @@
     return content.hiddenLocationParts.indexOf(part) !== -1;
   }
 
-  function buildServiceCardWithCategory(style, cardClass, logoFallback, isOutlined) {
+  function buildServiceCardWithCategory(style, cardClass, logoFallback) {
     var cat = (style.category || '').trim();
     var desc = (style.description || '').trim();
     var imageUrl = (style.imageUrl || logoFallback || '').trim();
@@ -66,23 +66,18 @@
         '<div class="profile-service-card__desc" hidden>' + escapeHtml(desc) + '</div>'
       : '';
 
-    return '<div class="profile-service-card-wrap' +
-      (isOutlined ? ' profile-service-card-wrap--outlined' : '') + '"' +
+    return '<div class="profile-service-card-wrap"' +
       (cat ? ' data-category="' + escapeHtml(cat) + '"' : '') +
       '>' + cardHtml + expandHtml + '</div>';
   }
 
   function buildProfileServiceCards(styles, theme) {
-    var layout = theme && theme.styleCardLayout;
-    var isOutlined = layout === 'outlined';
-    var cardClass = isOutlined
-      ? 'profile-service-card profile-service-card--outlined'
-      : 'profile-service-card';
+    var cardClass = 'profile-service-card';
     var logoFallback = theme && theme.logoImageUrl ? theme.logoImageUrl : '';
 
     if (!styles || !styles.length) {
       return (
-        '<a class="' + cardClass + '" href="/booking">' +
+        '<a class="profile-service-card profile-service-card--outlined" href="/booking">' +
         '<div class="profile-service-card__img"></div>' +
         '<div class="profile-service-card__body">' +
         '<div class="profile-service-card__name">Add your services</div>' +

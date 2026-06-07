@@ -6200,9 +6200,17 @@ ul.price-menu__policy-list {
   display: flex;
   flex-direction: column;
   border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.07);
+  border: 1.5px solid var(--card-outline, var(--ink));
   background: var(--cream, #fff);
   overflow: hidden;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.profile-service-card-wrap:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-color: var(--card-outline, var(--ink));
+}
+.profile-service-card-wrap .profile-service-card:hover {
+  border-color: transparent;
 }
 .profile-service-card-wrap[hidden] {
   display: none !important;
