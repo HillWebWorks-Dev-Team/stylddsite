@@ -17,19 +17,16 @@ function isRootHost(host) {
 
 function resolveTenantHtmlPath(pathname) {
   if (!pathname || pathname === '/') {
-    return '/tenant/index.html';
+    return '/tenant/profile.html';
   }
-
   const clean = pathname.replace(/\/$/, '').toLowerCase();
   if (TENANT_STATIC_PAGES[clean]) {
     return TENANT_STATIC_PAGES[clean];
   }
-
   if (clean.endsWith('.html')) {
     return clean;
   }
-
-  return '/tenant/index.html';
+  return '/tenant/profile.html';
 }
 
 export default function middleware(request) {
@@ -44,12 +41,10 @@ export default function middleware(request) {
     if (url.pathname.startsWith('/marketing/')) {
       return;
     }
-
     if (url.pathname === '/' || !url.pathname.includes('.')) {
       url.pathname = '/marketing/index.html';
       return rewrite(url);
     }
-
     return;
   }
 
