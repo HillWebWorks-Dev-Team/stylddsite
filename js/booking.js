@@ -52,8 +52,8 @@
   var submitBtn = document.getElementById('booking-submit-btn');
   var feedbackEl = document.getElementById('booking-feedback');
   var paymentSection = document.getElementById('payment-section');
-  var hairLengthWrap = document.getElementById('hair-length-field-wrap');
-  var hairLengthSelect = document.getElementById('hair-length-select');
+
+  var USE_HAIR_LENGTH_ADDONS = !(tenantBooking.subdomain || window.__STYLD_TENANT_BOOKING__);
 
   var viewMonth = DateTime.now().setZone(zone).startOf('month');
   var selectedDate = null;
@@ -99,27 +99,16 @@
     return styles.find(function (s) { return s.id === id; }) || null;
   }
 
-  function styleSupportsExtraHairLength(styleId) {
-    var id = String(styleId || '').toLowerCase();
-    return /braid|twist|loc|knotless|boho|passion|feed|faux/.test(id);
+  function durationMinutesForStyle(style) {
+    var duration = style && style.durationMinutes;
+    if (typeof duration === 'number' && duration > 0) return Math.round(duration);
+    return 120;
   }
 
-  function lengthAddon(key) {
-    var tiers = {
-      'lower-back': { price: 15, minutes: 30, label: 'Lower Back Length (+$15 · +30 min)' },
-      butt: { price: 25, minutes: 60, label: 'Butt Length (+$25 · +60 min)' },
-      knee: { price: 35, minutes: 90, label: 'Knee Length (+$35 · +90 min)' },
-    };
-    return tiers[key] || null;
-  }
-
-  function computePricing(style, lengthKey) {
+  function computePricing(style) {
     var base = typeof style.base === 'number' ? style.base : 0;
-    var duration = style.durationMinutes || 120;
-    var addon = lengthKey ? lengthAddon(lengthKey) : null;
-    var lengthPrice = addon ? addon.price : 0;
-    var lengthMinutes = addon ? addon.minutes : 0;
-    var total = base + lengthPrice;
+    var duration = durationMinutesForStyle(style);
+    var total = base;
     var mode = paymentSettings.mode || 'none';
     var deposit = 0;
 
@@ -137,10 +126,8 @@
 
     return {
       base: base,
-      lengthPrice: lengthPrice,
-      lengthLabel: addon ? addon.label.split('(')[0].trim() : '—',
       total: total,
-      duration: duration + lengthMinutes,
+      duration: duration,
       deposit: deposit,
       mode: mode,
     };
@@ -148,8 +135,7 @@
 
   function updatePricingDisplay() {
     if (!selectedStyle) return;
-    var lengthKey = hairLengthSelect && !hairLengthWrap.hidden ? hairLengthSelect.value : '';
-    var p = computePricing(selectedStyle, lengthKey);
+    var p = computePricing(selectedStyle);
 
     function setText(id, value) {
       var el = document.getElementById(id);
@@ -158,8 +144,6 @@
 
     setText('line-subtotal', money(p.base));
     setText('side-subtotal', money(p.base));
-    setText('line-length-addon', p.lengthPrice ? money(p.lengthPrice) : '—');
-    setText('side-length-addon', p.lengthPrice ? money(p.lengthPrice) : '—');
     setText('line-total', money(p.total));
     setText('side-total', money(p.total));
     setText('line-deposit', money(p.deposit));
@@ -183,8 +167,7 @@
 
   function currentDurationMinutes() {
     if (!selectedStyle) return 0;
-    var lengthKey = hairLengthSelect && !hairLengthWrap.hidden ? hairLengthSelect.value : '';
-    return computePricing(selectedStyle, lengthKey).duration;
+    return durationMinutesForStyle(selectedStyle);
   }
 
   function formatAppointmentRange(slotStart, durationMinutes) {
@@ -216,7 +199,7 @@
     if (!slotsContainer || !selectedDate || !selectedStyle) return;
 
     var dateIso = selectedDate.toISODate();
-    var pricing = computePricing(selectedStyle, hairLengthSelect && !hairLengthWrap.hidden ? hairLengthSelect.value : '');
+    var pricing = computePricing(selectedStyle);
 
     slotsContainer.innerHTML = '<p class="booking-slots-placeholder">Loading time slots…</p>';
 
@@ -335,15 +318,11 @@
       if (styleGate) styleGate.hidden = false;
       if (durationStrip) durationStrip.textContent = 'ESTIMATED DURATION TBD';
       if (slotsContainer) slotsContainer.innerHTML = '';
-      if (hairLengthWrap) hairLengthWrap.hidden = true;
       updateSelectedSummary();
       return;
     }
 
     if (styleGate) styleGate.hidden = true;
-    if (hairLengthWrap) {
-      hairLengthWrap.hidden = !styleSupportsExtraHairLength(selectedStyle.id);
-    }
     updatePricingDisplay();
     refreshCalendar().then(function () {
       updateSelectedSummary();
@@ -377,8 +356,7 @@
   }
 
   function buildBookingPayload() {
-    var lengthKey = hairLengthSelect && !hairLengthWrap.hidden ? hairLengthSelect.value : '';
-    var pricing = computePricing(selectedStyle, lengthKey);
+    var pricing = computePricing(selectedStyle);
     var name = (document.getElementById('full-name') || {}).value || '';
     var email = (document.getElementById('email') || {}).value || '';
     var phone = (document.getElementById('phone') || {}).value || '';
@@ -401,7 +379,6 @@
       payment_status: pricing.deposit > 0 ? 'unpaid' : 'none',
       source: 'website',
       notes: notes.trim() || null,
-      hair_length: lengthKey || null,
     };
   }
 
@@ -417,7 +394,7 @@
     }
     if (!bookingForm || !bookingForm.reportValidity()) return;
 
-    var pricing = computePricing(selectedStyle, hairLengthSelect && !hairLengthWrap.hidden ? hairLengthSelect.value : '');
+    var pricing = computePricing(selectedStyle);
     if (submitBtn) submitBtn.disabled = true;
     showFeedback('Saving your booking…', false);
 
@@ -457,13 +434,6 @@
     });
   }
   if (styleSelect) styleSelect.addEventListener('change', onStyleChange);
-  if (hairLengthSelect) {
-    hairLengthSelect.addEventListener('change', function () {
-      updatePricingDisplay();
-      updateSelectedSummary();
-      renderSlots();
-    });
-  }
   if (bookingForm) bookingForm.addEventListener('submit', handleSubmit);
 
   initStripeIfNeeded();

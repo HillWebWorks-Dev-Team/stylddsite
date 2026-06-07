@@ -143,21 +143,6 @@
               </fieldset>
             </div>
 
-            <div class="field" id="hair-length-field-wrap" hidden>
-              <label for="hair-length-select">Extra length / add-on (optional)</label>
-              <select id="hair-length-select" name="hair-length">
-                <option value="" selected>Standard — menu length (no extra charge)</option>
-                <option value="lower-back">Lower Back Length (+$15 · +30 min)</option>
-                <option value="butt">Butt Length (+$25 · +60 min)</option>
-                <option value="knee">Knee Length (+$35 · +90 min)</option>
-              </select>
-              <small
-                >Shows only when the selected menu item ids match the logic in booking.js (<code
-                  >styleSupportsExtraHairLength</code
-                >). Edit labels, tiers, or minutes to suit your menu.</small
-              >
-            </div>
-
             <div class="field">
               <label for="photo-hair">Current hair photo *</label>
               <input id="photo-hair" name="photo-hair" type="file" accept="image/*" required />
@@ -237,8 +222,7 @@
           <section class="form-section">
             <h2>Pricing</h2>
             <p>
-              <strong>Base service:</strong> <span id="line-subtotal">$0.00</span><br />
-              <strong>Extra length:</strong> <span id="line-length-addon">—</span>
+              <strong>Service price:</strong> <span id="line-subtotal">$0.00</span>
             </p>
             <p>
               <strong>Estimated total:</strong> <span id="line-total">$0.00</span>
@@ -285,12 +269,8 @@
         <aside class="pricing-sidebar" aria-label="Estimate summary">
           <h3>Your estimate</h3>
           <div class="price-line">
-            <span>Base service</span>
+            <span>Service price</span>
             <span id="side-subtotal">$0.00</span>
-          </div>
-          <div class="price-line">
-            <span>Extra length</span>
-            <span id="side-length-addon">—</span>
           </div>
           <div class="price-line total">
             <span>Estimated total</span>
@@ -338,7 +318,7 @@
     <script src="/js/styld-tenant-shared.js?v=60"></script>
     <script src="/js/profile-content.js?v=39"></script>
     <script src="/js/tenant-site.js?v=39"></script>
-    <script src="/js/styld-tenant-booking.js?v=63"></script>
+    <script src="/js/styld-tenant-booking.js?v=64"></script>
     <script src="/js/supabase-config.js?v=60"></script>
     <script src="/js/supabase-config.local.js?v=60"></script>
     <script id="booking-fallback-bootstrap">
@@ -361,10 +341,10 @@
           'const sb = createClient(c.url, c.anonKey);' +
           'window.salonSupabaseClient = sb;' +
           'const avail = document.createElement("script");' +
-          'avail.src = "/js/booking-availability.js?v=63";' +
+          'avail.src = "/js/booking-availability.js?v=64";' +
           'avail.onload = function () {' +
           'const booking = document.createElement("script");' +
-          'booking.src = "/js/booking.js?v=63";' +
+          'booking.src = "/js/booking.js?v=64";' +
           'booking.defer = true;' +
           'document.body.appendChild(booking);' +
           '};' +
