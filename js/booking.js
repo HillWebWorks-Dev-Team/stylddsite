@@ -543,15 +543,74 @@
     window.location.href = url;
   }
 
-  function buildBookingPayload() {
+  function newBookingId() {
+    return window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'bk-' + Date.now();
+  }
+
+  function fileExtension(file) {
+    var match = file && file.name ? file.name.match(/\.[a-zA-Z0-9]+$/) : null;
+    return match ? match[0].toLowerCase() : '.jpg';
+  }
+
+  function uploadBookingPhoto(bookingId, fileInput, baseName) {
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+      return Promise.resolve(null);
+    }
+    var file = fileInput.files[0];
+    var path = subdomain + '/' + bookingId + '/' + baseName + fileExtension(file);
+    var url =
+      cfg.supabaseUrl.replace(/\/$/, '') + '/storage/v1/object/booking-photos/' + path;
+
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        apikey: cfg.supabaseAnonKey,
+        Authorization: 'Bearer ' + cfg.supabaseAnonKey,
+        'x-upsert': 'true',
+        'Content-Type': file.type || 'application/octet-stream',
+      },
+      body: file,
+    }).then(function (res) {
+      if (!res.ok) {
+        throw new Error('Could not upload photo. Please try again.');
+      }
+      return path;
+    });
+  }
+
+  function uploadBookingPhotos(bookingId) {
+    var hairInput = document.getElementById('photo-hair');
+    var refInput = document.getElementById('photo-ref');
+    var formReq = window.__STYLD_BOOKING_FORM__ || {};
+
+    return uploadBookingPhoto(bookingId, hairInput, 'current-hair').then(function (hairPath) {
+      if (formReq.requireCurrentHairPhoto !== false && !hairPath) {
+        throw new Error('Please add a current hair photo.');
+      }
+      return uploadBookingPhoto(bookingId, refInput, 'reference').then(function (refPath) {
+        return { hairPath: hairPath, refPath: refPath };
+      });
+    });
+  }
+
+  function buildBookingPayload(options) {
+    options = options || {};
     var pricing = computePricing(selectedStyle);
     var name = (document.getElementById('full-name') || {}).value || '';
     var email = (document.getElementById('email') || {}).value || '';
     var phone = (document.getElementById('phone') || {}).value || '';
     var notes = (document.getElementById('notes') || {}).value || '';
+    var paidOnline = !!options.paidOnline;
+    var paymentStatus = 'none';
+
+    if (paidOnline) {
+      paymentStatus = pricing.mode === 'full' ? 'paid' : 'deposit_paid';
+    } else if (pricing.deposit > 0) {
+      paymentStatus = 'unpaid';
+    }
 
     return {
-      id: (window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'bk-' + Date.now()),
+      id: options.bookingId || newBookingId(),
       full_name: name.trim(),
       email: email.trim(),
       phone: phone.trim(),
@@ -563,8 +622,11 @@
       duration_minutes: pricing.duration,
       estimated_total: pricing.total,
       deposit_amount: pricing.deposit,
-      booking_status: 'pending',
-      payment_status: pricing.deposit > 0 ? 'unpaid' : 'none',
+      booking_status: paidOnline ? 'confirmed' : 'pending',
+      payment_status: paymentStatus,
+      stripe_payment_intent_id: options.paymentIntentId || null,
+      current_hair_photo_path: options.hairPath || null,
+      reference_photo_path: options.refPath || null,
       source: 'website',
       notes: notes.trim() || null,
     };
@@ -595,14 +657,21 @@
       subdomain: subdomain,
       bookingId: bookingId,
       paymentIntentId: paymentIntentId,
-    }).catch(function (err) {
-      if (attempt >= 2) throw err;
-      return new Promise(function (resolve) {
-        setTimeout(resolve, 800 * (attempt + 1));
-      }).then(function () {
-        return confirmBookingPayment(bookingId, paymentIntentId, attempt + 1);
+    })
+      .then(function (result) {
+        if (!result || result.ok !== true || result.verified !== true) {
+          throw new Error((result && result.error) || 'Payment could not be verified.');
+        }
+        return result;
+      })
+      .catch(function (err) {
+        if (attempt >= 2) throw err;
+        return new Promise(function (resolve) {
+          setTimeout(resolve, 800 * (attempt + 1));
+        }).then(function () {
+          return confirmBookingPayment(bookingId, paymentIntentId, attempt + 1);
+        });
       });
-    });
   }
 
   function processStripeCheckout(bookingId, pricing, payload) {
@@ -637,7 +706,9 @@
             if (!paymentIntentId) {
               throw new Error('Payment succeeded but no payment reference was returned.');
             }
-            return confirmBookingPayment(bookingId, paymentIntentId);
+            return confirmBookingPayment(bookingId, paymentIntentId).then(function () {
+              return paymentIntentId;
+            });
           });
       })
       .catch(function (err) {
@@ -673,26 +744,62 @@
     if (submitBtn) submitBtn.disabled = true;
     showFeedback('Checking availability…', false);
 
+    var bookingId = newBookingId();
+    var needsPayment = pricing.deposit > 0 && window.__STYLD_STRIPE__ && stripeCard;
+
     ensureSlotStillAvailable(slotStart, pricing.duration)
       .then(function () {
-        showFeedback('Saving your booking…', false);
-        var payload = buildBookingPayload();
-
-        return rpc('styld_tenant_insert_booking', {
-          p_subdomain: subdomain,
-          p_booking: payload,
-        }).then(function (bookingId) {
-          var id = typeof bookingId === 'string' ? bookingId : payload.id;
-          if (pricing.deposit <= 0 || !window.__STYLD_STRIPE__ || !stripeCard) {
-            redirectSuccess(id, pricing);
-            return null;
-          }
-
-          showFeedback('Processing payment…', false);
-          return processStripeCheckout(id, pricing, payload).then(function () {
-            redirectSuccess(id, pricing);
+        showFeedback('Uploading photos…', false);
+        return uploadBookingPhotos(bookingId);
+      })
+      .then(function (photoPaths) {
+        if (!needsPayment) {
+          showFeedback('Saving your booking…', false);
+          var freePayload = buildBookingPayload({
+            bookingId: bookingId,
+            hairPath: photoPaths.hairPath,
+            refPath: photoPaths.refPath,
+            paidOnline: false,
           });
+          return rpc('styld_tenant_insert_booking', {
+            p_subdomain: subdomain,
+            p_booking: freePayload,
+          }).then(function () {
+            redirectSuccess(bookingId, pricing);
+          });
+        }
+
+        var payPayload = buildBookingPayload({
+          bookingId: bookingId,
+          hairPath: photoPaths.hairPath,
+          refPath: photoPaths.refPath,
+          paidOnline: false,
         });
+
+        showFeedback('Processing payment…', false);
+        return processStripeCheckout(bookingId, pricing, payPayload)
+          .then(function (paymentIntentId) {
+            showFeedback('Confirming availability…', false);
+            return ensureSlotStillAvailable(slotStart, pricing.duration).then(function () {
+              return paymentIntentId;
+            });
+          })
+          .then(function (paymentIntentId) {
+            showFeedback('Saving your booking…', false);
+            var paidPayload = buildBookingPayload({
+              bookingId: bookingId,
+              hairPath: photoPaths.hairPath,
+              refPath: photoPaths.refPath,
+              paidOnline: true,
+              paymentIntentId: paymentIntentId,
+            });
+            return rpc('styld_tenant_insert_booking', {
+              p_subdomain: subdomain,
+              p_booking: paidPayload,
+            }).then(function () {
+              redirectSuccess(bookingId, pricing);
+            });
+          });
       })
       .catch(function (err) {
         var msg = err && err.message ? err.message : 'Could not complete booking.';
