@@ -179,6 +179,12 @@
         document.documentElement.style.setProperty('--nav-bg', navBg);
       }
 
+      var validPositions = ['center top', 'center center', 'center bottom'];
+      var heroPos = (theme.heroImagePosition || '').trim();
+      if (validPositions.indexOf(heroPos) !== -1) {
+        document.documentElement.style.setProperty('--hero-img-position', heroPos);
+      }
+
       var FONT_PAIRS = {
         cormorant: {
           display: '"Cormorant Garamond", Georgia, "Times New Roman", serif',

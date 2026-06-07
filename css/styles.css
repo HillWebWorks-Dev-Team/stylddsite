@@ -5999,6 +5999,7 @@ ul.price-menu__policy-list {
 @media (max-width: 700px) {
   .profile-hero__grid { grid-template-columns: 1fr; }
   .profile-photo { aspect-ratio: 4/3; max-height: 260px; }
+  .profile-photo__bg { background-position: var(--hero-img-position, center center); }
   .profile-service-grid { grid-template-columns: 1fr; }
   .profile-location-info { flex-direction: column; gap: 1rem; }
 }
