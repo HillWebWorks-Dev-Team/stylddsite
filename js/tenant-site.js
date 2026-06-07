@@ -87,6 +87,39 @@
     return sizes[last] || '';
   }
 
+  function pageTypeFromPath(path) {
+    var clean = String(path || '/').toLowerCase();
+    if (clean === '/' || clean.indexOf('profile') !== -1) return 'profile';
+    if (clean.indexOf('booking') !== -1) return 'booking';
+    return 'other';
+  }
+
+  function trackPageView(tenantSubdomain) {
+    var path = location.pathname || '/';
+    var sessionKey = 'styld:pv:' + tenantSubdomain + ':' + path;
+    try {
+      if (sessionStorage.getItem(sessionKey)) return;
+      sessionStorage.setItem(sessionKey, '1');
+    } catch (err) {
+      /* sessionStorage unavailable */
+    }
+
+    fetch(cfg.supabaseUrl.replace(/\/$/, '') + '/rest/v1/styld_site_page_views', {
+      method: 'POST',
+      headers: Object.assign({}, headers, {
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      }),
+      body: JSON.stringify({
+        subdomain: tenantSubdomain,
+        path: path,
+        page_type: pageTypeFromPath(path),
+        referrer: document.referrer || null,
+      }),
+      keepalive: true,
+    }).catch(function () {});
+  }
+
   Promise.all([
     rest('styld_site_subdomains?subdomain=eq.' + encodeURIComponent(subdomain) + '&select=user_id,published_at'),
     Promise.resolve(null),
@@ -97,6 +130,7 @@
       if (!row || !row.published_at) {
         throw new Error('This site has not been published yet.');
       }
+      trackPageView(subdomain);
       return rest(
         'styld_site_records?user_id=eq.' +
           encodeURIComponent(row.user_id) +
