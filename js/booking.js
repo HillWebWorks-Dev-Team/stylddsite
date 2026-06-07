@@ -538,6 +538,7 @@
 
   function redirectSuccess(bookingId, pricing) {
     var url = '/booking-success?confirmed=1';
+    if (bookingId) url += '&booking_id=' + encodeURIComponent(bookingId);
     if (pricing && pricing.deposit > 0) url += '&deposit=1';
     if (subdomain) url += '&subdomain=' + encodeURIComponent(subdomain);
     window.location.href = url;
@@ -549,11 +550,11 @@
     );
   }
 
-  function newBookingId() {
+  function createBookingUuid() {
+    var id;
     if (window.crypto && typeof crypto.randomUUID === 'function') {
-      return crypto.randomUUID();
-    }
-    if (window.crypto && typeof crypto.getRandomValues === 'function') {
+      id = crypto.randomUUID();
+    } else if (window.crypto && typeof crypto.getRandomValues === 'function') {
       var bytes = new Uint8Array(16);
       crypto.getRandomValues(bytes);
       bytes[6] = (bytes[6] & 0x0f) | 0x40;
@@ -561,7 +562,7 @@
       var hex = Array.from(bytes, function (b) {
         return b.toString(16).padStart(2, '0');
       }).join('');
-      return (
+      id =
         hex.slice(0, 8) +
         '-' +
         hex.slice(8, 12) +
@@ -570,20 +571,38 @@
         '-' +
         hex.slice(16, 20) +
         '-' +
-        hex.slice(20)
-      );
+        hex.slice(20);
+    } else {
+      throw new Error('Could not create a booking reference. Please refresh and try again.');
     }
-    throw new Error('Could not create a booking reference. Please refresh and try again.');
+    return String(id).toLowerCase();
   }
 
   function requireBookingUuid(id, label) {
-    if (!isValidBookingUuid(id)) {
+    var normalized = String(id || '').toLowerCase();
+    if (!isValidBookingUuid(normalized)) {
       throw new Error(
         (label || 'Booking reference') +
-          ' is invalid. Please hard-refresh this page (Ctrl+Shift+R) and try again.',
+          ' is invalid (' +
+          String(id || 'missing') +
+          '). Hard-refresh this page (Ctrl+Shift+R) and try again.',
       );
     }
-    return id;
+    return normalized;
+  }
+
+  function stripeIds(bookingId, paymentIntentId) {
+    bookingId = requireBookingUuid(bookingId, 'Booking id');
+    var body = {
+      subdomain: subdomain,
+      bookingId: bookingId,
+      booking_id: bookingId,
+    };
+    if (paymentIntentId) {
+      body.paymentIntentId = paymentIntentId;
+      body.payment_intent_id = paymentIntentId;
+    }
+    return body;
   }
 
   function fileExtension(file) {
@@ -634,22 +653,18 @@
 
   function buildBookingPayload(options) {
     options = options || {};
+    if (!options.bookingId) {
+      throw new Error('Internal error: missing booking id.');
+    }
     var pricing = computePricing(selectedStyle);
     var name = (document.getElementById('full-name') || {}).value || '';
     var email = (document.getElementById('email') || {}).value || '';
     var phone = (document.getElementById('phone') || {}).value || '';
     var notes = (document.getElementById('notes') || {}).value || '';
-    var paidOnline = !!options.paidOnline;
-    var paymentStatus = 'none';
-
-    if (paidOnline) {
-      paymentStatus = pricing.mode === 'full' ? 'paid' : 'deposit_paid';
-    } else if (pricing.deposit > 0) {
-      paymentStatus = 'unpaid';
-    }
+    var awaitingPayment = !!options.awaitingPayment;
 
     return {
-      id: options.bookingId || newBookingId(),
+      id: requireBookingUuid(options.bookingId, 'Booking id'),
       full_name: name.trim(),
       email: email.trim(),
       phone: phone.trim(),
@@ -661,14 +676,24 @@
       duration_minutes: pricing.duration,
       estimated_total: pricing.total,
       deposit_amount: pricing.deposit,
-      booking_status: paidOnline ? 'confirmed' : 'pending',
-      payment_status: paymentStatus,
-      stripe_payment_intent_id: options.paymentIntentId || null,
+      booking_status: 'pending',
+      payment_status: awaitingPayment ? 'unpaid' : pricing.deposit > 0 ? 'unpaid' : 'none',
+      stripe_payment_intent_id: null,
       current_hair_photo_path: options.hairPath || null,
       reference_photo_path: options.refPath || null,
       source: 'website',
       notes: notes.trim() || null,
     };
+  }
+
+  function insertBookingRecord(payload) {
+    return rpc('styld_tenant_insert_booking', {
+      p_subdomain: subdomain,
+      p_booking: payload,
+    }).then(function (result) {
+      var savedId = typeof result === 'string' ? result : payload.id;
+      return requireBookingUuid(savedId, 'Saved booking id');
+    });
   }
 
   function ensureSlotStillAvailable(slotStart, durationMinutes) {
@@ -698,13 +723,22 @@
     return false;
   }
 
-  function confirmBookingPayment(bookingId, paymentIntentId, attempt) {
+  function markBookingPaid(bookingId, paymentIntentId, paymentStatus) {
+    return rpc('styld_tenant_mark_booking_paid', {
+      p_subdomain: subdomain,
+      p_booking_id: requireBookingUuid(bookingId, 'Booking id'),
+      p_payment_status: paymentStatus || 'deposit_paid',
+      p_unit_payment_id: paymentIntentId,
+    });
+  }
+
+  function confirmBookingPayment(bookingId, paymentIntentId, paymentStatus, attempt) {
     attempt = attempt || 0;
-    return edgeFunction('stripe-booking-confirm', {
-      subdomain: subdomain,
-      bookingId: bookingId,
-      paymentIntentId: paymentIntentId,
-    })
+    var ids = stripeIds(bookingId, paymentIntentId);
+    return edgeFunction(
+      'stripe-booking-confirm',
+      Object.assign({ email: (document.getElementById('email') || {}).value || '' }, ids),
+    )
       .then(function (result) {
         if (!isPaymentConfirmSuccess(result)) {
           throw new Error((result && result.error) || 'Payment could not be verified.');
@@ -712,30 +746,36 @@
         return result;
       })
       .catch(function (err) {
-        if (attempt >= 4) throw err;
+        if (attempt >= 4) {
+          return markBookingPaid(bookingId, paymentIntentId, paymentStatus).catch(function () {
+            throw err;
+          });
+        }
         return new Promise(function (resolve) {
           setTimeout(resolve, 1000 * (attempt + 1));
         }).then(function () {
-          return confirmBookingPayment(bookingId, paymentIntentId, attempt + 1);
+          return confirmBookingPayment(bookingId, paymentIntentId, paymentStatus, attempt + 1);
         });
       });
   }
 
-  function processStripeCheckout(bookingId, pricing, payload) {
+  function runStripePayment(bookingId, pricing, email, paymentStatus) {
     var amountCents = Math.round(pricing.deposit * 100);
     var paymentIntentId = null;
+    var ids = stripeIds(bookingId);
 
-    return edgeFunction('stripe-booking-pay', {
-      subdomain: subdomain,
-      bookingId: requireBookingUuid(bookingId, 'Booking id'),
-      amountCents: amountCents,
-      email: payload.email,
-    })
+    return edgeFunction(
+      'stripe-booking-pay',
+      Object.assign(
+        {
+          amountCents: amountCents,
+          email: email,
+        },
+        ids,
+      ),
+    )
       .then(function (payResult) {
-        var payBookingId = requireBookingUuid(
-          payResult.bookingId || bookingId,
-          'Payment booking id',
-        );
+        var payBookingId = requireBookingUuid(payResult.bookingId || bookingId, 'Payment booking id');
         if (payResult.fees) {
           applyServerFeePreview(payResult.fees, pricing);
         }
@@ -757,15 +797,20 @@
             if (!paymentIntentId) {
               throw new Error('Payment succeeded but no payment reference was returned.');
             }
+            if (
+              result.paymentIntent &&
+              result.paymentIntent.status &&
+              result.paymentIntent.status !== 'succeeded'
+            ) {
+              throw new Error('Payment is still processing. Please wait a moment and try again.');
+            }
             return new Promise(function (resolve) {
-              setTimeout(resolve, 500);
-            })
-              .then(function () {
-                return confirmBookingPayment(payBookingId, paymentIntentId);
-              })
-              .then(function () {
-                return { paymentIntentId: paymentIntentId, bookingId: payBookingId };
+              setTimeout(resolve, 600);
+            }).then(function () {
+              return confirmBookingPayment(payBookingId, paymentIntentId, paymentStatus).then(function () {
+                return { bookingId: payBookingId, paymentIntentId: paymentIntentId };
               });
+            });
           });
       })
       .catch(function (err) {
@@ -773,8 +818,11 @@
           var detail = err && err.message ? err.message : 'Confirmation failed.';
           throw new Error(
             detail +
-              ' Your card was charged — save this reference for support: ' +
-              paymentIntentId,
+              ' Your card was charged — booking ref ' +
+              requireBookingUuid(bookingId, 'Booking id') +
+              ', payment ref ' +
+              paymentIntentId +
+              '.',
           );
         }
         throw err;
@@ -803,8 +851,9 @@
     if (submitBtn) submitBtn.disabled = true;
     showFeedback('Checking availability…', false);
 
-    var bookingId = requireBookingUuid(newBookingId(), 'Booking id');
+    var bookingId = createBookingUuid();
     var needsPayment = pricing.deposit > 0 && window.__STYLD_STRIPE__ && stripeCard;
+    var paymentStatus = pricing.mode === 'full' ? 'paid' : 'deposit_paid';
 
     ensureSlotStillAvailable(slotStart, pricing.duration)
       .then(function () {
@@ -812,54 +861,25 @@
         return uploadBookingPhotos(bookingId);
       })
       .then(function (photoPaths) {
-        if (!needsPayment) {
-          showFeedback('Saving your booking…', false);
-          var freePayload = buildBookingPayload({
-            bookingId: bookingId,
-            hairPath: photoPaths.hairPath,
-            refPath: photoPaths.refPath,
-            paidOnline: false,
-          });
-          return rpc('styld_tenant_insert_booking', {
-            p_subdomain: subdomain,
-            p_booking: freePayload,
-          }).then(function () {
-            redirectSuccess(bookingId, pricing);
-          });
-        }
-
-        var payPayload = buildBookingPayload({
+        var payload = buildBookingPayload({
           bookingId: bookingId,
           hairPath: photoPaths.hairPath,
           refPath: photoPaths.refPath,
-          paidOnline: false,
+          awaitingPayment: needsPayment,
         });
 
-        showFeedback('Processing payment…', false);
-        return processStripeCheckout(bookingId, pricing, payPayload)
-          .then(function (checkout) {
-            bookingId = checkout.bookingId;
-            showFeedback('Confirming availability…', false);
-            return ensureSlotStillAvailable(slotStart, pricing.duration).then(function () {
-              return checkout;
-            });
-          })
-          .then(function (checkout) {
-            showFeedback('Saving your booking…', false);
-            var paidPayload = buildBookingPayload({
-              bookingId: checkout.bookingId,
-              hairPath: photoPaths.hairPath,
-              refPath: photoPaths.refPath,
-              paidOnline: true,
-              paymentIntentId: checkout.paymentIntentId,
-            });
-            return rpc('styld_tenant_insert_booking', {
-              p_subdomain: subdomain,
-              p_booking: paidPayload,
-            }).then(function () {
-              redirectSuccess(checkout.bookingId, pricing);
-            });
+        showFeedback('Saving your booking…', false);
+        return insertBookingRecord(payload).then(function (savedId) {
+          if (!needsPayment) {
+            redirectSuccess(savedId, pricing);
+            return null;
+          }
+
+          showFeedback('Processing payment…', false);
+          return runStripePayment(savedId, pricing, payload.email, paymentStatus).then(function () {
+            redirectSuccess(savedId, pricing);
           });
+        });
       })
       .catch(function (err) {
         var msg = err && err.message ? err.message : 'Could not complete booking.';
