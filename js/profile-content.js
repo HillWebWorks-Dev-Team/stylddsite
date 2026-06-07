@@ -35,18 +35,6 @@
     return content.hiddenSections.indexOf(section) !== -1;
   }
 
-  function normalizePolicies(content) {
-    if (!content) return [];
-    if (Array.isArray(content.policies)) return content.policies.filter(Boolean);
-    if (Array.isArray(content.policyItems)) return content.policyItems.filter(Boolean);
-    if (typeof content.policies === 'string' && content.policies.trim()) return [content.policies.trim()];
-    var items = [];
-    ['depositPolicy', 'cancellationPolicy', 'latePolicy', 'bookingPolicy'].forEach(function (key) {
-      if (content[key]) items.push(String(content[key]));
-    });
-    return items;
-  }
-
   function buildProfileServiceCardHtml(style) {
     var imgStyle = style.imageUrl
       ? ' style="background-image:url(\'' + String(style.imageUrl).replace(/'/g, '%27') + '\');"'
@@ -150,22 +138,31 @@
 
     setText('profile-brand-name', content.brandName || 'Your Brand');
     setText('profile-about-title', content.aboutTitle || 'About Me');
-    setText('profile-about-body', content.aboutBody || '');
+
+    var aboutEl = document.getElementById('profile-about-body');
+    if (aboutEl) {
+      aboutEl.textContent = content.heroDescription || '';
+    }
+
     setText('profile-menu-title', content.menuTitle || 'Menu');
     setText('profile-menu-blurb', content.menuBlurb || 'Browse our services and book online.');
     setText('profile-visit-title', content.visitTitle || 'Location');
 
-    var policies = normalizePolicies(content);
+    var policyEl = document.getElementById('profile-policy-body');
     var policyBlock = document.getElementById('profile-policy-block');
-    var policyList = document.getElementById('profile-policy-body');
-    if (policyBlock && policyList) {
-      if (!policies.length) {
-        policyBlock.hidden = true;
-      } else {
-        policyBlock.hidden = false;
-        policyList.innerHTML = policies.map(function (item) {
-          return '<li>' + escapeHtml(item) + '</li>';
-        }).join('');
+    if (policyEl) {
+      var policyText = (content.bookingPolicy || '').trim();
+      var bullets = policyText
+        ? policyText.split('\n').map(function (l) { return l.trim(); }).filter(Boolean)
+        : [];
+      policyEl.innerHTML = '';
+      bullets.forEach(function (bullet) {
+        var li = document.createElement('li');
+        li.textContent = bullet;
+        policyEl.appendChild(li);
+      });
+      if (policyBlock) {
+        policyBlock.hidden = bullets.length === 0;
       }
     }
 
