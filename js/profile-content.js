@@ -87,7 +87,7 @@
     }
 
     return styles.slice(0, 24)
-      .map(function (s) { return buildServiceCardWithCategory(s, cardClass, logoFallback, isOutlined); })
+      .map(function (s) { return buildServiceCardWithCategory(s, cardClass, logoFallback); })
       .join('');
   }
 
