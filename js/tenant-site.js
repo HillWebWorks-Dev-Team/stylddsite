@@ -240,6 +240,39 @@
           document.body.style.backgroundColor = bg;
         }
 
+        function colorLuminance(hex) {
+          var rgb = hexToRgb(hex);
+          if (!rgb) return null;
+          return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+        }
+
+        var cardSurface = '#fafafa';
+        if (bg && /^#[0-9a-fA-F]{6}$/.test(bg)) {
+          cardSurface = bg;
+        } else {
+          var inkLum = colorLuminance(secondary);
+          if (inkLum != null && inkLum > 0.55) {
+            cardSurface = '#0a0a0a';
+            root.style.setProperty('--cream', cardSurface);
+            root.style.setProperty('--white', cardSurface);
+            document.body.style.backgroundColor = cardSurface;
+          }
+        }
+        root.style.setProperty('--card-surface', cardSurface);
+
+        var surfaceLum = colorLuminance(cardSurface);
+        var isDarkSurface = surfaceLum != null && surfaceLum < 0.35;
+        root.classList.toggle('theme-dark-surface', isDarkSurface);
+        if (isDarkSurface) {
+          root.style.setProperty('--review-card-border', 'rgba(255, 255, 255, 0.12)');
+          root.style.setProperty('--review-card-border-hover', 'rgba(255, 255, 255, 0.22)');
+          root.style.setProperty('--review-star-empty', 'rgba(255, 255, 255, 0.22)');
+        } else {
+          root.style.setProperty('--review-card-border', 'rgba(0, 0, 0, 0.08)');
+          root.style.setProperty('--review-card-border-hover', 'rgba(219, 39, 119, 0.22)');
+          root.style.setProperty('--review-star-empty', 'rgba(0, 0, 0, 0.15)');
+        }
+
         var navBg = (theme.navbarColor || '').trim();
         if (navBg && /^#[0-9a-fA-F]{6}$/.test(navBg)) {
           root.style.setProperty('--nav-bg', navBg);

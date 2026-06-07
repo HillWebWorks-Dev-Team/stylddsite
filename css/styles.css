@@ -6316,6 +6316,7 @@ ul.price-menu__policy-list {
 /* ——— Client reviews carousel (profile page) ——— */
 .profile-reviews-section {
   padding: clamp(2rem, 5vw, 3rem) 0 0.5rem;
+  background: var(--card-surface, var(--cream, #fafafa));
 }
 
 .profile-reviews-head {
@@ -6363,19 +6364,29 @@ ul.price-menu__policy-list {
   width: min(18rem, 78vw);
   padding: 1rem 1.1rem;
   border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--review-card-border, rgba(0, 0, 0, 0.08));
+  background: var(--card-surface, var(--cream, #fafafa));
   box-shadow: 0 8px 24px rgba(17, 24, 39, 0.06);
   text-align: left;
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.theme-dark-surface .site-review-card {
+  box-shadow: none;
 }
 
 .site-review-card:hover,
 .site-review-card:focus-visible {
   transform: translateY(-2px);
   box-shadow: 0 12px 28px rgba(17, 24, 39, 0.1);
+  border-color: var(--review-card-border-hover, rgba(219, 39, 119, 0.22));
   outline: none;
+}
+
+.theme-dark-surface .site-review-card:hover,
+.theme-dark-surface .site-review-card:focus-visible {
+  box-shadow: 0 0 0 1px var(--review-card-border-hover, rgba(255, 255, 255, 0.22));
 }
 
 .site-review-card__name {
@@ -6393,7 +6404,7 @@ ul.price-menu__policy-list {
 }
 
 .site-review-star {
-  color: rgba(0, 0, 0, 0.15);
+  color: var(--review-star-empty, rgba(0, 0, 0, 0.15));
   font-size: 0.95rem;
   line-height: 1;
 }
@@ -6433,7 +6444,8 @@ ul.price-menu__policy-list {
   width: min(28rem, 100%);
   padding: 1.5rem 1.35rem 1.35rem;
   border-radius: 16px;
-  background: #fff;
+  background: var(--card-surface, #fff);
+  border: 1px solid var(--review-card-border, rgba(0, 0, 0, 0.08));
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
 }
 
