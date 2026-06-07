@@ -212,6 +212,9 @@
           'inter': 'Inter, system-ui, sans-serif',
           'dm-sans': '"DM Sans", system-ui, sans-serif',
           'montserrat': 'Montserrat, system-ui, sans-serif',
+          'lora': '"Lora", Georgia, serif',
+          'poppins': 'Poppins, system-ui, sans-serif',
+          'nunito': '"Nunito", system-ui, sans-serif',
         };
         var fontBodyMap = {
           'cormorant': '"Source Sans 3", system-ui, sans-serif',
@@ -219,6 +222,9 @@
           'inter': 'Inter, system-ui, sans-serif',
           'dm-sans': '"DM Sans", system-ui, sans-serif',
           'montserrat': 'Montserrat, system-ui, sans-serif',
+          'lora': '"Source Sans 3", system-ui, sans-serif',
+          'poppins': 'Poppins, system-ui, sans-serif',
+          'nunito': '"Nunito", system-ui, sans-serif',
         };
         var fontId = theme.fontFamily || 'cormorant';
         root.style.setProperty('--font-display', fontDisplayMap[fontId] || fontDisplayMap['cormorant']);
