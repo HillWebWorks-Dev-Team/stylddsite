@@ -4043,20 +4043,43 @@ ul.price-menu__policy-list {
 .field input[type="tel"],
 .field input[type="email"],
 .field input[type="date"],
-.field select,
 .field textarea {
   width: 100%;
-  padding: 0.65rem 0.85rem;
+  padding: 0.55rem 0;
   font-family: var(--font-body);
   font-size: 1rem;
-  border: 1px solid rgba(13, 13, 13, 0.15);
-  border-radius: 8px;
-  background: var(--cream);
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--ink);
+  border-radius: 0;
+  outline: none;
 }
+.field input[type="text"]:focus,
+.field input[type="tel"]:focus,
+.field input[type="email"]:focus,
+.field input[type="date"]:focus,
+.field textarea:focus {
+  border-bottom-color: var(--pink);
+}
+.field textarea { min-height: 88px; resize: vertical; }
 
-.field textarea {
-  min-height: 88px;
-  resize: vertical;
+.field select {
+  width: 100%;
+  padding: 0.65rem 2.5rem 0.65rem 0.85rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: #111 !important;
+  background-color: #f9f9f9 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23111' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 16px !important;
+  border: 2px solid #111 !important;
+  border-radius: 10px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
 }
 
 .appointment-calendar {
@@ -4248,6 +4271,7 @@ ul.price-menu__policy-list {
 
 .booking-slots-panel {
   margin-top: 0.5rem;
+  text-align: center;
 }
 
 .booking-slots-heading {
@@ -4523,80 +4547,32 @@ ul.price-menu__policy-list {
 }
 
 .slot-legend {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  font-size: 0.85rem;
-  margin-bottom: 1rem;
+  display: flex; gap: 1rem; flex-wrap: wrap;
+  font-size: 0.85rem; margin-bottom: 1rem; justify-content: center;
 }
+.slot-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dot-open { background: #22c55e; }
+.dot-full { background: #ef4444; }
+.dot-limited { background: #22c55e; }
 
-.slot-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.dot-open {
-  background: #2e7d32;
-}
-
-.dot-limited {
-  background: #f9a825;
-}
-
-.dot-full {
-  background: #c62828;
-}
-
-.time-slots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
+.time-slots { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
 
 .time-slot {
-  padding: 0.55rem 0.95rem;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.5rem 1.1rem; border-radius: 999px;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  background: #fff; color: #111;
+  font-size: 0.875rem; font-weight: 600;
+  cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
 }
-
-.time-slot:hover:not(:disabled) {
-  border-color: var(--pink);
-}
-
-.time-slot--open {
-  background: #43b047;
-  color: #fff;
-}
-
-.time-slot--limited {
-  background: #ffc107;
-  color: #1b1b1b;
-}
-
-.time-slot--full {
-  background: #ef4444;
-  color: #fff;
-}
-
-.time-slot.selected {
-  outline: 2px solid #111;
-  outline-offset: 1px;
-}
-
-.time-slot:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+.time-slot::before { content: ''; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.time-slot--open::before, .time-slot--limited::before { background: #22c55e; }
+.time-slot--full::before { background: #ef4444; }
+.time-slot:hover:not(:disabled) { border-color: var(--pink); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.time-slot.selected { border-color: #111; box-shadow: 0 0 0 2px #111; }
+.time-slot--full { opacity: 0.55; cursor: not-allowed; }
+.time-slot:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .pricing-sidebar {
   position: sticky;

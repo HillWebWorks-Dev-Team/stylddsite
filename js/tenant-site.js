@@ -229,8 +229,9 @@
       Object.keys(prices || {}).forEach(function (id) { styleIds[id] = true; });
       Object.keys(covers || {}).forEach(function (id) { styleIds[id] = true; });
 
+      var logoFallbackUrl = coverUrl(theme.logoImagePath);
+
       var styles = Object.keys(styleIds)
-        .slice(0, 12)
         .map(function (styleId) {
           var item = meta[styleId] || {};
           var sizeLabel = item.sizeLabel || item.variant || sizeLabelFromStyleId(styleId);
@@ -241,7 +242,7 @@
             priceLabel: formatPrice(prices[styleId]),
             sizeLabel: sizeLabel || undefined,
             durationLabel: formatStyleDuration(item.durationMinutes),
-            imageUrl: coverUrl(covers[styleId]),
+            imageUrl: coverUrl(covers[styleId]) || logoFallbackUrl,
             category: item.category || '',
           };
         });

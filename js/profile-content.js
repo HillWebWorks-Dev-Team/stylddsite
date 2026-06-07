@@ -40,10 +40,11 @@
     return content.hiddenLocationParts.indexOf(part) !== -1;
   }
 
-  function buildServiceCardWithCategory(style, cardClass) {
+  function buildServiceCardWithCategory(style, cardClass, logoFallback) {
     var cat = (style.category || '').trim();
-    var imgStyle = style.imageUrl
-      ? ' style="background-image:url(\'' + String(style.imageUrl).replace(/'/g, '%27') + '\');background-size:cover;background-position:center;"'
+    var imageUrl = (style.imageUrl || logoFallback || '').trim();
+    var imgStyle = imageUrl
+      ? ' style="background-image:url(\'' + String(imageUrl).replace(/'/g, '%27') + '\');background-size:cover;background-position:center;"'
       : '';
     var bookHref = style.id ? '/booking?style=' + encodeURIComponent(style.id) : '/booking';
     return (
@@ -64,6 +65,7 @@
     var cardClass = layout === 'outlined'
       ? 'profile-service-card profile-service-card--outlined'
       : 'profile-service-card';
+    var logoFallback = theme && theme.logoImageUrl ? theme.logoImageUrl : '';
 
     if (!styles || !styles.length) {
       return (
@@ -77,7 +79,7 @@
     }
 
     return styles.slice(0, 24)
-      .map(function (s) { return buildServiceCardWithCategory(s, cardClass); })
+      .map(function (s) { return buildServiceCardWithCategory(s, cardClass, logoFallback); })
       .join('');
   }
 

@@ -86,7 +86,7 @@
       });
   }
 
-  function buildCatalogCards(meta, prices, covers, supabaseUrl) {
+  function buildCatalogCards(meta, prices, covers, supabaseUrl, logoImagePath) {
     var styleIds = {};
     Object.keys(meta || {}).forEach(function (id) {
       styleIds[id] = true;
@@ -103,6 +103,8 @@
       return supabaseUrl.replace(/\/$/, '') + '/storage/v1/object/public/style-covers/' + String(path).replace(/^\/+/, '');
     }
 
+    var logoFallbackUrl = coverUrl(logoImagePath);
+
     function formatPrice(amount) {
       if (typeof amount !== 'number' || Number.isNaN(amount) || amount <= 0) return 'Price TBD';
       return '$' + Math.round(amount);
@@ -117,7 +119,7 @@
         sizeLabel: variant || '',
         durationLabel: formatStyleDuration(item.durationMinutes),
         priceLabel: formatPrice(prices[styleId]),
-        imageUrl: coverUrl(covers[styleId]),
+        imageUrl: coverUrl(covers[styleId]) || logoFallbackUrl,
       };
     });
   }
@@ -221,7 +223,7 @@
               bookingHours: bookingHours,
               bookingPayment: bookingPayment,
               bookingStyles: buildBookingStyles(meta, prices),
-              catalogCards: buildCatalogCards(meta, prices, covers, cfg.supabaseUrl),
+              catalogCards: buildCatalogCards(meta, prices, covers, cfg.supabaseUrl, theme.logoImagePath),
             };
           });
         });
