@@ -77,10 +77,39 @@
 
   function computeServiceFee(stylistAmount) {
     if (!stylistAmount || stylistAmount <= 0) return 0;
+    return Math.round((totalChargeWithFee(stylistAmount) - stylistAmount) * 100) / 100;
+  }
+
+  function totalChargeWithFee(stylistAmount) {
+    if (!stylistAmount || stylistAmount <= 0) return 0;
     var amountCents = Math.round(stylistAmount * 100);
-    // Gross-up for Stripe (~2.9% + $0.30); exact charge comes from stripe-booking-pay at checkout.
-    var chargeCents = Math.ceil((amountCents + 30) / (1 - 0.029));
-    return Math.max(0, (chargeCents - amountCents) / 100);
+    var chargeCents = Math.ceil((amountCents + 30) / (1 - 0.029 - 0.01));
+    return chargeCents / 100;
+  }
+
+  function edgeFunction(name, body) {
+    if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) {
+      return Promise.reject(new Error('Site is not configured for online booking.'));
+    }
+    return fetch(cfg.supabaseUrl.replace(/\/$/, '') + '/functions/v1/' + name, {
+      method: 'POST',
+      headers: {
+        apikey: cfg.supabaseAnonKey,
+        Authorization: 'Bearer ' + cfg.supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    }).then(function (res) {
+      return res.json().then(function (payload) {
+        if (!res.ok) {
+          var msg =
+            (payload && (payload.error || payload.message)) ||
+            'Request failed';
+          throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+        }
+        return payload;
+      });
+    });
   }
 
   function rpc(name, params) {
@@ -157,7 +186,7 @@
     if (deposit > 0 && deposit < 1) deposit = 1;
 
     var serviceFee = deposit > 0 ? computeServiceFee(deposit) : 0;
-    var totalDue = Math.round((deposit + serviceFee) * 100) / 100;
+    var totalDue = deposit > 0 ? totalChargeWithFee(deposit) : 0;
     var balanceDue = mode === 'deposit' ? Math.max(0, total - deposit) : 0;
     var depositLabel = mode === 'full' ? 'Full payment' : 'Deposit';
 
@@ -172,6 +201,17 @@
       depositLabel: depositLabel,
       mode: mode,
     };
+  }
+
+  function applyServerFeePreview(fees, pricing) {
+    if (!fees) return pricing;
+    var preview = Object.assign({}, pricing, {
+      deposit: fees.bookingAmountCents / 100,
+      serviceFee: fees.serviceFeeCents / 100,
+      totalDue: fees.totalChargeCents / 100,
+    });
+    updateDueBreakdown(preview);
+    return preview;
   }
 
   function updateDueBreakdown(p) {
@@ -530,6 +570,87 @@
     };
   }
 
+  function ensureSlotStillAvailable(slotStart, durationMinutes) {
+    var dateIso = slotStart.toISODate();
+    var pricing = computePricing(selectedStyle);
+    return fetchUnavailableForDay(dateIso).then(function (unavailable) {
+      if (!availability.isSlotBookable(slotStart, durationMinutes, unavailable)) {
+        var reason = availability.slotConflictReason
+          ? availability.slotConflictReason(slotStart, durationMinutes, unavailable)
+          : null;
+        paintSlots(unavailable, dateIso, pricing);
+        throw new Error(
+          reason === 'blocked'
+            ? 'This time is blocked. Please choose another time.'
+            : 'That time slot is no longer available. Please choose another time.',
+        );
+      }
+      return unavailable;
+    });
+  }
+
+  function confirmBookingPayment(bookingId, paymentIntentId, attempt) {
+    attempt = attempt || 0;
+    return edgeFunction('stripe-booking-confirm', {
+      subdomain: subdomain,
+      bookingId: bookingId,
+      paymentIntentId: paymentIntentId,
+    }).catch(function (err) {
+      if (attempt >= 2) throw err;
+      return new Promise(function (resolve) {
+        setTimeout(resolve, 800 * (attempt + 1));
+      }).then(function () {
+        return confirmBookingPayment(bookingId, paymentIntentId, attempt + 1);
+      });
+    });
+  }
+
+  function processStripeCheckout(bookingId, pricing, payload) {
+    var amountCents = Math.round(pricing.deposit * 100);
+    var paymentIntentId = null;
+
+    return edgeFunction('stripe-booking-pay', {
+      subdomain: subdomain,
+      bookingId: bookingId,
+      amountCents: amountCents,
+      email: payload.email,
+    })
+      .then(function (payResult) {
+        if (payResult.fees) {
+          applyServerFeePreview(payResult.fees, pricing);
+        }
+        if (!payResult.clientSecret) {
+          throw new Error('Could not start payment.');
+        }
+        return window.__STYLD_STRIPE__
+          .confirmCardPayment(payResult.clientSecret, {
+            payment_method: { card: stripeCard },
+          })
+          .then(function (result) {
+            if (result.error) {
+              throw new Error(result.error.message || 'Payment failed.');
+            }
+            paymentIntentId =
+              payResult.paymentIntentId ||
+              (result.paymentIntent && result.paymentIntent.id) ||
+              null;
+            if (!paymentIntentId) {
+              throw new Error('Payment succeeded but no payment reference was returned.');
+            }
+            return confirmBookingPayment(bookingId, paymentIntentId);
+          });
+      })
+      .catch(function (err) {
+        if (paymentIntentId) {
+          throw new Error(
+            'Your card was charged but confirmation failed. Save this reference for support: ' +
+              paymentIntentId,
+          );
+        }
+        throw err;
+      });
+  }
+
   function isSlotConflictMessage(message) {
     return /no longer available|not available|already booked|blocked|time slot/i.test(String(message || ''));
   }
@@ -548,27 +669,12 @@
 
     var pricing = computePricing(selectedStyle);
     var slotStart = selectedSlotStart;
-    var dateIso = slotStart.toISODate();
 
     if (submitBtn) submitBtn.disabled = true;
     showFeedback('Checking availability…', false);
 
-    fetchUnavailableForDay(dateIso)
-      .then(function (unavailable) {
-        if (!availability.isSlotBookable(slotStart, pricing.duration, unavailable)) {
-          var reason = availability.slotConflictReason
-            ? availability.slotConflictReason(slotStart, pricing.duration, unavailable)
-            : null;
-          var message =
-            reason === 'blocked'
-              ? 'This time is blocked. Please choose another time.'
-              : 'That time slot is no longer available. Please choose another time.';
-          showFeedback(message, true);
-          if (submitBtn) submitBtn.disabled = false;
-          paintSlots(unavailable, dateIso, pricing);
-          return null;
-        }
-
+    ensureSlotStillAvailable(slotStart, pricing.duration)
+      .then(function () {
         showFeedback('Saving your booking…', false);
         var payload = buildBookingPayload();
 
@@ -582,9 +688,10 @@
             return null;
           }
 
-          showFeedback('Booking saved. Payment processing is not available yet — your spot is held unpaid.', false);
-          setTimeout(function () { redirectSuccess(id, pricing); }, 1200);
-          return null;
+          showFeedback('Processing payment…', false);
+          return processStripeCheckout(id, pricing, payload).then(function () {
+            redirectSuccess(id, pricing);
+          });
         });
       })
       .catch(function (err) {

@@ -134,6 +134,25 @@
     }
   }
 
+  function normalizeWeekdayHours(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    var source = raw.weekdayHours;
+    if (!source || typeof source !== 'object') return {};
+
+    var normalized = {};
+    Object.keys(source).forEach(function (key) {
+      var entry = source[key];
+      if (!entry || typeof entry !== 'object') return;
+      normalized[String(key)] = {
+        startHour: entry.startHour != null ? Number(entry.startHour) : null,
+        startMinute: entry.startMinute != null ? Number(entry.startMinute) : 0,
+        endHour: entry.endHour != null ? Number(entry.endHour) : null,
+        endMinute: entry.endMinute != null ? Number(entry.endMinute) : 0,
+      };
+    });
+    return normalized;
+  }
+
   function normalizeBookingHours(raw) {
     var defaults = {
       slotDayStartHour: 8,
@@ -159,6 +178,7 @@
         days: raw.days,
         sameDayLeadMinutes: Number.isFinite(legacyLead) ? legacyLead : defaults.sameDayLeadMinutes,
         hoursInAdvance: raw.hoursInAdvance,
+        weekdayHours: normalizeWeekdayHours(raw),
         concurrentAppointmentCapacity:
           raw.concurrentAppointmentCapacity != null
             ? Number(raw.concurrentAppointmentCapacity)
@@ -179,6 +199,7 @@
       closedWeekdays: Array.isArray(raw.closedWeekdays)
         ? raw.closedWeekdays.map(Number)
         : defaults.closedWeekdays.slice(),
+      weekdayHours: normalizeWeekdayHours(raw),
       sameDayLeadMinutes:
         raw.sameDayLeadMinutes != null
           ? Number(raw.sameDayLeadMinutes)
@@ -247,6 +268,7 @@
     getSubdomain: getSubdomain,
     applySiteFooter: applySiteFooter,
     normalizeBookingHours: normalizeBookingHours,
+    normalizeWeekdayHours: normalizeWeekdayHours,
     getBookingFormRequirements: getBookingFormRequirements,
     applyBookingFormSettings: applyBookingFormSettings,
 

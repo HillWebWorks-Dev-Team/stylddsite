@@ -55,6 +55,38 @@
       return null;
     }
 
+    function getDayWindow(day) {
+      var weekday = weekdayIndex(day);
+      var startHour = hours.slotDayStartHour != null ? hours.slotDayStartHour : 8;
+      var startMinute = hours.slotDayStartMinute != null ? hours.slotDayStartMinute : 0;
+      var endHour = hours.slotDayEndHour != null ? hours.slotDayEndHour : 19;
+      var endMinute = hours.slotDayEndMinute != null ? hours.slotDayEndMinute : 30;
+
+      var weekdayHours = hours.weekdayHours || {};
+      var dayHours = weekdayHours[String(weekday)] || weekdayHours[weekday];
+      if (dayHours && typeof dayHours === 'object') {
+        if (dayHours.startHour != null) startHour = Number(dayHours.startHour);
+        if (dayHours.startMinute != null) startMinute = Number(dayHours.startMinute);
+        if (dayHours.endHour != null) endHour = Number(dayHours.endHour);
+        if (dayHours.endMinute != null) endMinute = Number(dayHours.endMinute);
+      }
+
+      return {
+        start: day.set({
+          hour: startHour,
+          minute: startMinute,
+          second: 0,
+          millisecond: 0,
+        }),
+        end: day.set({
+          hour: endHour,
+          minute: endMinute,
+          second: 0,
+          millisecond: 0,
+        }),
+      };
+    }
+
     function getDayCloseTime(day) {
       var weekday = weekdayIndex(day);
 
@@ -72,12 +104,7 @@
         }
       }
 
-      return day.set({
-        hour: hours.slotDayEndHour != null ? hours.slotDayEndHour : 19,
-        minute: hours.slotDayEndMinute != null ? hours.slotDayEndMinute : 30,
-        second: 0,
-        millisecond: 0,
-      });
+      return getDayWindow(day).end;
     }
 
     function latestAllowedStart(day, durationMinutes) {
@@ -108,18 +135,9 @@
           .filter(Boolean);
       }
 
-      var start = day.set({
-        hour: hours.slotDayStartHour != null ? hours.slotDayStartHour : 8,
-        minute: hours.slotDayStartMinute || 0,
-        second: 0,
-        millisecond: 0,
-      });
-      var endLimit = day.set({
-        hour: hours.slotDayEndHour != null ? hours.slotDayEndHour : 19,
-        minute: hours.slotDayEndMinute != null ? hours.slotDayEndMinute : 30,
-        second: 0,
-        millisecond: 0,
-      });
+      var windowForDay = getDayWindow(day);
+      var start = windowForDay.start;
+      var endLimit = windowForDay.end;
 
       var step = hours.slotStepMinutes || 30;
       var slots = [];
