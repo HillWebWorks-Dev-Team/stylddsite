@@ -151,12 +151,36 @@
 
   function populateLocationInfo(content) {
     var infoEl = document.getElementById('profile-location-info');
+    var visitTitleEl = document.getElementById('profile-visit-title');
+    var visitSection = document.getElementById('profile-location-section');
     if (!infoEl) return;
 
     var html = '';
     var address = formatSiteAddress(content).trim();
+    var handle = (content.instagramHandle || '').replace(/^@/, '').trim();
+    var igUrl = handle ? 'https://www.instagram.com/' + encodeURIComponent(handle) + '/' : '';
 
-    if (!isLocationPartHidden(content, 'address') && address) {
+    var showAddress = !isLocationPartHidden(content, 'address') && !!address;
+    var showContact =
+      !isLocationPartHidden(content, 'contact') &&
+      !!(String(content.phoneDisplay || '').trim() || String(content.email || '').trim());
+    var showSocial = !isLocationPartHidden(content, 'social') && !!handle;
+    var showMap = !isLocationPartHidden(content, 'map') && !!buildGoogleMapsEmbedUrl(content);
+
+    var showVisitPart = showAddress || showMap;
+    var showConnectPart = showContact || showSocial;
+
+    if (visitTitleEl) {
+      var title = '';
+      if (showVisitPart && showConnectPart) title = 'Visit & Connect';
+      else if (showVisitPart) title = 'Visit';
+      else if (showConnectPart) title = 'Connect';
+      visitTitleEl.textContent = title;
+      var titleWrap = visitTitleEl.closest('.profile-location-head');
+      if (titleWrap) titleWrap.hidden = !title;
+    }
+
+    if (showAddress) {
       var mapsUrl = buildGoogleMapsSearchUrl(address);
       html +=
         '<div class="profile-location-col"><h3>Address</h3>' +
@@ -164,19 +188,34 @@
         escapeHtml(address) + '</a></p></div>';
     }
 
-    if (!isLocationPartHidden(content, 'contact')) {
-      var handle = (content.instagramHandle || '').replace(/^@/, '').trim();
-      var igUrl = handle ? 'https://www.instagram.com/' + encodeURIComponent(handle) + '/' : '';
+    if (showContact) {
       var contactHtml =
         (content.phoneDisplay ? '<p>' + escapeHtml(content.phoneDisplay) + '</p>' : '') +
-        (content.email ? '<p><a href="mailto:' + escapeHtml(content.email) + '">' + escapeHtml(content.email) + '</a></p>' : '') +
-        (handle ? '<p><a href="' + escapeHtml(igUrl) + '" target="_blank" rel="noopener noreferrer">@' + escapeHtml(handle) + '</a></p>' : '');
+        (content.email
+          ? '<p><a href="mailto:' + escapeHtml(content.email) + '">' + escapeHtml(content.email) + '</a></p>'
+          : '');
       if (contactHtml) {
         html += '<div class="profile-location-col"><h3>Contact</h3>' + contactHtml + '</div>';
       }
     }
 
+    if (showSocial) {
+      var igIcon =
+        '<svg class="profile-ig-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>' +
+        '<path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>' +
+        '<line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>';
+      html +=
+        '<div class="profile-location-col"><h3>Social</h3>' +
+        '<p class="profile-ig-link"><a href="' + escapeHtml(igUrl) + '" target="_blank" rel="noopener noreferrer">' +
+        igIcon + '@' + escapeHtml(handle) + '</a></p></div>';
+    }
+
     infoEl.innerHTML = html;
+
+    if (visitSection) {
+      visitSection.hidden = isSectionHidden(content, 'visit') || (!showVisitPart && !showConnectPart);
+    }
   }
 
   window.applyStyldPreviewContent = function applyStyldPreviewContent() {
@@ -293,8 +332,6 @@
     }
 
     // Location
-    var visitTitleEl = document.getElementById('profile-visit-title');
-    if (visitTitleEl) visitTitleEl.textContent = content.visitTitle || 'Location';
     populateLocationInfo(content);
 
     var mapFrame = document.getElementById('profile-map');
@@ -312,6 +349,7 @@
     // Section visibility
     document.querySelectorAll('[data-site-section]').forEach(function (el) {
       var sectionId = el.getAttribute('data-site-section');
+      if (sectionId === 'visit') return;
       if (sectionId) el.hidden = isSectionHidden(content, sectionId);
     });
 

@@ -44,10 +44,6 @@
       </div>
 
       <div class="container booking-layout">
-        <p id="booking-form-section-lead" class="booking-form-section-lead">
-          <strong>Booking flow template</strong> — choose options first, then pick a slot from the availability grid
-          (wire this to Supabase when you deploy).
-        </p>
         <p id="booking-supabase-hint" class="booking-supabase-hint" role="status" hidden>
           <strong>Cloud save off.</strong> Bookings stay in this browser only until you add your Supabase URL and
           anon key in <code>js/supabase-config.local.js</code>. Follow
@@ -176,7 +172,6 @@
             <div class="field">
               <label for="photo-hair">Current hair photo *</label>
               <input id="photo-hair" name="photo-hair" type="file" accept="image/*" required />
-              <small>Template upload — rename this field or make it optional in your fork if you don’t need it.</small>
               <div id="photo-hair-preview" class="file-preview" aria-live="polite"></div>
             </div>
 
@@ -355,7 +350,7 @@
     <script src="js/booking-config.js"></script>
     <script src="/js/styld-tenant-config.js?v=37"></script>
     <script src="/js/styld-tenant-config.local.js?v=37"></script>
-    <script src="/js/styld-tenant-shared.js?v=40"></script>
+    <script src="/js/styld-tenant-shared.js?v=41"></script>
     <script src="/js/profile-content.js?v=38"></script>
     <script src="/js/tenant-site.js?v=38"></script>
     <script src="/js/styld-tenant-booking.js?v=45"></script>

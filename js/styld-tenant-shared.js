@@ -78,9 +78,6 @@
           durationMinutes: normalizeDurationMinutes(item.durationMinutes),
         };
       })
-      .filter(function (s) {
-        return s.base > 0;
-      })
       .sort(function (a, b) {
         return a.name.localeCompare(b.name);
       });
