@@ -4559,21 +4559,17 @@ ul.price-menu__policy-list {
 .time-slots { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
 
 .time-slot {
-  display: inline-flex; align-items: center; gap: 0.45rem;
+  display: inline-flex; align-items: center; justify-content: center;
   padding: 0.5rem 1.1rem; border-radius: 999px;
   border: 1.5px solid rgba(0,0,0,0.12);
   background: #fff; color: #111;
   font-size: 0.875rem; font-weight: 600;
-  cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
-.time-slot::before { content: ''; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.time-slot--open::before { background: #22c55e; }
-.time-slot--limited::before { background: #eab308; }
-.time-slot--full::before { background: #ef4444; }
 .time-slot:hover:not(:disabled) { border-color: var(--pink); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 .time-slot.selected { border-color: #111; box-shadow: 0 0 0 2px #111; }
-.time-slot--full { opacity: 0.55; cursor: not-allowed; }
-.time-slot:disabled { opacity: 0.4; cursor: not-allowed; }
+.time-slot--unavailable,
+.time-slot:disabled { opacity: 0.38; cursor: not-allowed; }
 
 .pricing-sidebar {
   position: sticky;

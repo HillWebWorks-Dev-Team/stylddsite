@@ -55,6 +55,57 @@
       return null;
     }
 
+    function getDayCloseTime(day) {
+      var weekday = weekdayIndex(day);
+
+      if (hours.days && typeof hours.days === 'object') {
+        var dayCfg = hours.days[String(weekday)] || hours.days[weekday];
+        if (dayCfg && dayCfg.close) {
+          var closeLabel = String(dayCfg.close).trim();
+          var patterns = ['H:mm', 'h:mm a', 'h:mma'];
+          for (var i = 0; i < patterns.length; i++) {
+            var parsed = DateTime.fromFormat(day.toISODate() + ' ' + closeLabel, 'yyyy-MM-dd ' + patterns[i], {
+              zone: zone,
+            });
+            if (parsed.isValid) return parsed;
+          }
+        }
+      }
+
+      return day.set({
+        hour: hours.slotDayEndHour != null ? hours.slotDayEndHour : 19,
+        minute: hours.slotDayEndMinute != null ? hours.slotDayEndMinute : 30,
+        second: 0,
+        millisecond: 0,
+      });
+    }
+
+    function latestAllowedStart(day, durationMinutes) {
+      var close = getDayCloseTime(day);
+      var latest = close.minus({ minutes: durationMinutes });
+      var weekday = weekdayIndex(day);
+
+      if (weekday === 6 && hours.saturdayLastStartHour != null) {
+        var saturdayLast = day.set({
+          hour: hours.saturdayLastStartHour,
+          minute: hours.saturdayLastStartMinute || 0,
+          second: 0,
+          millisecond: 0,
+        });
+        if (saturdayLast < latest) latest = saturdayLast;
+      }
+
+      return latest;
+    }
+
+    function fitsWithinBusinessHours(slotStart, durationMinutes) {
+      var slotEnd = slotStart.plus({ minutes: durationMinutes });
+      var close = getDayCloseTime(slotStart);
+      if (slotEnd > close) return false;
+      if (slotStart > latestAllowedStart(slotStart, durationMinutes)) return false;
+      return true;
+    }
+
     function generateSlotTimes(dateIso) {
       var day = DateTime.fromISO(dateIso, { zone: zone });
       if (!day.isValid) return [];
@@ -145,7 +196,11 @@
       };
     }
 
-    function classifySlot(slotStart, durationMinutes, unavailable) {
+    function isSlotBookable(slotStart, durationMinutes, unavailable) {
+      if (!fitsWithinBusinessHours(slotStart, durationMinutes)) {
+        return false;
+      }
+
       var slotEnd = slotStart.plus({ minutes: durationMinutes });
       var capacity = hours.concurrentAppointmentCapacity || 1;
       var bookingOverlaps = 0;
@@ -157,14 +212,16 @@
         if (!overlaps(slotStart, slotEnd, interval.start, interval.end)) continue;
 
         if (interval.kind === 'block') {
-          return 'full';
+          return false;
         }
         bookingOverlaps += 1;
       }
 
-      if (bookingOverlaps >= capacity) return 'full';
-      if (capacity > 1 && bookingOverlaps === capacity - 1) return 'limited';
-      return 'open';
+      return bookingOverlaps < capacity;
+    }
+
+    function classifySlot(slotStart, durationMinutes, unavailable) {
+      return isSlotBookable(slotStart, durationMinutes, unavailable) ? 'open' : 'full';
     }
 
     return {
@@ -176,7 +233,9 @@
       generateSlotTimes: generateSlotTimes,
       bookableSlotTimes: bookableSlotTimes,
       calendarDayDisabledReason: calendarDayDisabledReason,
+      isSlotBookable: isSlotBookable,
       classifySlot: classifySlot,
+      fitsWithinBusinessHours: fitsWithinBusinessHours,
       parseUnavailableInterval: parseUnavailableInterval,
     };
   }

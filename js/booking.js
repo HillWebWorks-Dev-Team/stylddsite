@@ -207,14 +207,14 @@
         candidates.forEach(function (slotStart) {
           if (slotStart < earliest) return;
 
-          var slotState = availability.classifySlot(slotStart, pricing.duration, unavailable);
+          var bookable = availability.isSlotBookable(slotStart, pricing.duration, unavailable);
           var btn = document.createElement('button');
           btn.type = 'button';
-          btn.className = 'time-slot time-slot--' + slotState;
+          btn.className = 'time-slot' + (bookable ? '' : ' time-slot--unavailable');
           btn.textContent = slotStart.toFormat('h:mm a');
-          btn.disabled = slotState === 'full';
+          btn.disabled = !bookable;
 
-          if (slotState !== 'full') {
+          if (bookable) {
             openCount += 1;
             btn.addEventListener('click', function () {
               selectedSlotStart = slotStart;
