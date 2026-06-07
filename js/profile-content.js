@@ -76,56 +76,63 @@
       );
     }
 
-    var categoryOrder = [];
-    var grouped = {};
-    styles.slice(0, 24).forEach(function (style) {
-      var cat = (style.category || '').trim();
-      if (!grouped[cat]) {
-        grouped[cat] = [];
-        categoryOrder.push(cat);
-      }
-      grouped[cat].push(style);
-    });
-
-    var namedCategories = categoryOrder.filter(function (c) { return c !== ''; });
-
-    var allCards = styles.slice(0, 24)
+    return styles.slice(0, 24)
       .map(function (s) { return buildServiceCardWithCategory(s, cardClass); })
       .join('');
+  }
 
-    if (namedCategories.length > 0) {
-      var filtersEl = document.getElementById('profile-menu-filters');
-      if (filtersEl) {
-        var tabsHtml = '<button class="profile-menu-filter profile-menu-filter--active" data-filter="__all__">All</button>';
-        namedCategories.forEach(function (cat) {
-          tabsHtml += '<button class="profile-menu-filter" data-filter="' + escapeHtml(cat) + '">' + escapeHtml(cat) + '</button>';
-        });
-        filtersEl.innerHTML = tabsHtml;
-        filtersEl.hidden = false;
+  function setupMenuFilters(styles, grid) {
+    var filtersEl = document.getElementById('profile-menu-filters');
+    if (!filtersEl || !grid) return;
 
-        filtersEl.addEventListener('click', function (e) {
-          var btn = e.target && e.target.closest ? e.target.closest('.profile-menu-filter') : e.target;
-          if (!btn || !btn.dataset || !btn.dataset.filter) return;
-          var filter = btn.dataset.filter;
-
-          filtersEl.querySelectorAll('.profile-menu-filter').forEach(function (b) {
-            b.classList.toggle('profile-menu-filter--active', b === btn);
-          });
-
-          var grid = document.getElementById('profile-service-grid');
-          if (!grid) return;
-          grid.querySelectorAll('.profile-service-card, .profile-service-card--outlined').forEach(function (card) {
-            if (filter === '__all__') {
-              card.hidden = false;
-            } else {
-              card.hidden = (card.dataset.category || '') !== filter;
-            }
-          });
-        });
+    var categories = [];
+    (styles || []).slice(0, 24).forEach(function (style) {
+      var cat = (style.category || '').trim();
+      if (cat && categories.indexOf(cat) === -1) {
+        categories.push(cat);
       }
+    });
+
+    if (!categories.length) {
+      filtersEl.hidden = true;
+      filtersEl.innerHTML = '';
+      filtersEl.onclick = null;
+      return;
     }
 
-    return allCards;
+    var tabsHtml =
+      '<button type="button" class="profile-menu-filter profile-menu-filter--active" data-filter="__all__">All</button>';
+    categories.forEach(function (cat) {
+      tabsHtml +=
+        '<button type="button" class="profile-menu-filter" data-filter="' +
+        escapeHtml(cat) +
+        '">' +
+        escapeHtml(cat) +
+        '</button>';
+    });
+    filtersEl.innerHTML = tabsHtml;
+    filtersEl.hidden = false;
+
+    function applyFilter(filter) {
+      grid.querySelectorAll('.profile-service-card').forEach(function (card) {
+        var cat = card.getAttribute('data-category') || '';
+        var hide = filter !== '__all__' && cat !== filter;
+        card.hidden = hide;
+        card.classList.toggle('profile-service-card--filtered', hide);
+      });
+    }
+
+    filtersEl.onclick = function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('.profile-menu-filter') : null;
+      if (!btn || !filtersEl.contains(btn)) return;
+      var filter = btn.getAttribute('data-filter');
+      if (!filter) return;
+
+      filtersEl.querySelectorAll('.profile-menu-filter').forEach(function (b) {
+        b.classList.toggle('profile-menu-filter--active', b === btn);
+      });
+      applyFilter(filter);
+    };
   }
 
   function populateLocationInfo(content) {
@@ -249,7 +256,10 @@
     if (menuBlurbEl) menuBlurbEl.textContent = content.menuBlurb || '';
 
     var serviceGrid = document.getElementById('profile-service-grid');
-    if (serviceGrid) serviceGrid.innerHTML = buildProfileServiceCards(styles, theme);
+    if (serviceGrid) {
+      serviceGrid.innerHTML = buildProfileServiceCards(styles, theme);
+      setupMenuFilters(styles, serviceGrid);
+    }
 
     // Location
     var visitTitleEl = document.getElementById('profile-visit-title');

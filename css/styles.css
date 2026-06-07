@@ -6164,6 +6164,10 @@ ul.price-menu__policy-list {
   color: inherit;
   transition: box-shadow 0.15s, border-color 0.15s;
 }
+.profile-service-card[hidden],
+.profile-service-card.profile-service-card--filtered {
+  display: none !important;
+}
 .profile-service-card:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   border-color: rgba(219, 39, 119, 0.22);
