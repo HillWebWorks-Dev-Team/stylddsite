@@ -5977,6 +5977,27 @@ ul.price-menu__policy-list {
 .profile-menu-head { margin-bottom: 1.35rem; }
 .profile-menu-head h2 { font-family: var(--font-display); font-size: clamp(1.5rem,3vw,2.2rem); font-weight: 700; color: var(--ink); margin: 0 0 0.35rem; border-bottom: 2px solid var(--pink); display: inline-block; padding-bottom: 0.2rem; }
 .profile-menu-blurb { color: var(--muted); font-size: 0.9rem; margin: 0; }
+.profile-menu-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.profile-menu-filter {
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.profile-menu-filter:hover { border-color: var(--pink); color: var(--pink); }
+.profile-menu-filter--active { background: var(--pink); border-color: var(--pink); color: #fff; }
 .profile-service-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 0.875rem; }
 .profile-service-card { display: flex; align-items: center; gap: 0.85rem; padding: 0.75rem; border-radius: 14px; background: var(--white); border: 1px solid rgba(0,0,0,.07); text-decoration: none; color: inherit; transition: box-shadow .15s,border-color .15s; }
 .profile-service-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); border-color: rgba(219,39,119,.22); }

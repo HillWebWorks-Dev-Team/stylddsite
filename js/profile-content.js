@@ -43,9 +43,13 @@
     var durationHtml = style.durationLabel
       ? '<span class="profile-service-card__duration">' + escapeHtml(style.durationLabel) + '</span>'
       : '';
+    var category = style.category ? String(style.category).trim() : '';
+    var categoryAttr = category ? ' data-category="' + escapeHtml(category) + '"' : '';
 
     return (
-      '<a class="profile-service-card" href="' +
+      '<a class="profile-service-card"' +
+      categoryAttr +
+      ' href="' +
       bookHref +
       '">' +
       '<div class="profile-service-card__img"' +
@@ -61,6 +65,63 @@
       durationHtml +
       '</div></a>'
     );
+  }
+
+  function collectCategories(styles) {
+    var categories = [];
+    (styles || []).forEach(function (style) {
+      var cat = style.category ? String(style.category).trim() : '';
+      if (cat && categories.indexOf(cat) === -1) {
+        categories.push(cat);
+      }
+    });
+    return categories;
+  }
+
+  function setupMenuFilters(styles, grid) {
+    var filtersEl = document.getElementById('profile-menu-filters');
+    if (!filtersEl || !grid) return;
+
+    var categories = collectCategories(styles);
+    if (!categories.length) {
+      filtersEl.hidden = true;
+      filtersEl.innerHTML = '';
+      return;
+    }
+
+    filtersEl.hidden = false;
+    filtersEl.innerHTML = '';
+
+    function setActiveFilter(value) {
+      filtersEl.querySelectorAll('.profile-menu-filter').forEach(function (btn) {
+        btn.classList.toggle('profile-menu-filter--active', btn.getAttribute('data-filter') === value);
+      });
+
+      grid.querySelectorAll('.profile-service-card').forEach(function (card) {
+        if (value === 'all') {
+          card.hidden = false;
+          return;
+        }
+        card.hidden = card.getAttribute('data-category') !== value;
+      });
+    }
+
+    function makeFilterButton(label, value, active) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'profile-menu-filter' + (active ? ' profile-menu-filter--active' : '');
+      btn.setAttribute('data-filter', value);
+      btn.textContent = label;
+      btn.addEventListener('click', function () {
+        setActiveFilter(value);
+      });
+      return btn;
+    }
+
+    filtersEl.appendChild(makeFilterButton('All', 'all', true));
+    categories.forEach(function (cat) {
+      filtersEl.appendChild(makeFilterButton(cat, cat, false));
+    });
   }
 
   function buildLocationInfoHtml(content) {
@@ -182,16 +243,18 @@
     }
 
     var grid = document.getElementById('profile-service-grid');
+    var styles = window.__STYLD_SITE_STYLES__ || [];
     if (grid) {
-      var styles = window.__STYLD_SITE_STYLES__ || [];
       if (!styles.length) {
         grid.innerHTML = buildProfileServiceCardHtml({
           title: 'Add services in Styld',
           priceLabel: '',
           durationLabel: '',
         });
+        setupMenuFilters([], grid);
       } else {
-        grid.innerHTML = styles.slice(0, 12).map(buildProfileServiceCardHtml).join('');
+        grid.innerHTML = styles.map(buildProfileServiceCardHtml).join('');
+        setupMenuFilters(styles, grid);
       }
     }
 

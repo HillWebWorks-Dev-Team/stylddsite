@@ -244,6 +244,7 @@
           id: styleId,
           title: item.title || styleId,
           description: item.description || '',
+          category: item.category ? String(item.category).trim() : '',
           priceLabel: formatPrice(prices[styleId]),
           sizeLabel: sizeLabel || undefined,
           durationLabel: formatStyleDuration(item.durationMinutes),
