@@ -59,7 +59,6 @@
   var selectedDate = null;
   var selectedSlotStart = null;
   var selectedStyle = null;
-  var availableDates = new Set();
   var stripeCard = null;
   var stripeElements = null;
 
@@ -238,18 +237,6 @@
       });
   }
 
-  function loadAvailableDates() {
-    var start = viewMonth.startOf('month').toISODate();
-    var end = viewMonth.endOf('month').toISODate();
-    return rpc('styld_tenant_booking_dates_in_range', {
-      p_subdomain: subdomain,
-      p_start: start,
-      p_end: end,
-    }).then(function (dates) {
-      availableDates = new Set(Array.isArray(dates) ? dates : []);
-    });
-  }
-
   function renderCalendar() {
     if (!calGrid || !calMonthLabel) return;
 
@@ -272,8 +259,7 @@
       if (selectedDate && day.hasSame(selectedDate, 'day')) btn.classList.add('is-selected');
 
       var iso = day.toISODate();
-      var disabledReason = availability.calendarDayDisabledReason(day);
-      var selectable = !disabledReason && availableDates.has(iso);
+      var selectable = !availability.calendarDayDisabledReason(day);
       if (!selectable) {
         btn.classList.add('is-disabled');
         btn.disabled = true;
@@ -295,7 +281,8 @@
   }
 
   function refreshCalendar() {
-    return loadAvailableDates().then(renderCalendar);
+    renderCalendar();
+    return Promise.resolve();
   }
 
   function onStyleChange() {

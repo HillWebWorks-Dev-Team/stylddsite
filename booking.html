@@ -218,11 +218,7 @@
             <div class="booking-duration-strip" id="duration-strip">ESTIMATED DURATION TBD</div>
 
             <div class="booking-slots-panel" id="slots-panel">
-              <h3 class="booking-slots-heading">Available Time Slots</h3>
-              <div class="slot-legend" aria-label="Slot availability legend">
-                <span><span class="dot dot-open" aria-hidden="true"></span> Available</span>
-                <span><span class="dot dot-full" aria-hidden="true"></span> Fully Booked</span>
-              </div>
+              <h3 class="booking-slots-heading">Time slots</h3>
               <p class="booking-style-gate" id="style-gate-alert">
                 Pick a menu item above to preview duration (from booking logic) and open time slots.
               </p>
@@ -342,7 +338,7 @@
     <script src="/js/styld-tenant-shared.js?v=60"></script>
     <script src="/js/profile-content.js?v=39"></script>
     <script src="/js/tenant-site.js?v=39"></script>
-    <script src="/js/styld-tenant-booking.js?v=60"></script>
+    <script src="/js/styld-tenant-booking.js?v=61"></script>
     <script src="/js/supabase-config.js?v=60"></script>
     <script src="/js/supabase-config.local.js?v=60"></script>
     <script id="booking-fallback-bootstrap">
@@ -365,10 +361,10 @@
           'const sb = createClient(c.url, c.anonKey);' +
           'window.salonSupabaseClient = sb;' +
           'const avail = document.createElement("script");' +
-          'avail.src = "/js/booking-availability.js?v=60";' +
+          'avail.src = "/js/booking-availability.js?v=61";' +
           'avail.onload = function () {' +
           'const booking = document.createElement("script");' +
-          'booking.src = "/js/booking.js?v=60";' +
+          'booking.src = "/js/booking.js?v=61";' +
           'booking.defer = true;' +
           'document.body.appendChild(booking);' +
           '};' +
