@@ -845,6 +845,8 @@
     }
     return msg;
   }
+
+  function isSlotConflictMessage(message) {
     return /no longer available|not available|already booked|blocked|time slot/i.test(String(message || ''));
   }
 
