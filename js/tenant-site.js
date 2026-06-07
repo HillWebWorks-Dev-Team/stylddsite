@@ -34,7 +34,8 @@
   };
 
   function rest(path) {
-    return fetch(cfg.supabaseUrl.replace(/\/$/, '') + '/rest/v1/' + path, { headers: headers }).then(function (res) {
+    var url = cfg.supabaseUrl.replace(/\/$/, '') + '/rest/v1/' + path;
+    return fetch(url, { headers: headers, cache: 'no-store' }).then(function (res) {
       if (!res.ok) throw new Error('Could not load site data.');
       return res.json();
     });
@@ -82,11 +83,7 @@
   function sizeLabelFromStyleId(styleId) {
     var parts = String(styleId || '').split('-');
     var last = parts[parts.length - 1];
-    var sizes = {
-      sm: 'SMALL',
-      md: 'MEDIUM',
-      lg: 'LARGE',
-    };
+    var sizes = { sm: 'SMALL', md: 'MEDIUM', lg: 'LARGE' };
     return sizes[last] || '';
   }
 
@@ -129,127 +126,124 @@
         throw new Error('Site content not found.');
       }
 
+      var templateId = 'profile';
+
       window.__STYLD_SITE_CONTENT__ = content;
+      var heroStackImagePaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
       window.__STYLD_SITE_THEME__ = {
         heroLayout: theme.heroLayout || 'split',
+        heroImagePosition: theme.heroImagePosition || 'center top',
         heroImageUrl: coverUrl(theme.heroImagePath),
         logoImageUrl: coverUrl(theme.logoImagePath),
+        heroStackImageUrls: heroStackImagePaths.map(function(p) { return coverUrl(p); }).filter(Boolean),
         primaryColor: theme.primaryColor || null,
         secondaryColor: theme.secondaryColor || null,
         navbarColor: theme.navbarColor || null,
-        fontFamily: theme.fontFamily || null,
+        cardOutlineColor: theme.cardOutlineColor || null,
         styleCardLayout: theme.styleCardLayout || 'card',
+        fontFamily: theme.fontFamily || 'cormorant',
+        templateId: templateId,
       };
 
-      // Apply brand colors as CSS variables
-      if (theme.primaryColor || theme.secondaryColor) {
-        (function applyBrandColors() {
-          var primary = theme.primaryColor || '#db2777';
-          var secondary = theme.secondaryColor || '#0a0a0a';
+      (function applyTheme() {
+        var primary = theme.primaryColor || '#db2777';
+        var secondary = theme.secondaryColor || '#0a0a0a';
 
-          function hexToRgb(hex) {
-            var clean = hex.replace('#', '');
-            if (clean.length !== 6) return null;
-            return [parseInt(clean.slice(0, 2), 16), parseInt(clean.slice(2, 4), 16), parseInt(clean.slice(4, 6), 16)];
-          }
-          function darken(hex, factor) {
-            var rgb = hexToRgb(hex);
-            if (!rgb) return hex;
-            return '#' + rgb.map(function(c){ return Math.max(0, Math.round(c * factor)).toString(16).padStart(2, '0'); }).join('');
-          }
-          function lighten(hex, factor) {
-            var rgb = hexToRgb(hex);
-            if (!rgb) return hex;
-            return '#' + rgb.map(function(c){ return Math.min(255, Math.round(c + (255 - c) * factor)).toString(16).padStart(2, '0'); }).join('');
-          }
+        function hexToRgb(hex) {
+          var clean = hex.replace('#', '');
+          if (clean.length !== 6) return null;
+          return [parseInt(clean.slice(0, 2), 16), parseInt(clean.slice(2, 4), 16), parseInt(clean.slice(4, 6), 16)];
+        }
+        function darken(hex, factor) {
+          var rgb = hexToRgb(hex);
+          if (!rgb) return hex;
+          return '#' + rgb.map(function(c){ return Math.max(0, Math.round(c * factor)).toString(16).padStart(2, '0'); }).join('');
+        }
+        function lighten(hex, factor) {
+          var rgb = hexToRgb(hex);
+          if (!rgb) return hex;
+          return '#' + rgb.map(function(c){ return Math.min(255, Math.round(c + (255 - c) * factor)).toString(16).padStart(2, '0'); }).join('');
+        }
 
-          var root = document.documentElement;
-          root.style.setProperty('--pink', primary);
-          root.style.setProperty('--pink-dark', darken(primary, 0.68));
-          root.style.setProperty('--pink-heading', lighten(primary, 0.1));
-          root.style.setProperty('--hero-pink', lighten(primary, 0.22));
-          root.style.setProperty('--hero-pink-deep', darken(primary, 0.68));
-          root.style.setProperty('--pink-light', lighten(primary, 0.22));
-          root.style.setProperty('--ink', secondary);
-        })();
-      }
+        var root = document.documentElement;
+        root.style.setProperty('--pink', primary);
+        root.style.setProperty('--pink-dark', darken(primary, 0.68));
+        root.style.setProperty('--pink-heading', lighten(primary, 0.1));
+        root.style.setProperty('--hero-pink', lighten(primary, 0.22));
+        root.style.setProperty('--hero-pink-deep', darken(primary, 0.68));
+        root.style.setProperty('--pink-light', lighten(primary, 0.22));
+        root.style.setProperty('--ink', secondary);
 
-      var navBg = (theme.navbarColor || '').trim();
-      if (navBg && /^#[0-9a-fA-F]{6}$/.test(navBg)) {
-        document.documentElement.style.setProperty('--nav-bg', navBg);
-      }
+        var secRgb = hexToRgb(secondary);
+        if (secRgb) {
+          var r = secRgb[0], g = secRgb[1], b = secRgb[2];
+          root.style.setProperty('--muted', 'rgba(' + r + ',' + g + ',' + b + ',0.62)');
+          root.style.setProperty('--muted-soft', 'rgba(' + r + ',' + g + ',' + b + ',0.46)');
+        }
 
-      var validPositions = ['center top', 'center center', 'center bottom'];
-      var heroPos = (theme.heroImagePosition || '').trim();
-      if (validPositions.indexOf(heroPos) !== -1) {
-        document.documentElement.style.setProperty('--hero-img-position', heroPos);
-      }
+        var bg = (theme.backgroundColor || '').trim();
+        if (bg && /^#[0-9a-fA-F]{6}$/.test(bg)) {
+          root.style.setProperty('--cream', bg);
+          root.style.setProperty('--white', bg);
+          document.body.style.backgroundColor = bg;
+        }
 
-      var FONT_PAIRS = {
-        cormorant: {
-          display: '"Cormorant Garamond", Georgia, "Times New Roman", serif',
-          body: '"Source Sans 3", system-ui, sans-serif',
-        },
-        playfair: {
-          display: '"Playfair Display", Georgia, "Times New Roman", serif',
-          body: '"Source Sans 3", system-ui, sans-serif',
-        },
-        inter: {
-          display: '"Inter", system-ui, sans-serif',
-          body: '"Inter", system-ui, sans-serif',
-        },
-        'dm sans': {
-          display: '"DM Sans", system-ui, sans-serif',
-          body: '"DM Sans", system-ui, sans-serif',
-        },
-        dmsans: {
-          display: '"DM Sans", system-ui, sans-serif',
-          body: '"DM Sans", system-ui, sans-serif',
-        },
-        'dm-sans': {
-          display: '"DM Sans", system-ui, sans-serif',
-          body: '"DM Sans", system-ui, sans-serif',
-        },
-        montserrat: {
-          display: '"Montserrat", system-ui, sans-serif',
-          body: '"Montserrat", system-ui, sans-serif',
-        },
-      };
+        var navBg = (theme.navbarColor || '').trim();
+        if (navBg && /^#[0-9a-fA-F]{6}$/.test(navBg)) {
+          root.style.setProperty('--nav-bg', navBg);
+          root.style.setProperty('--nav-bg-solid', navBg);
+        }
 
-      var fontKey = String(theme.fontFamily || 'cormorant')
-        .trim()
-        .toLowerCase()
-        .replace(/_/g, '-');
-      var fonts = FONT_PAIRS[fontKey] || FONT_PAIRS.cormorant;
-      document.documentElement.style.setProperty('--font-display', fonts.display);
-      document.documentElement.style.setProperty('--font-body', fonts.body);
+        var cardOutline = (theme.cardOutlineColor || '').trim();
+        if (cardOutline && /^#[0-9a-fA-F]{6}$/.test(cardOutline)) {
+          root.style.setProperty('--card-outline', cardOutline);
+        }
+
+        var validPositions = ['center top', 'center center', 'center bottom'];
+        var heroPos = (theme.heroImagePosition || '').trim();
+        if (validPositions.indexOf(heroPos) !== -1) {
+          root.style.setProperty('--hero-img-position', heroPos);
+        }
+
+        var fontDisplayMap = {
+          'cormorant': '"Cormorant Garamond", Georgia, serif',
+          'playfair': '"Playfair Display", Georgia, serif',
+          'inter': 'Inter, system-ui, sans-serif',
+          'dm-sans': '"DM Sans", system-ui, sans-serif',
+          'montserrat': 'Montserrat, system-ui, sans-serif',
+        };
+        var fontBodyMap = {
+          'cormorant': '"Source Sans 3", system-ui, sans-serif',
+          'playfair': '"Source Sans 3", system-ui, sans-serif',
+          'inter': 'Inter, system-ui, sans-serif',
+          'dm-sans': '"DM Sans", system-ui, sans-serif',
+          'montserrat': 'Montserrat, system-ui, sans-serif',
+        };
+        var fontId = theme.fontFamily || 'cormorant';
+        root.style.setProperty('--font-display', fontDisplayMap[fontId] || fontDisplayMap['cormorant']);
+        root.style.setProperty('--font-body', fontBodyMap[fontId] || fontBodyMap['cormorant']);
+      })();
 
       var styleIds = {};
-      Object.keys(meta || {}).forEach(function (id) {
-        styleIds[id] = true;
-      });
-      Object.keys(prices || {}).forEach(function (id) {
-        styleIds[id] = true;
-      });
-      Object.keys(covers || {}).forEach(function (id) {
-        styleIds[id] = true;
-      });
+      Object.keys(meta || {}).forEach(function (id) { styleIds[id] = true; });
+      Object.keys(prices || {}).forEach(function (id) { styleIds[id] = true; });
+      Object.keys(covers || {}).forEach(function (id) { styleIds[id] = true; });
 
       var styles = Object.keys(styleIds)
         .slice(0, 12)
         .map(function (styleId) {
           var item = meta[styleId] || {};
           var sizeLabel = item.sizeLabel || item.variant || sizeLabelFromStyleId(styleId);
-        return {
-          id: styleId,
-          title: item.title || styleId,
-          description: item.description || '',
-          category: item.category ? String(item.category).trim() : '',
-          priceLabel: formatPrice(prices[styleId]),
-          sizeLabel: sizeLabel || undefined,
-          durationLabel: formatStyleDuration(item.durationMinutes),
-          imageUrl: coverUrl(covers[styleId]),
-        };
+          return {
+            id: styleId,
+            title: item.title || styleId,
+            description: item.description || '',
+            priceLabel: formatPrice(prices[styleId]),
+            sizeLabel: sizeLabel || undefined,
+            durationLabel: formatStyleDuration(item.durationMinutes),
+            imageUrl: coverUrl(covers[styleId]),
+            category: item.category || '',
+          };
         });
 
       window.__STYLD_SITE_STYLES__ = styles;
@@ -262,6 +256,14 @@
       var logo = document.querySelector('.hero-brand__logo');
       if (logo && window.__STYLD_SITE_THEME__.logoImageUrl) {
         logo.src = window.__STYLD_SITE_THEME__.logoImageUrl;
+      }
+
+      var logoUrl = window.__STYLD_SITE_THEME__.logoImageUrl;
+      if (logoUrl) {
+        var favicon = document.querySelector("link[rel='icon']") || document.createElement('link');
+        favicon.rel = 'icon';
+        favicon.href = logoUrl;
+        if (!favicon.parentNode) document.head.appendChild(favicon);
       }
 
       document.title = (content.brandName || subdomain) + ' | Book online';
