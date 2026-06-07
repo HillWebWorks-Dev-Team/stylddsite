@@ -36,7 +36,7 @@
 
   function loadBookingScript() {
     var script = document.createElement('script');
-    script.src = 'js/booking.js?v=46';
+    script.src = '/js/booking.js?v=47';
     script.defer = true;
     document.body.appendChild(script);
   }
@@ -70,6 +70,12 @@
 
       applyBrandToPage(site.theme, site.content);
       populateStyleSelect(site.bookingStyles);
+
+      var stripePk = (window.__STYLD_TENANT__ && window.__STYLD_TENANT__.stripePk) || '';
+      if (stripePk && window.Stripe) {
+        window.__STYLD_STRIPE__ = window.Stripe(stripePk);
+        window.__STYLD_STRIPE_READY__ = true;
+      }
 
       if (statusEl) statusEl.hidden = true;
       loadBookingScript();
