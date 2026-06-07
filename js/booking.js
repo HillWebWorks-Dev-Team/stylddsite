@@ -651,6 +651,14 @@
     });
   }
 
+  function isPaymentConfirmSuccess(result) {
+    if (!result || result.error) return false;
+    if (result.verified === true) return true;
+    if (result.ok === true) return true;
+    if (result.status === 'succeeded' || result.paymentStatus === 'succeeded') return true;
+    return false;
+  }
+
   function confirmBookingPayment(bookingId, paymentIntentId, attempt) {
     attempt = attempt || 0;
     return edgeFunction('stripe-booking-confirm', {
@@ -659,15 +667,15 @@
       paymentIntentId: paymentIntentId,
     })
       .then(function (result) {
-        if (!result || result.ok !== true || result.verified !== true) {
+        if (!isPaymentConfirmSuccess(result)) {
           throw new Error((result && result.error) || 'Payment could not be verified.');
         }
         return result;
       })
       .catch(function (err) {
-        if (attempt >= 2) throw err;
+        if (attempt >= 4) throw err;
         return new Promise(function (resolve) {
-          setTimeout(resolve, 800 * (attempt + 1));
+          setTimeout(resolve, 1000 * (attempt + 1));
         }).then(function () {
           return confirmBookingPayment(bookingId, paymentIntentId, attempt + 1);
         });
@@ -700,21 +708,29 @@
               throw new Error(result.error.message || 'Payment failed.');
             }
             paymentIntentId =
-              payResult.paymentIntentId ||
               (result.paymentIntent && result.paymentIntent.id) ||
+              payResult.paymentIntentId ||
               null;
             if (!paymentIntentId) {
               throw new Error('Payment succeeded but no payment reference was returned.');
             }
-            return confirmBookingPayment(bookingId, paymentIntentId).then(function () {
-              return paymentIntentId;
-            });
+            return new Promise(function (resolve) {
+              setTimeout(resolve, 500);
+            })
+              .then(function () {
+                return confirmBookingPayment(bookingId, paymentIntentId);
+              })
+              .then(function () {
+                return paymentIntentId;
+              });
           });
       })
       .catch(function (err) {
         if (paymentIntentId) {
+          var detail = err && err.message ? err.message : 'Confirmation failed.';
           throw new Error(
-            'Your card was charged but confirmation failed. Save this reference for support: ' +
+            detail +
+              ' Your card was charged — save this reference for support: ' +
               paymentIntentId,
           );
         }
