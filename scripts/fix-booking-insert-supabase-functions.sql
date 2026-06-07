@@ -1,0 +1,21 @@
+-- Fix: styld_tenant_insert_booking fails with
+--   schema "supabase_functions" does not exist
+--
+-- Cause: a trigger on booking insert calls supabase_functions.http_request
+-- (push notify webhook) but Database Webhooks were never enabled on this project.
+--
+-- Option A (recommended): Supabase Dashboard
+--   Database → Webhooks → create any test hook (enables supabase_functions schema)
+--
+-- Option B: find and disable the broken trigger until webhooks are enabled:
+--
+-- List booking-related triggers:
+-- select tgname, pg_get_triggerdef(oid)
+-- from pg_trigger
+-- where not tgisinternal
+--   and pg_get_triggerdef(oid) ilike '%styld_site_records%';
+--
+-- Example (replace trigger name after listing):
+-- drop trigger if exists styld_booking_push_notify on public.styld_site_records;
+--
+-- Option C: re-create push trigger after webhooks are enabled via Dashboard.

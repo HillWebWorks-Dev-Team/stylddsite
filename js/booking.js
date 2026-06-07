@@ -829,7 +829,22 @@
       });
   }
 
-  function isSlotConflictMessage(message) {
+  function formatBookingError(err) {
+    var msg = err && err.message ? String(err.message) : 'Could not complete booking.';
+    if (/supabase_functions/i.test(msg)) {
+      return (
+        'Online booking is temporarily unavailable (server database setup). ' +
+        'Please call the salon to book, or try again after your site admin fixes the booking trigger.'
+      );
+    }
+    if (/invalid input syntax for type uuid/i.test(msg) && /bk-001/i.test(msg)) {
+      return (
+        'Payment confirmation failed on the server. If your card was charged, save the payment reference ' +
+        'shown below and contact support.'
+      );
+    }
+    return msg;
+  }
     return /no longer available|not available|already booked|blocked|time slot/i.test(String(message || ''));
   }
 
@@ -882,7 +897,7 @@
         });
       })
       .catch(function (err) {
-        var msg = err && err.message ? err.message : 'Could not complete booking.';
+        var msg = formatBookingError(err);
         showFeedback(msg, true);
         if (submitBtn) submitBtn.disabled = false;
         if (isSlotConflictMessage(msg)) {
