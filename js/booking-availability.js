@@ -173,13 +173,14 @@
       };
     }
 
-    function isSlotBookable(slotStart, durationMinutes, unavailable) {
+    var strictNoOverlap = cfg.strictNoOverlap === true;
+
+    function slotConflictReason(slotStart, durationMinutes, unavailable) {
       if (!fitsWithinBusinessHours(slotStart, durationMinutes)) {
-        return false;
+        return 'outside_hours';
       }
 
       var slotEnd = slotStart.plus({ minutes: durationMinutes });
-      var capacity = hours.concurrentAppointmentCapacity || 1;
       var bookingOverlaps = 0;
       var list = unavailable || [];
 
@@ -189,12 +190,25 @@
         if (!overlaps(slotStart, slotEnd, interval.start, interval.end)) continue;
 
         if (interval.kind === 'block') {
-          return false;
+          return 'blocked';
         }
+
+        if (strictNoOverlap) {
+          return 'booked';
+        }
+
         bookingOverlaps += 1;
       }
 
-      return bookingOverlaps < capacity;
+      if (!strictNoOverlap && bookingOverlaps >= (hours.concurrentAppointmentCapacity || 1)) {
+        return 'booked';
+      }
+
+      return null;
+    }
+
+    function isSlotBookable(slotStart, durationMinutes, unavailable) {
+      return !slotConflictReason(slotStart, durationMinutes, unavailable);
     }
 
     function classifySlot(slotStart, durationMinutes, unavailable) {
@@ -212,6 +226,8 @@
       calendarDayDisabledReason: calendarDayDisabledReason,
       isSlotBookable: isSlotBookable,
       classifySlot: classifySlot,
+      slotConflictReason: slotConflictReason,
+      strictNoOverlap: strictNoOverlap,
       fitsWithinBusinessHours: fitsWithinBusinessHours,
       parseUnavailableInterval: parseUnavailableInterval,
     };

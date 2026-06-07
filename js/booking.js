@@ -33,9 +33,16 @@
       salonTimeZone: zone,
       bookingHours: hours,
       subdomain: subdomain,
+      strictNoOverlap: tenantBooking.strictNoOverlap !== false && !!subdomain,
     },
     DateTime,
   );
+
+  var isTenantSite = !!subdomain;
+  var cachedUnavailable = null;
+  var cachedUnavailableDateIso = null;
+  var slotsPollTimer = null;
+  var slotsLoadToken = 0;
 
   var styleSelect = document.getElementById('style-select');
   var styleGate = document.getElementById('style-gate-alert');
@@ -208,68 +215,137 @@
     calSelectedLine.textContent = 'Selected Date: ' + selectedDate.toFormat('cccc, LLL d');
   }
 
-  function renderSlots() {
-    if (!slotsContainer || !selectedDate || !selectedStyle) return;
+  function stopSlotsPoll() {
+    if (slotsPollTimer) {
+      clearInterval(slotsPollTimer);
+      slotsPollTimer = null;
+    }
+  }
+
+  function startSlotsPoll() {
+    stopSlotsPoll();
+    if (!isTenantSite || !selectedDate || !selectedStyle) return;
+    slotsPollTimer = setInterval(function () {
+      refreshSlotsAvailability(false);
+    }, 60000);
+  }
+
+  function fetchUnavailableForDay(dateIso) {
+    return rpc('styld_tenant_get_unavailable_times_for_day', {
+      p_subdomain: subdomain,
+      p_date: dateIso,
+    }).then(function (rows) {
+      return Array.isArray(rows) ? rows : [];
+    });
+  }
+
+  function clearSelectedSlot() {
+    selectedSlotStart = null;
+    if (startsAtInput) startsAtInput.value = '';
+    updateSelectedSummary();
+  }
+
+  function paintSlots(unavailable, dateIso, pricing) {
+    if (!slotsContainer) return;
+
+    var candidates = availability.generateSlotTimes(dateIso);
+    var earliest = availability.earliestBookableTime();
+    slotsContainer.innerHTML = '';
+
+    if (!candidates.length) {
+      slotsContainer.innerHTML = '<p class="booking-slots-placeholder">No times available on this day.</p>';
+      return;
+    }
+
+    if (
+      selectedSlotStart &&
+      !availability.isSlotBookable(selectedSlotStart, pricing.duration, unavailable)
+    ) {
+      clearSelectedSlot();
+    }
+
+    var openCount = 0;
+    candidates.forEach(function (slotStart) {
+      if (slotStart < earliest) return;
+
+      var bookable = availability.isSlotBookable(slotStart, pricing.duration, unavailable);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'time-slot' + (bookable ? '' : ' time-slot--unavailable');
+      btn.textContent = slotStart.toFormat('h:mm a');
+      btn.setAttribute('data-slot-start', slotStart.toFormat('h:mm a'));
+      btn.disabled = !bookable;
+
+      if (selectedSlotStart && slotStart.toMillis() === selectedSlotStart.toMillis()) {
+        btn.classList.add('selected');
+        btn.textContent = formatAppointmentRange(slotStart, pricing.duration);
+      }
+
+      if (bookable) {
+        openCount += 1;
+        btn.addEventListener('click', function () {
+          selectedSlotStart = slotStart;
+          if (startsAtInput) startsAtInput.value = slotStart.toISO();
+          slotsContainer.querySelectorAll('.time-slot').forEach(function (el) {
+            el.classList.toggle('selected', el === btn);
+            if (el.disabled) return;
+            var startLabel = el.getAttribute('data-slot-start');
+            el.textContent =
+              el === btn
+                ? formatAppointmentRange(slotStart, pricing.duration)
+                : startLabel || el.textContent;
+          });
+          updateSelectedSummary();
+        });
+      }
+
+      slotsContainer.appendChild(btn);
+    });
+
+    if (!openCount) {
+      slotsContainer.innerHTML = '<p class="booking-slots-placeholder">All time slots are booked on this day.</p>';
+    }
+  }
+
+  function refreshSlotsAvailability(showLoading) {
+    if (!slotsContainer || !selectedDate || !selectedStyle) {
+      return Promise.resolve(null);
+    }
 
     var dateIso = selectedDate.toISODate();
     var pricing = computePricing(selectedStyle);
+    var token = ++slotsLoadToken;
 
-    slotsContainer.innerHTML = '<p class="booking-slots-placeholder">Loading time slots…</p>';
+    if (showLoading !== false) {
+      slotsContainer.innerHTML = '<p class="booking-slots-placeholder">Loading time slots…</p>';
+    }
 
-    rpc('styld_tenant_get_unavailable_times_for_day', {
-      p_subdomain: subdomain,
-      p_date: dateIso,
-    })
+    return fetchUnavailableForDay(dateIso)
       .then(function (unavailable) {
-        var candidates = availability.generateSlotTimes(dateIso);
-        var earliest = availability.earliestBookableTime();
-        slotsContainer.innerHTML = '';
-
-        if (!candidates.length) {
-          slotsContainer.innerHTML = '<p class="booking-slots-placeholder">No times available on this day.</p>';
-          return;
-        }
-
-        var openCount = 0;
-        candidates.forEach(function (slotStart) {
-          if (slotStart < earliest) return;
-
-          var bookable = availability.isSlotBookable(slotStart, pricing.duration, unavailable);
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'time-slot' + (bookable ? '' : ' time-slot--unavailable');
-          btn.textContent = slotStart.toFormat('h:mm a');
-          btn.setAttribute('data-slot-start', slotStart.toFormat('h:mm a'));
-          btn.disabled = !bookable;
-
-          if (bookable) {
-            openCount += 1;
-            btn.addEventListener('click', function () {
-              selectedSlotStart = slotStart;
-              if (startsAtInput) startsAtInput.value = slotStart.toISO();
-              slotsContainer.querySelectorAll('.time-slot').forEach(function (el) {
-                el.classList.toggle('selected', el === btn);
-                if (el.disabled) return;
-                var startLabel = el.getAttribute('data-slot-start');
-                el.textContent =
-                  el === btn
-                    ? formatAppointmentRange(slotStart, pricing.duration)
-                    : startLabel || el.textContent;
-              });
-              updateSelectedSummary();
-            });
-          }
-
-          slotsContainer.appendChild(btn);
-        });
-
-        if (!openCount) {
-          slotsContainer.innerHTML = '<p class="booking-slots-placeholder">All time slots are booked on this day.</p>';
-        }
+        if (token !== slotsLoadToken) return unavailable;
+        cachedUnavailable = unavailable;
+        cachedUnavailableDateIso = dateIso;
+        paintSlots(unavailable, dateIso, pricing);
+        return unavailable;
       })
-      .catch(function (err) {
-        slotsContainer.innerHTML = '<p class="booking-slots-placeholder">' + (err.message || 'Could not load time slots.') + '</p>';
+      .catch(function () {
+        if (token !== slotsLoadToken) return null;
+        cachedUnavailable = null;
+        cachedUnavailableDateIso = null;
+        clearSelectedSlot();
+        slotsContainer.innerHTML =
+          '<p class="booking-slots-placeholder">Could not load availability. Please refresh the page and try again.</p>';
+        return null;
       });
+  }
+
+  function renderSlots() {
+    if (!slotsContainer || !selectedDate || !selectedStyle) {
+      stopSlotsPoll();
+      return Promise.resolve(null);
+    }
+    startSlotsPoll();
+    return refreshSlotsAvailability(true);
   }
 
   function renderCalendar() {
@@ -331,6 +407,7 @@
       if (styleGate) styleGate.hidden = false;
       if (durationStrip) durationStrip.textContent = 'Estimated duration: TBD';
       if (slotsContainer) slotsContainer.innerHTML = '';
+      stopSlotsPoll();
       updateSelectedSummary();
       return;
     }
@@ -395,6 +472,10 @@
     };
   }
 
+  function isSlotConflictMessage(message) {
+    return /no longer available|not available|already booked|blocked|time slot/i.test(String(message || ''));
+  }
+
   function handleSubmit(event) {
     event.preventDefault();
     if (!selectedStyle) {
@@ -408,29 +489,53 @@
     if (!bookingForm || !bookingForm.reportValidity()) return;
 
     var pricing = computePricing(selectedStyle);
+    var slotStart = selectedSlotStart;
+    var dateIso = slotStart.toISODate();
+
     if (submitBtn) submitBtn.disabled = true;
-    showFeedback('Saving your booking…', false);
+    showFeedback('Checking availability…', false);
 
-    var payload = buildBookingPayload();
-
-    rpc('styld_tenant_insert_booking', {
-      p_subdomain: subdomain,
-      p_booking: payload,
-    })
-      .then(function (bookingId) {
-        var id = typeof bookingId === 'string' ? bookingId : payload.id;
-        if (pricing.deposit <= 0 || !window.__STYLD_STRIPE__ || !stripeCard) {
-          redirectSuccess(id, pricing);
+    fetchUnavailableForDay(dateIso)
+      .then(function (unavailable) {
+        if (!availability.isSlotBookable(slotStart, pricing.duration, unavailable)) {
+          var reason = availability.slotConflictReason
+            ? availability.slotConflictReason(slotStart, pricing.duration, unavailable)
+            : null;
+          var message =
+            reason === 'blocked'
+              ? 'This time is blocked. Please choose another time.'
+              : 'That time slot is no longer available. Please choose another time.';
+          showFeedback(message, true);
+          if (submitBtn) submitBtn.disabled = false;
+          paintSlots(unavailable, dateIso, pricing);
           return null;
         }
 
-        showFeedback('Booking saved. Payment processing is not available yet — your spot is held unpaid.', false);
-        setTimeout(function () { redirectSuccess(id, pricing); }, 1200);
-        return null;
+        showFeedback('Saving your booking…', false);
+        var payload = buildBookingPayload();
+
+        return rpc('styld_tenant_insert_booking', {
+          p_subdomain: subdomain,
+          p_booking: payload,
+        }).then(function (bookingId) {
+          var id = typeof bookingId === 'string' ? bookingId : payload.id;
+          if (pricing.deposit <= 0 || !window.__STYLD_STRIPE__ || !stripeCard) {
+            redirectSuccess(id, pricing);
+            return null;
+          }
+
+          showFeedback('Booking saved. Payment processing is not available yet — your spot is held unpaid.', false);
+          setTimeout(function () { redirectSuccess(id, pricing); }, 1200);
+          return null;
+        });
       })
       .catch(function (err) {
-        showFeedback(err && err.message ? err.message : 'Could not complete booking.', true);
+        var msg = err && err.message ? err.message : 'Could not complete booking.';
+        showFeedback(msg, true);
         if (submitBtn) submitBtn.disabled = false;
+        if (isSlotConflictMessage(msg)) {
+          refreshSlotsAvailability(true);
+        }
       });
   }
 
@@ -448,6 +553,12 @@
   }
   if (styleSelect) styleSelect.addEventListener('change', onStyleChange);
   if (bookingForm) bookingForm.addEventListener('submit', handleSubmit);
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && selectedDate && selectedStyle) {
+      refreshSlotsAvailability(false);
+    }
+  });
 
   initStripeIfNeeded();
   onStyleChange();
