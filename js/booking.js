@@ -181,6 +181,37 @@
     }
   }
 
+  function currentDurationMinutes() {
+    if (!selectedStyle) return 0;
+    var lengthKey = hairLengthSelect && !hairLengthWrap.hidden ? hairLengthSelect.value : '';
+    return computePricing(selectedStyle, lengthKey).duration;
+  }
+
+  function formatAppointmentRange(slotStart, durationMinutes) {
+    var end = slotStart.plus({ minutes: durationMinutes });
+    if (slotStart.toFormat('a') === end.toFormat('a')) {
+      return slotStart.toFormat('h:mm') + ' – ' + end.toFormat('h:mm a');
+    }
+    return slotStart.toFormat('h:mm a') + ' – ' + end.toFormat('h:mm a');
+  }
+
+  function updateSelectedSummary() {
+    if (!calSelectedLine) return;
+    if (!selectedDate) {
+      calSelectedLine.textContent = 'Selected Date: —';
+      return;
+    }
+    if (selectedSlotStart && selectedStyle) {
+      calSelectedLine.textContent =
+        'Selected: ' +
+        selectedDate.toFormat('cccc, LLL d') +
+        ' · ' +
+        formatAppointmentRange(selectedSlotStart, currentDurationMinutes());
+      return;
+    }
+    calSelectedLine.textContent = 'Selected Date: ' + selectedDate.toFormat('cccc, LLL d');
+  }
+
   function renderSlots() {
     if (!slotsContainer || !selectedDate || !selectedStyle) return;
 
@@ -212,6 +243,7 @@
           btn.type = 'button';
           btn.className = 'time-slot' + (bookable ? '' : ' time-slot--unavailable');
           btn.textContent = slotStart.toFormat('h:mm a');
+          btn.setAttribute('data-slot-start', slotStart.toFormat('h:mm a'));
           btn.disabled = !bookable;
 
           if (bookable) {
@@ -221,7 +253,14 @@
               if (startsAtInput) startsAtInput.value = slotStart.toISO();
               slotsContainer.querySelectorAll('.time-slot').forEach(function (el) {
                 el.classList.toggle('selected', el === btn);
+                if (el.disabled) return;
+                var startLabel = el.getAttribute('data-slot-start');
+                el.textContent =
+                  el === btn
+                    ? formatAppointmentRange(slotStart, pricing.duration)
+                    : startLabel || el.textContent;
               });
+              updateSelectedSummary();
             });
           }
 
@@ -269,7 +308,7 @@
             selectedDate = DateTime.fromISO(pickedIso, { zone: zone });
             selectedSlotStart = null;
             if (startsAtInput) startsAtInput.value = '';
-            if (calSelectedLine) calSelectedLine.textContent = 'Selected Date: ' + selectedDate.toFormat('cccc, LLL d');
+            updateSelectedSummary();
             renderCalendar();
             renderSlots();
           };
@@ -296,8 +335,8 @@
       if (styleGate) styleGate.hidden = false;
       if (durationStrip) durationStrip.textContent = 'ESTIMATED DURATION TBD';
       if (slotsContainer) slotsContainer.innerHTML = '';
-      if (calSelectedLine) calSelectedLine.textContent = 'Selected Date: —';
       if (hairLengthWrap) hairLengthWrap.hidden = true;
+      updateSelectedSummary();
       return;
     }
 
@@ -307,7 +346,7 @@
     }
     updatePricingDisplay();
     refreshCalendar().then(function () {
-      if (calSelectedLine) calSelectedLine.textContent = 'Selected Date: —';
+      updateSelectedSummary();
       if (slotsContainer) slotsContainer.innerHTML = '';
     });
   }
@@ -421,6 +460,7 @@
   if (hairLengthSelect) {
     hairLengthSelect.addEventListener('change', function () {
       updatePricingDisplay();
+      updateSelectedSummary();
       renderSlots();
     });
   }
