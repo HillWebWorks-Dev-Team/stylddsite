@@ -71,6 +71,18 @@
     return '$' + (Math.round(Number(n) || 0)).toFixed(0);
   }
 
+  function moneyPrecise(n) {
+    return '$' + (Math.round(Number(n) * 100) / 100).toFixed(2);
+  }
+
+  function computeServiceFee(stylistAmount) {
+    if (!stylistAmount || stylistAmount <= 0) return 0;
+    var amountCents = Math.round(stylistAmount * 100);
+    // Gross-up for Stripe (~2.9% + $0.30); exact charge comes from stripe-booking-pay at checkout.
+    var chargeCents = Math.ceil((amountCents + 30) / (1 - 0.029));
+    return Math.max(0, (chargeCents - amountCents) / 100);
+  }
+
   function rpc(name, params) {
     if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) {
       return Promise.reject(new Error('Site is not configured for online booking.'));
@@ -144,13 +156,61 @@
 
     if (deposit > 0 && deposit < 1) deposit = 1;
 
+    var serviceFee = deposit > 0 ? computeServiceFee(deposit) : 0;
+    var totalDue = Math.round((deposit + serviceFee) * 100) / 100;
+    var balanceDue = mode === 'deposit' ? Math.max(0, total - deposit) : 0;
+    var depositLabel = mode === 'full' ? 'Full payment' : 'Deposit';
+
     return {
       base: base,
       total: total,
       duration: duration,
       deposit: deposit,
+      serviceFee: serviceFee,
+      totalDue: totalDue,
+      balanceDue: balanceDue,
+      depositLabel: depositLabel,
       mode: mode,
     };
+  }
+
+  function updateDueBreakdown(p) {
+    var showDue = p.deposit > 0;
+    var lineBreakdown = document.getElementById('line-due-breakdown');
+    var sideBreakdown = document.getElementById('side-due-breakdown');
+    var lineBalanceWrap = document.getElementById('line-balance-wrap');
+    var sideBalanceWrap = document.getElementById('side-balance-wrap');
+
+    if (lineBreakdown) lineBreakdown.hidden = !showDue;
+    if (sideBreakdown) sideBreakdown.hidden = !showDue;
+
+    function setText(id, value) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    if (!showDue) return;
+
+    setText('line-deposit-label', p.depositLabel + ':');
+    setText('side-deposit-label', p.depositLabel);
+    setText('pay-deposit-label', p.depositLabel + ':');
+    setText('line-deposit-amount', moneyPrecise(p.deposit));
+    setText('side-deposit-amount', moneyPrecise(p.deposit));
+    setText('pay-deposit-preview', moneyPrecise(p.deposit));
+    setText('line-service-fee', moneyPrecise(p.serviceFee));
+    setText('side-service-fee', moneyPrecise(p.serviceFee));
+    setText('pay-service-fee-preview', moneyPrecise(p.serviceFee));
+    setText('line-total-due', moneyPrecise(p.totalDue));
+    setText('side-total-due', moneyPrecise(p.totalDue));
+    setText('pay-total-due-preview', moneyPrecise(p.totalDue));
+
+    var showBalance = p.mode === 'deposit' && p.balanceDue > 0;
+    if (lineBalanceWrap) lineBalanceWrap.hidden = !showBalance;
+    if (sideBalanceWrap) sideBalanceWrap.hidden = !showBalance;
+    if (showBalance) {
+      setText('line-balance-due', moneyPrecise(p.balanceDue));
+      setText('side-balance-due', moneyPrecise(p.balanceDue));
+    }
   }
 
   function updatePricingDisplay() {
@@ -166,9 +226,7 @@
     setText('side-subtotal', money(p.base));
     setText('line-total', money(p.total));
     setText('side-total', money(p.total));
-    setText('line-deposit', money(p.deposit));
-    setText('side-deposit', money(p.deposit));
-    setText('pay-deposit-preview', money(p.deposit));
+    updateDueBreakdown(p);
 
     if (durationStrip) {
       durationStrip.textContent = 'Estimated duration: ' + formatDurationLabel(p.duration);

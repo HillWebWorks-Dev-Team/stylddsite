@@ -223,9 +223,20 @@
             <p>
               <strong>Estimated total:</strong> <span id="line-total">$0.00</span>
             </p>
-            <p>
-              <strong id="line-online-label">Due when booking:</strong> <span id="line-deposit">$0.00</span>
-            </p>
+            <div id="line-due-breakdown" class="booking-due-breakdown" hidden>
+              <p>
+                <strong id="line-deposit-label">Deposit:</strong> <span id="line-deposit-amount">$0.00</span>
+              </p>
+              <p>
+                <strong>Service fee:</strong> <span id="line-service-fee">$0.00</span>
+              </p>
+              <p class="booking-due-breakdown__total">
+                <strong>Total due now:</strong> <span id="line-total-due">$0.00</span>
+              </p>
+              <p id="line-balance-wrap" hidden>
+                <strong>Balance at appointment:</strong> <span id="line-balance-due">$0.00</span>
+              </p>
+            </div>
             <p class="deposit-note" id="line-deposit-detail"></p>
             <p class="deposit-note" id="deposit-note-in-person" hidden>
               No payment is required now. Pay your stylist in person when you arrive for your appointment.
@@ -248,7 +259,9 @@
             <div class="payment-placeholder">
               <p><strong>Name:</strong> <span id="pay-name-preview">—</span></p>
               <p><strong>Email:</strong> <span id="pay-email-preview">—</span></p>
-              <p><strong>Due now:</strong> <span id="pay-deposit-preview">$0.00</span></p>
+              <p><strong id="pay-deposit-label">Deposit:</strong> <span id="pay-deposit-preview">$0.00</span></p>
+              <p><strong>Service fee:</strong> <span id="pay-service-fee-preview">$0.00</span></p>
+              <p><strong>Total due now:</strong> <span id="pay-total-due-preview">$0.00</span></p>
             </div>
             <div id="stripe-card-element" class="stripe-card-element"></div>
             <p id="stripe-card-error" class="booking-feedback booking-feedback--error" role="alert" hidden></p>
@@ -272,9 +285,23 @@
             <span>Estimated total</span>
             <span id="side-total">$0.00</span>
           </div>
-          <div class="price-line deposit">
-            <span id="side-online-label">Due when booking</span>
-            <span id="side-deposit">$0.00</span>
+          <div id="side-due-breakdown" class="booking-due-breakdown" hidden>
+            <div class="price-line">
+              <span id="side-deposit-label">Deposit</span>
+              <span id="side-deposit-amount">$0.00</span>
+            </div>
+            <div class="price-line">
+              <span>Service fee</span>
+              <span id="side-service-fee">$0.00</span>
+            </div>
+            <div class="price-line deposit booking-due-breakdown__total">
+              <span>Total due now</span>
+              <span id="side-total-due">$0.00</span>
+            </div>
+            <div class="price-line" id="side-balance-wrap" hidden>
+              <span>Balance at appointment</span>
+              <span id="side-balance-due">$0.00</span>
+            </div>
           </div>
           <p class="deposit-note" id="side-deposit-note">All deposits non-refundable.</p>
         </aside>
@@ -314,7 +341,7 @@
     <script src="/js/styld-tenant-shared.js?v=60"></script>
     <script src="/js/profile-content.js?v=39"></script>
     <script src="/js/tenant-site.js?v=39"></script>
-    <script src="/js/styld-tenant-booking.js?v=67"></script>
+    <script src="/js/styld-tenant-booking.js?v=68"></script>
     <script src="/js/supabase-config.js?v=60"></script>
     <script src="/js/supabase-config.local.js?v=60"></script>
     <script id="booking-fallback-bootstrap">
@@ -337,10 +364,10 @@
           'const sb = createClient(c.url, c.anonKey);' +
           'window.salonSupabaseClient = sb;' +
           'const avail = document.createElement("script");' +
-          'avail.src = "/js/booking-availability.js?v=67";' +
+          'avail.src = "/js/booking-availability.js?v=68";' +
           'avail.onload = function () {' +
           'const booking = document.createElement("script");' +
-          'booking.src = "/js/booking.js?v=67";' +
+          'booking.src = "/js/booking.js?v=68";' +
           'booking.defer = true;' +
           'document.body.appendChild(booking);' +
           '};' +
