@@ -81,21 +81,7 @@
     }
 
     function latestAllowedStart(day, durationMinutes) {
-      var close = getDayCloseTime(day);
-      var latest = close.minus({ minutes: durationMinutes });
-      var weekday = weekdayIndex(day);
-
-      if (weekday === 6 && hours.saturdayLastStartHour != null) {
-        var saturdayLast = day.set({
-          hour: hours.saturdayLastStartHour,
-          minute: hours.saturdayLastStartMinute || 0,
-          second: 0,
-          millisecond: 0,
-        });
-        if (saturdayLast < latest) latest = saturdayLast;
-      }
-
-      return latest;
+      return getDayCloseTime(day).minus({ minutes: durationMinutes });
     }
 
     function fitsWithinBusinessHours(slotStart, durationMinutes) {
@@ -134,15 +120,6 @@
         second: 0,
         millisecond: 0,
       });
-
-      if (weekday === 6 && hours.saturdayLastStartHour != null) {
-        endLimit = day.set({
-          hour: hours.saturdayLastStartHour,
-          minute: hours.saturdayLastStartMinute || 0,
-          second: 0,
-          millisecond: 0,
-        });
-      }
 
       var step = hours.slotStepMinutes || 30;
       var slots = [];

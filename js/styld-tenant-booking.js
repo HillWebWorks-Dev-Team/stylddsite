@@ -36,10 +36,10 @@
 
   function loadBookingScripts() {
     var availability = document.createElement('script');
-    availability.src = '/js/booking-availability.js?v=65';
+    availability.src = '/js/booking-availability.js?v=66';
     availability.onload = function () {
       var script = document.createElement('script');
-      script.src = '/js/booking.js?v=65';
+      script.src = '/js/booking.js?v=66';
       script.defer = true;
       document.body.appendChild(script);
     };
