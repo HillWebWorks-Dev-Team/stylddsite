@@ -137,6 +137,7 @@
         primaryColor: theme.primaryColor || null,
         secondaryColor: theme.secondaryColor || null,
         navbarColor: theme.navbarColor || null,
+        fontFamily: theme.fontFamily || null,
         styleCardLayout: theme.styleCardLayout || 'card',
       };
 
@@ -177,6 +178,45 @@
       if (navBg && /^#[0-9a-fA-F]{6}$/.test(navBg)) {
         document.documentElement.style.setProperty('--nav-bg', navBg);
       }
+
+      var FONT_PAIRS = {
+        cormorant: {
+          display: '"Cormorant Garamond", Georgia, "Times New Roman", serif',
+          body: '"Source Sans 3", system-ui, sans-serif',
+        },
+        playfair: {
+          display: '"Playfair Display", Georgia, "Times New Roman", serif',
+          body: '"Source Sans 3", system-ui, sans-serif',
+        },
+        inter: {
+          display: '"Inter", system-ui, sans-serif',
+          body: '"Inter", system-ui, sans-serif',
+        },
+        'dm sans': {
+          display: '"DM Sans", system-ui, sans-serif',
+          body: '"DM Sans", system-ui, sans-serif',
+        },
+        dmsans: {
+          display: '"DM Sans", system-ui, sans-serif',
+          body: '"DM Sans", system-ui, sans-serif',
+        },
+        'dm-sans': {
+          display: '"DM Sans", system-ui, sans-serif',
+          body: '"DM Sans", system-ui, sans-serif',
+        },
+        montserrat: {
+          display: '"Montserrat", system-ui, sans-serif',
+          body: '"Montserrat", system-ui, sans-serif',
+        },
+      };
+
+      var fontKey = String(theme.fontFamily || 'cormorant')
+        .trim()
+        .toLowerCase()
+        .replace(/_/g, '-');
+      var fonts = FONT_PAIRS[fontKey] || FONT_PAIRS.cormorant;
+      document.documentElement.style.setProperty('--font-display', fonts.display);
+      document.documentElement.style.setProperty('--font-body', fonts.body);
 
       var styleIds = {};
       Object.keys(meta || {}).forEach(function (id) {
