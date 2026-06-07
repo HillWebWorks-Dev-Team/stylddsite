@@ -5948,7 +5948,7 @@ ul.price-menu__policy-list {
    Profile Template
    ═══════════════════════════════════════════════════════ */
 .profile-nav {
-  background: var(--pink);
+  background: var(--nav-bg, var(--pink));
   padding: 0.875rem 0;
   position: sticky;
   top: 0;

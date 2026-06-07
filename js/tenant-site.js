@@ -136,6 +136,7 @@
         logoImageUrl: coverUrl(theme.logoImagePath),
         primaryColor: theme.primaryColor || null,
         secondaryColor: theme.secondaryColor || null,
+        navbarColor: theme.navbarColor || null,
         styleCardLayout: theme.styleCardLayout || 'card',
       };
 
@@ -170,6 +171,11 @@
           root.style.setProperty('--pink-light', lighten(primary, 0.22));
           root.style.setProperty('--ink', secondary);
         })();
+      }
+
+      var navBg = (theme.navbarColor || '').trim();
+      if (navBg && /^#[0-9a-fA-F]{6}$/.test(navBg)) {
+        document.documentElement.style.setProperty('--nav-bg', navBg);
       }
 
       var styleIds = {};
