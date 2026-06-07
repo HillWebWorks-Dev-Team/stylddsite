@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/styles.css?v=35" />
@@ -22,38 +22,15 @@
   </head>
   <body class="page-site">
     <div id="tenant-status" hidden>Loading booking…</div>
-    <header class="hero-nav hero-nav--site">
-      <div class="container hero-nav__inner">
-        <a class="hero-brand" href="index.html">
-          <img class="hero-brand__logo" src="assets/placeholders/logo.svg" width="44" height="44" alt="" decoding="async" />
-          <span class="hero-brand__text">Your brand name</span>
+    <nav class="profile-nav" id="profile-nav">
+      <div class="container profile-nav__inner">
+        <a class="profile-brand" href="./">
+          <div class="profile-brand__logo" id="profile-logo-placeholder" aria-hidden="true"></div>
+          <span id="profile-brand-name">Your Brand</span>
         </a>
-
-        <button
-          type="button"
-          class="hero-nav__burger"
-          id="hero-nav-toggle"
-          aria-expanded="false"
-          aria-controls="hero-nav-panel"
-        >
-          <span class="hero-nav__burger-box" aria-hidden="true">
-            <span class="hero-nav__burger-line"></span>
-            <span class="hero-nav__burger-line"></span>
-            <span class="hero-nav__burger-line"></span>
-          </span>
-          <span class="visually-hidden">Menu</span>
-        </button>
-
-        <div id="hero-nav-panel" class="hero-nav__panel">
-          <nav class="hero-nav__links" aria-label="Main">
-            <a href="index.html">Home</a>
-          </nav>
-          <div class="hero-nav__actions">
-            <a class="hero-btn hero-btn--nav" href="booking.html" aria-current="page">Book Now</a>
-          </div>
-        </div>
+        <a class="profile-book-btn" href="/booking" aria-current="page">Book Now</a>
       </div>
-    </header>
+    </nav>
 
     <main>
       <div class="container page-hero page-hero--booking">
@@ -381,6 +358,8 @@
     <script src="/js/styld-tenant-config.js?v=37"></script>
     <script src="/js/styld-tenant-config.local.js?v=37"></script>
     <script src="/js/styld-tenant-shared.js?v=39"></script>
+    <script src="/js/profile-content.js?v=37"></script>
+    <script src="/js/tenant-site.js?v=37"></script>
     <script src="/js/styld-tenant-booking.js?v=45"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/supabase-config.local.js"></script>
@@ -427,6 +406,5 @@
         }
       })();
     </script>
-    <script src="js/hero-nav.js" defer></script>
   </body>
 </html>
