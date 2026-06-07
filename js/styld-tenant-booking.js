@@ -36,7 +36,7 @@
 
   function loadBookingScript() {
     var script = document.createElement('script');
-    script.src = '/js/booking.js?v=47';
+    script.src = '/js/booking.js?v=59';
     script.defer = true;
     document.body.appendChild(script);
   }
@@ -64,9 +64,15 @@
   window.StyldTenant.loadPublishedSite()
     .then(function (site) {
       window.__STYLD_BOOKING_PAYMENT__ = site.bookingPayment || {};
-      window.__STYLD_BOOKING_HOURS__ = site.bookingHours || null;
+      window.__STYLD_BOOKING_HOURS__ = site.bookingHours || {};
       window.__STYLD_BOOKING_STYLES__ = site.bookingStyles || [];
       window.__STYLD_BOOKING_FORM__ = window.StyldTenant.applyBookingFormSettings(site.bookingPayment);
+      window.__SALON_SITE_BOOKING__ = {
+        subdomain: site.subdomain,
+        timezone: (site.content && site.content.timezone) || 'America/New_York',
+        bookingHours: site.bookingHours || {},
+      };
+      window.__STYLD_TENANT_BOOKING__ = window.__SALON_SITE_BOOKING__;
 
       applyBrandToPage(site.theme, site.content);
       populateStyleSelect(site.bookingStyles);

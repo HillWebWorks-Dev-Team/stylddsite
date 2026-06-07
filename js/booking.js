@@ -6,11 +6,24 @@
   }
 
   var cfg = window.__STYLD_TENANT__ || {};
+  var tenantBooking = window.__STYLD_TENANT_BOOKING__ || window.__SALON_SITE_BOOKING__ || {};
   var styles = window.__STYLD_BOOKING_STYLES__ || [];
-  var hours = window.__STYLD_BOOKING_HOURS__ || {};
+  var hours = Object.assign(
+    {},
+    tenantBooking.bookingHours || {},
+    window.__STYLD_BOOKING_HOURS__ || {},
+  );
   var paymentSettings = window.__STYLD_BOOKING_PAYMENT__ || {};
   var formReq = window.__STYLD_BOOKING_FORM__ || {};
-  var subdomain = window.StyldTenant && window.StyldTenant.getSubdomain ? window.StyldTenant.getSubdomain() : '';
+  var subdomain =
+    tenantBooking.subdomain ||
+    (window.StyldTenant && window.StyldTenant.getSubdomain ? window.StyldTenant.getSubdomain() : '');
+
+  var zone =
+    tenantBooking.timezone ||
+    (window.__STYLD_SITE_CONTENT__ && window.__STYLD_SITE_CONTENT__.timezone) ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone ||
+    'America/New_York';
 
   var styleSelect = document.getElementById('style-select');
   var styleGate = document.getElementById('style-gate-alert');
@@ -30,7 +43,6 @@
   var hairLengthWrap = document.getElementById('hair-length-field-wrap');
   var hairLengthSelect = document.getElementById('hair-length-select');
 
-  var zone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
   var viewMonth = DateTime.now().setZone(zone).startOf('month');
   var selectedDate = null;
   var selectedSlotStart = null;
@@ -216,7 +228,7 @@
     return aStart.toMillis() < bEnd.toMillis() && bStart.toMillis() < aEnd.toMillis();
   }
 
-  function slotBlocked(slotStart, durationMinutes, blocked) {
+  function classifySlot(slotStart, durationMinutes, blocked) {
     var slotEnd = slotStart.plus({ minutes: durationMinutes });
     var capacity = hours.concurrentAppointmentCapacity || 1;
     var overlapsCount = 0;
@@ -229,18 +241,49 @@
       if (overlaps(slotStart, slotEnd, bStart, bEnd)) overlapsCount += 1;
     });
 
-    return overlapsCount >= capacity;
+    if (overlapsCount >= capacity) return 'full';
+    if (overlapsCount > 0) return 'limited';
+    return 'open';
+  }
+
+  function advanceLeadMinutes() {
+    if (hours.sameDayLeadMinutes != null && Number.isFinite(Number(hours.sameDayLeadMinutes))) {
+      return Number(hours.sameDayLeadMinutes);
+    }
+    if (hours.hoursInAdvance != null && Number.isFinite(Number(hours.hoursInAdvance))) {
+      return Number(hours.hoursInAdvance) * 60;
+    }
+    return 4320;
   }
 
   function earliestBookableTime() {
-    var now = DateTime.now().setZone(zone);
-    if (hours.hoursInAdvance != null) {
-      return now.plus({ hours: Number(hours.hoursInAdvance) || 0 });
+    return DateTime.now().setZone(zone).plus({ minutes: advanceLeadMinutes() });
+  }
+
+  function calendarDayDisabledReason(day) {
+    var iso = day.toISODate();
+    var weekday = day.weekday % 7;
+    var today = DateTime.now().setZone(zone).startOf('day');
+
+    if (day < today) return 'past';
+
+    if (hours.days) {
+      var dayCfg = hours.days[String(weekday)] || hours.days[weekday];
+      if (!dayCfg || dayCfg.closed) return 'closed';
+    } else if ((hours.closedWeekdays || []).indexOf(weekday) !== -1) {
+      return 'closed';
     }
-    if (hours.sameDayLeadMinutes != null) {
-      return now.plus({ minutes: Number(hours.sameDayLeadMinutes) || 0 });
-    }
-    return now;
+
+    var slots = generateSlotTimes(iso);
+    if (!slots.length) return 'closed';
+
+    var earliest = earliestBookableTime();
+    var hasFutureSlot = slots.some(function (slotStart) {
+      return slotStart >= earliest;
+    });
+    if (!hasFutureSlot) return 'advance';
+
+    return null;
   }
 
   function renderSlots() {
@@ -269,14 +312,14 @@
         candidates.forEach(function (slotStart) {
           if (slotStart < earliest) return;
 
-          var blockedSlot = slotBlocked(slotStart, pricing.duration, blocked);
+          var slotState = classifySlot(slotStart, pricing.duration, blocked);
           var btn = document.createElement('button');
           btn.type = 'button';
-          btn.className = 'time-slot ' + (blockedSlot ? 'time-slot--full' : 'time-slot--open');
+          btn.className = 'time-slot time-slot--' + slotState;
           btn.textContent = slotStart.toFormat('h:mm a');
-          btn.disabled = blockedSlot;
+          btn.disabled = slotState === 'full';
 
-          if (!blockedSlot) {
+          if (slotState !== 'full') {
             openCount += 1;
             btn.addEventListener('click', function () {
               selectedSlotStart = slotStart;
@@ -333,7 +376,8 @@
       if (selectedDate && day.hasSame(selectedDate, 'day')) btn.classList.add('is-selected');
 
       var iso = day.toISODate();
-      var selectable = availableDates.has(iso) && day >= today.startOf('day');
+      var disabledReason = calendarDayDisabledReason(day);
+      var selectable = !disabledReason && availableDates.has(iso);
       if (!selectable) {
         btn.classList.add('is-disabled');
         btn.disabled = true;
@@ -403,8 +447,9 @@
     setupStripe();
   }
 
-  function redirectSuccess(bookingId) {
-    var url = '/booking-success?booking_id=' + encodeURIComponent(bookingId);
+  function redirectSuccess(bookingId, pricing) {
+    var url = '/booking-success?confirmed=1';
+    if (pricing && pricing.deposit > 0) url += '&deposit=1';
     if (subdomain) url += '&subdomain=' + encodeURIComponent(subdomain);
     window.location.href = url;
   }
@@ -463,12 +508,12 @@
       .then(function (bookingId) {
         var id = typeof bookingId === 'string' ? bookingId : (payload.id);
         if (pricing.deposit <= 0 || !window.__STYLD_STRIPE__ || !stripeCard) {
-          redirectSuccess(id);
+          redirectSuccess(id, pricing);
           return null;
         }
 
         showFeedback('Booking saved. Payment processing is not available yet — your spot is held unpaid.', false);
-        setTimeout(function () { redirectSuccess(id); }, 1200);
+        setTimeout(function () { redirectSuccess(id, pricing); }, 1200);
         return null;
       })
       .catch(function (err) {

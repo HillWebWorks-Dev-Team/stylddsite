@@ -336,15 +336,15 @@
 
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.5.0/build/global/luxon.min.js"></script>
     <script src="https://js.stripe.com/v3/"></script>
-    <script src="/js/booking-config.js?v=47"></script>
+    <script src="/js/booking-config.js?v=59"></script>
     <script src="/js/styld-tenant-config.js?v=39"></script>
     <script src="/js/styld-tenant-config.local.js?v=39"></script>
-    <script src="/js/styld-tenant-shared.js?v=58"></script>
+    <script src="/js/styld-tenant-shared.js?v=59"></script>
     <script src="/js/profile-content.js?v=39"></script>
     <script src="/js/tenant-site.js?v=39"></script>
-    <script src="/js/styld-tenant-booking.js?v=58"></script>
-    <script src="/js/supabase-config.js?v=47"></script>
-    <script src="/js/supabase-config.local.js?v=47"></script>
+    <script src="/js/styld-tenant-booking.js?v=59"></script>
+    <script src="/js/supabase-config.js?v=59"></script>
+    <script src="/js/supabase-config.local.js?v=59"></script>
     <script id="booking-fallback-bootstrap">
       (function () {
         if (window.StyldTenant && window.StyldTenant.getSubdomain()) return;
@@ -365,7 +365,7 @@
           'const sb = createClient(c.url, c.anonKey);' +
           'window.salonSupabaseClient = sb;' +
           'const booking = document.createElement("script");' +
-          'booking.src = "/js/booking.js?v=47";' +
+          'booking.src = "/js/booking.js?v=59";' +
           'booking.defer = true;' +
           'document.body.appendChild(booking);';
         document.body.appendChild(module);
