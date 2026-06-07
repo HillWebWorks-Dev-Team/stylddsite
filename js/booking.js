@@ -543,8 +543,47 @@
     window.location.href = url;
   }
 
+  function isValidBookingUuid(id) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      String(id || ''),
+    );
+  }
+
   function newBookingId() {
-    return window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'bk-' + Date.now();
+    if (window.crypto && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    if (window.crypto && typeof crypto.getRandomValues === 'function') {
+      var bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      var hex = Array.from(bytes, function (b) {
+        return b.toString(16).padStart(2, '0');
+      }).join('');
+      return (
+        hex.slice(0, 8) +
+        '-' +
+        hex.slice(8, 12) +
+        '-' +
+        hex.slice(12, 16) +
+        '-' +
+        hex.slice(16, 20) +
+        '-' +
+        hex.slice(20)
+      );
+    }
+    throw new Error('Could not create a booking reference. Please refresh and try again.');
+  }
+
+  function requireBookingUuid(id, label) {
+    if (!isValidBookingUuid(id)) {
+      throw new Error(
+        (label || 'Booking reference') +
+          ' is invalid. Please hard-refresh this page (Ctrl+Shift+R) and try again.',
+      );
+    }
+    return id;
   }
 
   function fileExtension(file) {
@@ -688,11 +727,15 @@
 
     return edgeFunction('stripe-booking-pay', {
       subdomain: subdomain,
-      bookingId: bookingId,
+      bookingId: requireBookingUuid(bookingId, 'Booking id'),
       amountCents: amountCents,
       email: payload.email,
     })
       .then(function (payResult) {
+        var payBookingId = requireBookingUuid(
+          payResult.bookingId || bookingId,
+          'Payment booking id',
+        );
         if (payResult.fees) {
           applyServerFeePreview(payResult.fees, pricing);
         }
@@ -718,10 +761,10 @@
               setTimeout(resolve, 500);
             })
               .then(function () {
-                return confirmBookingPayment(bookingId, paymentIntentId);
+                return confirmBookingPayment(payBookingId, paymentIntentId);
               })
               .then(function () {
-                return paymentIntentId;
+                return { paymentIntentId: paymentIntentId, bookingId: payBookingId };
               });
           });
       })
@@ -760,7 +803,7 @@
     if (submitBtn) submitBtn.disabled = true;
     showFeedback('Checking availability…', false);
 
-    var bookingId = newBookingId();
+    var bookingId = requireBookingUuid(newBookingId(), 'Booking id');
     var needsPayment = pricing.deposit > 0 && window.__STYLD_STRIPE__ && stripeCard;
 
     ensureSlotStillAvailable(slotStart, pricing.duration)
@@ -794,26 +837,27 @@
 
         showFeedback('Processing payment…', false);
         return processStripeCheckout(bookingId, pricing, payPayload)
-          .then(function (paymentIntentId) {
+          .then(function (checkout) {
+            bookingId = checkout.bookingId;
             showFeedback('Confirming availability…', false);
             return ensureSlotStillAvailable(slotStart, pricing.duration).then(function () {
-              return paymentIntentId;
+              return checkout;
             });
           })
-          .then(function (paymentIntentId) {
+          .then(function (checkout) {
             showFeedback('Saving your booking…', false);
             var paidPayload = buildBookingPayload({
-              bookingId: bookingId,
+              bookingId: checkout.bookingId,
               hairPath: photoPaths.hairPath,
               refPath: photoPaths.refPath,
               paidOnline: true,
-              paymentIntentId: paymentIntentId,
+              paymentIntentId: checkout.paymentIntentId,
             });
             return rpc('styld_tenant_insert_booking', {
               p_subdomain: subdomain,
               p_booking: paidPayload,
             }).then(function () {
-              redirectSuccess(bookingId, pricing);
+              redirectSuccess(checkout.bookingId, pricing);
             });
           });
       })
