@@ -25,3 +25,9 @@ npx serve .
 ```
 
 Note: subdomain routing requires Vercel middleware in production.
+
+## Vercel Analytics
+
+1. In the Vercel project dashboard, open **Analytics** and enable Web Analytics.
+2. Deploy — `npm run build` bundles `@vercel/analytics` into `js/vercel-analytics.bundle.js`.
+3. Visit the live site; page views should appear within ~30 seconds.

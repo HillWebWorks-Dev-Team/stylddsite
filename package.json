@@ -2,9 +2,14 @@
   "name": "stylddsite",
   "private": true,
   "scripts": {
-    "build": "node -e \"process.exit(0)\""
+    "build": "node scripts/build-analytics.cjs",
+    "build:analytics": "node scripts/build-analytics.cjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^1.5.0",
     "@vercel/functions": "^2.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
   }
 }
