@@ -53,8 +53,6 @@
   var feedbackEl = document.getElementById('booking-feedback');
   var paymentSection = document.getElementById('payment-section');
 
-  var USE_HAIR_LENGTH_ADDONS = !(tenantBooking.subdomain || window.__STYLD_TENANT_BOOKING__);
-
   var viewMonth = DateTime.now().setZone(zone).startOf('month');
   var selectedDate = null;
   var selectedSlotStart = null;
