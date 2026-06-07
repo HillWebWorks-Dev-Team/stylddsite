@@ -134,9 +134,56 @@
     }
   }
 
+  function getBookingFormRequirements(bookingPayment) {
+    var settings = bookingPayment && typeof bookingPayment === 'object' ? bookingPayment : {};
+    var requireHair = settings.requireCurrentHairPhoto;
+    if (requireHair == null) requireHair = settings.require_current_hair_photo;
+    if (requireHair == null) requireHair = true;
+
+    var requireRef = settings.requireReferencePhoto;
+    if (requireRef == null) requireRef = settings.require_reference_photo;
+    if (requireRef == null) requireRef = false;
+
+    return {
+      requireCurrentHairPhoto: requireHair !== false,
+      requireReferencePhoto: requireRef === true,
+    };
+  }
+
+  function applyBookingFormSettings(bookingPayment) {
+    var req = getBookingFormRequirements(bookingPayment);
+    var hairLabel = document.querySelector('label[for="photo-hair"]');
+    var hairInput = document.getElementById('photo-hair');
+    var refLabel = document.querySelector('label[for="photo-ref"]');
+    var refInput = document.getElementById('photo-ref');
+
+    if (hairLabel) {
+      hairLabel.textContent = req.requireCurrentHairPhoto
+        ? 'Current hair photo *'
+        : 'Current hair photo (optional)';
+    }
+    if (hairInput) {
+      if (req.requireCurrentHairPhoto) hairInput.setAttribute('required', '');
+      else hairInput.removeAttribute('required');
+    }
+    if (refLabel) {
+      refLabel.textContent = req.requireReferencePhoto
+        ? 'Reference image *'
+        : 'Reference image (optional)';
+    }
+    if (refInput) {
+      if (req.requireReferencePhoto) refInput.setAttribute('required', '');
+      else refInput.removeAttribute('required');
+    }
+
+    return req;
+  }
+
   window.StyldTenant = {
     getSubdomain: getSubdomain,
     applySiteFooter: applySiteFooter,
+    getBookingFormRequirements: getBookingFormRequirements,
+    applyBookingFormSettings: applyBookingFormSettings,
 
     loadPublishedSite: function () {
       var cfg = window.__STYLD_TENANT__ || {};
