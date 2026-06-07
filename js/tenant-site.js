@@ -134,7 +134,7 @@
       return rest(
         'styld_site_records?user_id=eq.' +
           encodeURIComponent(row.user_id) +
-          '&select=record_type,record_key,data',
+          '&select=id,record_type,record_key,data,created_at',
       );
     })
     .then(function (records) {
@@ -143,6 +143,8 @@
       var meta = {};
       var prices = {};
       var covers = {};
+      var reviewsSettings = { enabled: true };
+      var reviews = [];
 
       records.forEach(function (record) {
         var value = settingValue(record);
@@ -150,6 +152,21 @@
         if (record.record_type === 'site_setting' && record.record_key === 'site_theme') theme = Object.assign(theme, value || {});
         if (record.record_type === 'site_setting' && record.record_key === 'style_catalog_meta') meta = value || {};
         if (record.record_type === 'site_setting' && record.record_key === 'style_price_overrides') prices = value || {};
+        if (record.record_type === 'site_setting' && record.record_key === 'reviews_settings') {
+          reviewsSettings = value || reviewsSettings;
+        }
+        if (record.record_type === 'review') {
+          var reviewData = record.data && typeof record.data === 'object' ? record.data : value;
+          if (reviewData && reviewData.published !== false) {
+            reviews.push({
+              id: record.id,
+              clientName: reviewData.client_name || '',
+              rating: reviewData.rating || 5,
+              message: reviewData.message || '',
+              createdAt: reviewData.created_at || record.created_at || null,
+            });
+          }
+        }
         if (record.record_type === 'style_cover_image' && record.record_key) {
           var coverPath = coverStoragePath(value);
           if (typeof coverPath === 'string') covers[record.record_key] = coverPath;
@@ -289,6 +306,14 @@
         });
 
       window.__STYLD_SITE_STYLES__ = styles;
+      window.__STYLD_REVIEWS_SETTINGS__ = {
+        enabled: reviewsSettings.enabled !== false,
+      };
+      window.__STYLD_SITE_REVIEWS__ = reviews.sort(function (a, b) {
+        var aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        var bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      });
 
       if (theme.hideBookNowButton) {
         document.querySelectorAll('.profile-book-btn').forEach(function (btn) {
@@ -299,6 +324,9 @@
       if (statusEl) statusEl.hidden = true;
       if (window.applyStyldPreviewContent) {
         window.applyStyldPreviewContent();
+      }
+      if (window.initStyldSiteReviews) {
+        window.initStyldSiteReviews();
       }
 
       if (theme.hideBookNowButton) {

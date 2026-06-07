@@ -1,4 +1,4 @@
--- Per-tenant site analytics (profile + booking page views).
+﻿-- Per-tenant site analytics (profile + booking page views).
 -- Run in Supabase SQL Editor or via supabase db push.
 
 create table if not exists public.styld_site_page_views (

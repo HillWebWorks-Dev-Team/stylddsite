@@ -3,3 +3,4 @@ Thumbs.db
 node_modules/
 _prod/
 _prod-index.html
+.vercel

@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=15" />
+    <link rel="stylesheet" href="/css/styles.css?v=16" />
     <style>
       #tenant-status {
         position: fixed;
@@ -64,6 +64,21 @@
     </section>
 
     <main>
+      <section class="profile-reviews-section" id="profile-reviews-section" hidden>
+        <div class="container">
+          <div class="profile-reviews-head">
+            <h2>Client reviews</h2>
+          </div>
+          <div class="site-reviews-marquee" aria-label="Client reviews">
+            <div class="site-reviews-marquee__fade site-reviews-marquee__fade--left" aria-hidden="true"></div>
+            <div class="site-reviews-marquee__viewport">
+              <div class="site-reviews-marquee__track" id="site-reviews-track"></div>
+            </div>
+            <div class="site-reviews-marquee__fade site-reviews-marquee__fade--right" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
       <section class="profile-menu-section" id="profile-menu-section" data-site-section="menu">
         <div class="container">
           <div class="profile-menu-head">
@@ -110,7 +125,8 @@
     <script src="/js/styld-tenant-config.js?v=1780530043880"></script>
     <script src="/js/styld-tenant-config.local.js?v=1780530043880"></script>
     <script src="/js/styld-tenant-shared.js?v=1780530043880"></script>
-    <script src="/js/profile-content.js?v=14"></script>
-    <script src="/js/tenant-site.js?v=11"></script>
+    <script src="/js/profile-content.js?v=15"></script>
+    <script src="/js/site-reviews.js?v=1"></script>
+    <script src="/js/tenant-site.js?v=12"></script>
   </body>
 </html>

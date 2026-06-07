@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Leave a review</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/styles.css?v=16" />
+  </head>
+  <body class="page-review">
+    <main class="review-page">
+      <div class="container review-page__inner">
+        <h1 id="review-page-title" class="review-page__title">Leave a review</h1>
+        <p id="review-lead" class="review-page__lead">Share how your appointment went.</p>
+
+        <p id="review-status" class="review-status" hidden></p>
+        <p id="review-success" class="review-success" hidden></p>
+
+        <div id="review-form-wrap" class="review-form-wrap" hidden>
+          <form id="review-form" class="review-form">
+            <fieldset class="review-stars-field">
+              <legend>Your rating</legend>
+              <div class="review-stars-input" role="group" aria-label="Star rating">
+                <button type="button" class="review-star-btn" data-review-star="1" aria-pressed="false">★</button>
+                <button type="button" class="review-star-btn" data-review-star="2" aria-pressed="false">★</button>
+                <button type="button" class="review-star-btn" data-review-star="3" aria-pressed="false">★</button>
+                <button type="button" class="review-star-btn" data-review-star="4" aria-pressed="false">★</button>
+                <button type="button" class="review-star-btn is-active" data-review-star="5" aria-pressed="true">★</button>
+              </div>
+              <input type="hidden" id="review-rating" name="rating" value="5" />
+            </fieldset>
+
+            <label class="review-field" for="review-name">
+              <span>Your name</span>
+              <input id="review-name" name="client_name" type="text" required autocomplete="name" />
+            </label>
+
+            <label class="review-field" for="review-message">
+              <span>Your review</span>
+              <textarea id="review-message" name="message" rows="5" required placeholder="What did you love about your visit?"></textarea>
+            </label>
+
+            <button type="submit" class="hero-btn hero-btn--gold review-submit-btn">Submit review</button>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <script src="/js/styld-tenant-config.js?v=1"></script>
+    <script src="/js/styld-tenant-config.local.js?v=1"></script>
+    <script src="/js/styld-tenant-shared.js?v=1"></script>
+    <script src="/js/review-page.js?v=1"></script>
+  </body>
+</html>
