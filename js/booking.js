@@ -103,6 +103,21 @@
     return 120;
   }
 
+  function formatDurationLabel(minutes) {
+    var mins = Math.round(Number(minutes) || 0);
+    if (mins <= 0) return 'TBD';
+    var hours = Math.floor(mins / 60);
+    var remainder = mins % 60;
+    if (hours <= 0) return remainder + ' min';
+    if (remainder === 0) return hours === 1 ? '1 hr' : hours + ' hrs';
+    if (hours === 1) return '1 hr ' + remainder + ' min';
+    return hours + ' hrs ' + remainder + ' min';
+  }
+
+  function calendarGridStart(monthStart) {
+    return monthStart.minus({ days: monthStart.weekday % 7 });
+  }
+
   function computePricing(style) {
     var base = typeof style.base === 'number' ? style.base : 0;
     var duration = durationMinutesForStyle(style);
@@ -149,7 +164,7 @@
     setText('pay-deposit-preview', money(p.deposit));
 
     if (durationStrip) {
-      durationStrip.textContent = 'ESTIMATED DURATION ' + p.duration + ' MIN';
+      durationStrip.textContent = 'Estimated duration: ' + formatDurationLabel(p.duration);
     }
     if (durationInput) durationInput.value = String(p.duration);
 
@@ -264,7 +279,7 @@
     calGrid.innerHTML = '';
 
     var monthStart = viewMonth.startOf('month');
-    var gridStart = monthStart.startOf('week');
+    var gridStart = calendarGridStart(monthStart);
     var today = DateTime.now().setZone(zone).startOf('day');
 
     for (var i = 0; i < 42; i++) {
@@ -314,7 +329,7 @@
 
     if (!selectedStyle) {
       if (styleGate) styleGate.hidden = false;
-      if (durationStrip) durationStrip.textContent = 'ESTIMATED DURATION TBD';
+      if (durationStrip) durationStrip.textContent = 'Estimated duration: TBD';
       if (slotsContainer) slotsContainer.innerHTML = '';
       updateSelectedSummary();
       return;
