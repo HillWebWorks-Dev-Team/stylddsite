@@ -4,6 +4,10 @@
     console.error('Luxon is required for booking.');
     return;
   }
+  if (!window.BookingAvailability || !window.BookingAvailability.createEngine) {
+    console.error('booking-availability.js must load before booking.js');
+    return;
+  }
 
   var cfg = window.__STYLD_TENANT__ || {};
   var tenantBooking = window.__STYLD_TENANT_BOOKING__ || window.__SALON_SITE_BOOKING__ || {};
@@ -14,7 +18,6 @@
     window.__STYLD_BOOKING_HOURS__ || {},
   );
   var paymentSettings = window.__STYLD_BOOKING_PAYMENT__ || {};
-  var formReq = window.__STYLD_BOOKING_FORM__ || {};
   var subdomain =
     tenantBooking.subdomain ||
     (window.StyldTenant && window.StyldTenant.getSubdomain ? window.StyldTenant.getSubdomain() : '');
@@ -24,6 +27,15 @@
     (window.__STYLD_SITE_CONTENT__ && window.__STYLD_SITE_CONTENT__.timezone) ||
     Intl.DateTimeFormat().resolvedOptions().timeZone ||
     'America/New_York';
+
+  var availability = window.BookingAvailability.createEngine(
+    {
+      salonTimeZone: zone,
+      bookingHours: hours,
+      subdomain: subdomain,
+    },
+    DateTime,
+  );
 
   var styleSelect = document.getElementById('style-select');
   var styleGate = document.getElementById('style-gate-alert');
@@ -170,122 +182,6 @@
     }
   }
 
-  function parseSlotTime(dateIso, label) {
-    var patterns = ['h:mm a', 'h:mma', 'ha', 'H:mm'];
-    for (var i = 0; i < patterns.length; i++) {
-      var dt = DateTime.fromFormat(dateIso + ' ' + String(label).trim(), 'yyyy-MM-dd ' + patterns[i], { zone: zone });
-      if (dt.isValid) return dt;
-    }
-    return null;
-  }
-
-  function generateSlotTimes(dateIso) {
-    if (hours && hours.days) {
-      var weekday = DateTime.fromISO(dateIso, { zone: zone }).weekday % 7;
-      var dayCfg = hours.days[String(weekday)] || hours.days[weekday];
-      if (!dayCfg || dayCfg.closed) return [];
-      return (dayCfg.slots || []).map(function (label) {
-        return parseSlotTime(dateIso, label);
-      }).filter(Boolean);
-    }
-
-    var dt = DateTime.fromISO(dateIso, { zone: zone });
-    var weekday = dt.weekday % 7;
-    if ((hours.closedWeekdays || []).indexOf(weekday) !== -1) return [];
-
-    var start = dt.set({
-      hour: hours.slotDayStartHour != null ? hours.slotDayStartHour : 8,
-      minute: hours.slotDayStartMinute || 0,
-      second: 0,
-      millisecond: 0,
-    });
-    var endLimit = dt.set({
-      hour: hours.slotDayEndHour != null ? hours.slotDayEndHour : 19,
-      minute: hours.slotDayEndMinute || 0,
-      second: 0,
-      millisecond: 0,
-    });
-    if (weekday === 6 && hours.saturdayLastStartHour != null) {
-      endLimit = dt.set({
-        hour: hours.saturdayLastStartHour,
-        minute: hours.saturdayLastStartMinute || 0,
-        second: 0,
-        millisecond: 0,
-      });
-    }
-
-    var step = hours.slotStepMinutes || 30;
-    var slots = [];
-    var cursor = start;
-    while (cursor <= endLimit) {
-      slots.push(cursor);
-      cursor = cursor.plus({ minutes: step });
-    }
-    return slots;
-  }
-
-  function overlaps(aStart, aEnd, bStart, bEnd) {
-    return aStart.toMillis() < bEnd.toMillis() && bStart.toMillis() < aEnd.toMillis();
-  }
-
-  function classifySlot(slotStart, durationMinutes, blocked) {
-    var slotEnd = slotStart.plus({ minutes: durationMinutes });
-    var capacity = hours.concurrentAppointmentCapacity || 1;
-    var overlapsCount = 0;
-
-    (blocked || []).forEach(function (item) {
-      var bStart = DateTime.fromISO(item.start, { zone: zone });
-      var bEnd = item.end
-        ? DateTime.fromISO(String(item.end).replace(' ', 'T'), { zone: zone })
-        : bStart.plus({ minutes: item.duration || 60 });
-      if (overlaps(slotStart, slotEnd, bStart, bEnd)) overlapsCount += 1;
-    });
-
-    if (overlapsCount >= capacity) return 'full';
-    if (overlapsCount > 0) return 'limited';
-    return 'open';
-  }
-
-  function advanceLeadMinutes() {
-    if (hours.sameDayLeadMinutes != null && Number.isFinite(Number(hours.sameDayLeadMinutes))) {
-      return Number(hours.sameDayLeadMinutes);
-    }
-    if (hours.hoursInAdvance != null && Number.isFinite(Number(hours.hoursInAdvance))) {
-      return Number(hours.hoursInAdvance) * 60;
-    }
-    return 4320;
-  }
-
-  function earliestBookableTime() {
-    return DateTime.now().setZone(zone).plus({ minutes: advanceLeadMinutes() });
-  }
-
-  function calendarDayDisabledReason(day) {
-    var iso = day.toISODate();
-    var weekday = day.weekday % 7;
-    var today = DateTime.now().setZone(zone).startOf('day');
-
-    if (day < today) return 'past';
-
-    if (hours.days) {
-      var dayCfg = hours.days[String(weekday)] || hours.days[weekday];
-      if (!dayCfg || dayCfg.closed) return 'closed';
-    } else if ((hours.closedWeekdays || []).indexOf(weekday) !== -1) {
-      return 'closed';
-    }
-
-    var slots = generateSlotTimes(iso);
-    if (!slots.length) return 'closed';
-
-    var earliest = earliestBookableTime();
-    var hasFutureSlot = slots.some(function (slotStart) {
-      return slotStart >= earliest;
-    });
-    if (!hasFutureSlot) return 'advance';
-
-    return null;
-  }
-
   function renderSlots() {
     if (!slotsContainer || !selectedDate || !selectedStyle) return;
 
@@ -298,9 +194,9 @@
       p_subdomain: subdomain,
       p_date: dateIso,
     })
-      .then(function (blocked) {
-        var candidates = generateSlotTimes(dateIso);
-        var earliest = earliestBookableTime();
+      .then(function (unavailable) {
+        var candidates = availability.generateSlotTimes(dateIso);
+        var earliest = availability.earliestBookableTime();
         slotsContainer.innerHTML = '';
 
         if (!candidates.length) {
@@ -312,7 +208,7 @@
         candidates.forEach(function (slotStart) {
           if (slotStart < earliest) return;
 
-          var slotState = classifySlot(slotStart, pricing.duration, blocked);
+          var slotState = availability.classifySlot(slotStart, pricing.duration, unavailable);
           var btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'time-slot time-slot--' + slotState;
@@ -376,7 +272,7 @@
       if (selectedDate && day.hasSame(selectedDate, 'day')) btn.classList.add('is-selected');
 
       var iso = day.toISODate();
-      var disabledReason = calendarDayDisabledReason(day);
+      var disabledReason = availability.calendarDayDisabledReason(day);
       var selectable = !disabledReason && availableDates.has(iso);
       if (!selectable) {
         btn.classList.add('is-disabled');
@@ -506,7 +402,7 @@
       p_booking: payload,
     })
       .then(function (bookingId) {
-        var id = typeof bookingId === 'string' ? bookingId : (payload.id);
+        var id = typeof bookingId === 'string' ? bookingId : payload.id;
         if (pricing.deposit <= 0 || !window.__STYLD_STRIPE__ || !stripeCard) {
           redirectSuccess(id, pricing);
           return null;
@@ -535,10 +431,12 @@
     });
   }
   if (styleSelect) styleSelect.addEventListener('change', onStyleChange);
-  if (hairLengthSelect) hairLengthSelect.addEventListener('change', function () {
-    updatePricingDisplay();
-    renderSlots();
-  });
+  if (hairLengthSelect) {
+    hairLengthSelect.addEventListener('change', function () {
+      updatePricingDisplay();
+      renderSlots();
+    });
+  }
   if (bookingForm) bookingForm.addEventListener('submit', handleSubmit);
 
   initStripeIfNeeded();

@@ -34,11 +34,19 @@
     if (preselected) select.value = preselected;
   }
 
-  function loadBookingScript() {
-    var script = document.createElement('script');
-    script.src = '/js/booking.js?v=59';
-    script.defer = true;
-    document.body.appendChild(script);
+  function loadBookingScripts() {
+    var availability = document.createElement('script');
+    availability.src = '/js/booking-availability.js?v=60';
+    availability.onload = function () {
+      var script = document.createElement('script');
+      script.src = '/js/booking.js?v=60';
+      script.defer = true;
+      document.body.appendChild(script);
+    };
+    availability.onerror = function () {
+      showError('Could not load booking availability.');
+    };
+    document.body.appendChild(availability);
   }
 
   function applyBrandToPage(theme, content) {
@@ -84,7 +92,7 @@
       }
 
       if (statusEl) statusEl.hidden = true;
-      loadBookingScript();
+      loadBookingScripts();
     })
     .catch(function (err) {
       showError(err && err.message ? err.message : 'Could not load booking.');

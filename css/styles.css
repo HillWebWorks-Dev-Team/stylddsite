@@ -4567,7 +4567,8 @@ ul.price-menu__policy-list {
   cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
 }
 .time-slot::before { content: ''; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.time-slot--open::before, .time-slot--limited::before { background: #22c55e; }
+.time-slot--open::before { background: #22c55e; }
+.time-slot--limited::before { background: #eab308; }
 .time-slot--full::before { background: #ef4444; }
 .time-slot:hover:not(:disabled) { border-color: var(--pink); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 .time-slot.selected { border-color: #111; box-shadow: 0 0 0 2px #111; }
