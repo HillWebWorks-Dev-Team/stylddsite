@@ -6138,8 +6138,15 @@ ul.price-menu__policy-list {
   transition: background 0.15s, border-color 0.15s, color 0.15s;
   white-space: nowrap;
 }
-.profile-menu-filter:hover { border-color: var(--pink); color: var(--pink); }
-.profile-menu-filter--active { background: var(--pink); border-color: var(--pink); color: #fff; }
+.profile-menu-filter:hover {
+  border-color: var(--pink);
+  color: var(--pink);
+}
+.profile-menu-filter--active {
+  background: var(--pink);
+  border-color: var(--pink);
+  color: var(--filter-active-text, #fff);
+}
 .profile-service-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
