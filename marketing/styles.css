@@ -2353,3 +2353,67 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
     display: none;
   }
 }
+
+.legal-wrap {
+  max-width: 760px;
+}
+
+.legal-meta {
+  margin-bottom: 0.5rem !important;
+  font-size: 0.875rem !important;
+}
+
+.legal-prose {
+  display: grid;
+  gap: 2rem;
+}
+
+.legal-prose section {
+  padding-bottom: 0.25rem;
+}
+
+.legal-prose h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.legal-prose h3 {
+  font-size: 0.98rem;
+  margin: 1rem 0 0.5rem;
+  color: var(--white);
+}
+
+.legal-prose p,
+.legal-prose li {
+  color: var(--white-muted);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.legal-prose p + p {
+  margin-top: 0.75rem;
+}
+
+.legal-prose ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.legal-prose a {
+  color: var(--pink);
+  text-decoration: none;
+}
+
+.legal-prose a:hover {
+  text-decoration: underline;
+}
+
+.legal-prose code {
+  font-size: 0.85em;
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+}

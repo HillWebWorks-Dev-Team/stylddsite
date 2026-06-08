@@ -4,6 +4,7 @@ const ROOT_DOMAIN = process.env.STYLD_ROOT_DOMAIN || 'styldd.com';
 
 const MARKETING_PAGES = {
   '/support': '/marketing/support.html',
+  '/privacy': '/marketing/privacy.html',
 };
 
 const TENANT_STATIC_PAGES = {
