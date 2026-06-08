@@ -5475,6 +5475,51 @@ ul.price-menu__policy-list {
   color: var(--muted);
 }
 
+.manage-booking-main {
+  flex: 1;
+  padding: clamp(2rem, 5vw, 3.5rem) 0 4rem;
+}
+
+.manage-booking-page {
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.manage-booking-hero {
+  margin-bottom: 1.5rem;
+}
+
+.manage-booking-hero__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pink-dark, var(--pink));
+}
+
+.manage-booking-hero__lead {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.manage-booking-card {
+  margin-top: 1rem;
+}
+
+.manage-booking-detail {
+  margin-top: 0.75rem;
+}
+
+.manage-booking-actions--cancelled {
+  justify-content: flex-start;
+}
+
+.page-manage-booking .booking-feedback {
+  margin-bottom: 1rem;
+}
+
 .booking-success-hero {
   margin-bottom: 1.5rem;
 }

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="View or cancel your appointment." />
+    <title>Your appointment</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/styles.css?v=41" />
+    <style>
+      #tenant-status {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 2rem;
+        background: #fafafa;
+        color: #525252;
+        font: 600 1rem/1.5 "Source Sans 3", system-ui, sans-serif;
+        text-align: center;
+        z-index: 9999;
+      }
+      #tenant-status[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body class="tpl-profile page-manage-booking">
+    <div id="tenant-status">Loading…</div>
+
+    <nav class="profile-nav" id="profile-nav">
+      <div class="container profile-nav__inner">
+        <a class="profile-brand" href="/">
+          <div class="profile-brand__logo" id="profile-logo-placeholder" aria-hidden="true"></div>
+          <span id="profile-brand-name">Your Brand</span>
+        </a>
+        <a class="profile-book-btn" href="/booking">Book Now</a>
+      </div>
+    </nav>
+
+    <main class="manage-booking-main">
+      <div class="container manage-booking-page">
+        <div class="page-hero page-hero--compact manage-booking-hero">
+          <p class="manage-booking-hero__eyebrow" id="manage-booking-eyebrow">Your appointment</p>
+          <h1 id="manage-booking-title">Appointment details</h1>
+          <p class="manage-booking-hero__lead" id="manage-booking-lead">
+            Review your booking below. You can cancel here if your plans change.
+          </p>
+        </div>
+
+        <div id="manage-booking-error" class="booking-feedback booking-feedback--error" role="alert" hidden></div>
+        <div id="manage-booking-success" class="booking-feedback booking-feedback--success" role="status" hidden></div>
+
+        <div id="manage-booking-card-wrap" class="lookup-wrap" hidden>
+          <article class="lookup-card manage-booking-card" aria-labelledby="manage-booking-card-title">
+            <div class="lookup-card__top">
+              <h2 id="manage-booking-card-title">Appointment</h2>
+              <span id="manage-booking-status" class="lookup-status is-active">Confirmed</span>
+            </div>
+            <p id="manage-booking-greeting" class="lookup-card__teaser"></p>
+
+            <div class="lookup-detail-panel manage-booking-detail">
+              <div class="lookup-detail__grid">
+                <div class="lookup-detail__row">
+                  <span class="lookup-detail__label">Service</span>
+                  <span class="lookup-detail__value" id="manage-style">—</span>
+                </div>
+                <div class="lookup-detail__row">
+                  <span class="lookup-detail__label">Date</span>
+                  <span class="lookup-detail__value" id="manage-date">—</span>
+                </div>
+                <div class="lookup-detail__row">
+                  <span class="lookup-detail__label">Time</span>
+                  <span class="lookup-detail__value" id="manage-time">—</span>
+                </div>
+                <div class="lookup-detail__row">
+                  <span class="lookup-detail__label">Duration</span>
+                  <span class="lookup-detail__value" id="manage-duration">—</span>
+                </div>
+                <div class="lookup-detail__row">
+                  <span class="lookup-detail__label">Estimated total</span>
+                  <span class="lookup-detail__value" id="manage-total">—</span>
+                </div>
+                <div class="lookup-detail__row">
+                  <span class="lookup-detail__label">Deposit</span>
+                  <span class="lookup-detail__value" id="manage-deposit">—</span>
+                </div>
+                <div class="lookup-detail__row">
+                  <span class="lookup-detail__label">Payment</span>
+                  <span class="lookup-detail__value" id="manage-payment">—</span>
+                </div>
+              </div>
+              <div class="lookup-detail__divider"></div>
+              <p class="lookup-card__meta lookup-card__id">
+                Booking reference:
+                <code id="manage-booking-id">—</code>
+              </p>
+            </div>
+
+            <div id="manage-booking-actions" class="lookup-actions">
+              <button type="button" class="btn btn-outline" id="manage-cancel-btn">Cancel appointment</button>
+              <a class="btn btn-primary" href="/booking" id="manage-rebook-btn" hidden>Book again</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer site-footer--home-promo">
+      <div class="container footer-bottom">
+        <p id="preview-footer-brand">&copy; Your brand name</p>
+        <p class="footer-built-by">
+          <a
+            class="footer-built-by__link"
+            id="preview-footer-styld-link"
+            href="https://styldd.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              class="footer-built-by__logo"
+              src="/assets/styld-icon.png"
+              alt=""
+              width="22"
+              height="22"
+              decoding="async"
+            />
+            <span>Built with Styld</span>
+          </a>
+        </p>
+      </div>
+    </footer>
+
+    <script src="/js/vercel-analytics.bundle.js" defer></script>
+    <script src="/js/styld-tenant-config.js?v=40"></script>
+    <script src="/js/styld-tenant-config.local.js?v=40"></script>
+    <script src="/js/styld-tenant-shared.js?v=59"></script>
+    <script src="/js/profile-content.js?v=40"></script>
+    <script src="/js/tenant-site.js?v=15"></script>
+    <script src="/js/manage-booking.js?v=1"></script>
+  </body>
+</html>
