@@ -4180,6 +4180,7 @@ ul.price-menu__policy-list {
 
 .booking-calendar__day.is-outside {
   color: var(--muted-soft, rgba(0, 0, 0, 0.35));
+  cursor: not-allowed;
 }
 
 .booking-calendar__day.is-disabled {

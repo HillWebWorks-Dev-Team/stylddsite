@@ -524,12 +524,13 @@
       btn.className = 'booking-calendar__day';
       btn.textContent = String(day.day);
 
-      if (day.month !== viewMonth.month) btn.classList.add('is-outside');
+      if (!day.hasSame(viewMonth, 'month')) btn.classList.add('is-outside');
       if (day.hasSame(today, 'day')) btn.classList.add('is-today');
       if (selectedDate && day.hasSame(selectedDate, 'day')) btn.classList.add('is-selected');
 
       var iso = day.toISODate();
-      var selectable = !availability.calendarDayDisabledReason(day);
+      var isOutside = !day.hasSame(viewMonth, 'month');
+      var selectable = !isOutside && !availability.calendarDayDisabledReason(day);
       if (!selectable) {
         btn.classList.add('is-disabled');
         btn.disabled = true;
