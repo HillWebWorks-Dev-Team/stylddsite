@@ -71,7 +71,55 @@
     if (!v) return '—';
     var d = new Date(v);
     if (isNaN(d.getTime())) return esc(v);
-    return d.toLocaleString();
+    return d.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }
+
+  function fmtApptParts(v) {
+    if (!v) return { weekday: '—', date: '—', time: '' };
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return { weekday: '—', date: String(v), time: '' };
+    return {
+      weekday: d.toLocaleDateString(undefined, { weekday: 'short' }),
+      date: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      time: d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
+    };
+  }
+
+  function bookingStatusClass(status) {
+    var s = String(status || '').toLowerCase();
+    if (s === 'confirmed' || s === 'completed') return 'admin-pill--good';
+    if (s === 'cancelled') return 'admin-pill--bad';
+    if (s === 'pending_payment' || s === 'pending') return 'admin-pill--warn';
+    return 'admin-pill--neutral';
+  }
+
+  function bookingStatusLabel(status) {
+    var s = String(status || '').toLowerCase();
+    if (s === 'pending_payment') return 'Pending pay';
+    if (!s) return 'Unknown';
+    return s.replace(/_/g, ' ').replace(/\b\w/g, function (c) {
+      return c.toUpperCase();
+    });
+  }
+
+  function paymentStatusLabel(status) {
+    var s = String(status || '').toLowerCase();
+    if (!s || s === 'none') return '';
+    return s.replace(/_/g, ' ').replace(/\b\w/g, function (c) {
+      return c.toUpperCase();
+    });
+  }
+
+  function truncate(str, max) {
+    str = String(str || '');
+    if (str.length <= max) return str;
+    return str.slice(0, max - 1) + '…';
   }
 
   function fmtMoney(v) {
@@ -530,7 +578,7 @@
         '<section class="admin-dash-card admin-dash-card--wide"><h4>Site traffic — last 30 days</h4>' +
         sparklineHtml(a.daily_views) +
         '</section>' +
-        '<section class="admin-dash-card"><h4>Recent bookings</h4>' +
+        '<section class="admin-dash-card admin-dash-card--wide"><h4>Recent bookings</h4>' +
         renderBookingsMiniTable((data.bookings || []).slice(0, 8)) +
         '</section></div>'
       );
@@ -721,23 +769,53 @@
   function renderBookingsMiniTable(bookings) {
     if (!bookings.length) return '<p class="admin-muted">No bookings yet.</p>';
     return (
-      '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>When</th><th>Client</th><th>Service</th><th>Total</th></tr></thead><tbody>' +
+      '<ul class="admin-booking-list">' +
       bookings
         .map(function (b) {
+          var when = fmtApptParts(b.appointment_starts_at || b.created_at);
+          var service = b.style_name || 'Service';
+          var payLabel = paymentStatusLabel(b.payment_status);
           return (
-            '<tr><td>' +
-            fmtDate(b.appointment_starts_at) +
-            '</td><td>' +
-            esc(b.full_name) +
-            '</td><td>' +
-            esc(b.style_name) +
-            '</td><td>' +
+            '<li class="admin-booking-row">' +
+            '<div class="admin-booking-row__when">' +
+            '<span class="admin-booking-row__weekday">' +
+            esc(when.weekday) +
+            '</span>' +
+            '<strong class="admin-booking-row__date">' +
+            esc(when.date) +
+            '</strong>' +
+            '<span class="admin-booking-row__time">' +
+            esc(when.time) +
+            '</span>' +
+            '</div>' +
+            '<div class="admin-booking-row__main">' +
+            '<strong class="admin-booking-row__client">' +
+            esc(b.full_name || 'Client') +
+            '</strong>' +
+            '<span class="admin-booking-row__service" title="' +
+            esc(service) +
+            '">' +
+            esc(truncate(service, 42)) +
+            '</span>' +
+            '</div>' +
+            '<div class="admin-booking-row__end">' +
+            '<span class="admin-pill ' +
+            bookingStatusClass(b.booking_status) +
+            '">' +
+            esc(bookingStatusLabel(b.booking_status)) +
+            '</span>' +
+            (payLabel
+              ? '<span class="admin-pill admin-pill--neutral admin-pill--soft">' + esc(payLabel) + '</span>'
+              : '') +
+            '<strong class="admin-booking-row__total">' +
             fmtMoney(b.estimated_total) +
-            '</td></tr>'
+            '</strong>' +
+            '</div>' +
+            '</li>'
           );
         })
         .join('') +
-      '</tbody></table></div>'
+      '</ul>'
     );
   }
 

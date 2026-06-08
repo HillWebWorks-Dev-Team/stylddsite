@@ -846,7 +846,149 @@ body.admin-salon-open {
   margin-top: 0.75rem;
 }
 
+.admin-booking-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-booking-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--admin-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-booking-row:hover {
+  border-color: rgba(255, 45, 138, 0.25);
+  background: rgba(255, 45, 138, 0.04);
+}
+
+.admin-booking-row__when {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  line-height: 1.2;
+}
+
+.admin-booking-row__weekday {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--admin-accent);
+}
+
+.admin-booking-row__date {
+  font-size: 0.9rem;
+  letter-spacing: -0.02em;
+}
+
+.admin-booking-row__time {
+  font-size: 0.72rem;
+  color: var(--admin-muted);
+}
+
+.admin-booking-row__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.admin-booking-row__client {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.admin-booking-row__service {
+  font-size: 0.78rem;
+  color: var(--admin-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-booking-row__end {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.admin-booking-row__total {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.admin-pill {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.admin-pill--good {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.admin-pill--warn {
+  color: #fcd34d;
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.25);
+}
+
+.admin-pill--bad {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.admin-pill--neutral {
+  color: var(--admin-muted);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--admin-border);
+}
+
+.admin-pill--soft {
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.68rem;
+}
+
 @media (max-width: 720px) {
+  .admin-booking-row {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .admin-booking-row__end {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.25rem;
+    border-top: 1px solid var(--admin-border);
+  }
+
   .admin-topbar {
     flex-direction: column;
     align-items: stretch;
