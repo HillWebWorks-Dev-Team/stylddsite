@@ -400,7 +400,21 @@
     if (navBg && /^#[0-9a-fA-F]{6}$/.test(navBg)) {
       root.style.setProperty('--nav-bg', navBg);
       root.style.setProperty('--nav-bg-solid', navBg);
+    } else if (bg && /^#[0-9a-fA-F]{6}$/.test(bg)) {
+      root.style.setProperty('--nav-bg', bg);
+      root.style.setProperty('--nav-bg-solid', bg);
     }
+
+    document.body.style.color = secondary;
+    if (bg && /^#[0-9a-fA-F]{6}$/.test(bg)) {
+      document.body.style.backgroundColor = bg;
+    } else if (isDarkSurface) {
+      document.body.style.backgroundColor = cardSurface;
+    } else {
+      document.body.style.backgroundColor = '';
+    }
+
+    root.style.setProperty('--site-footer-bg', bg && /^#[0-9a-fA-F]{6}$/.test(bg) ? bg : cardSurface);
 
     var cardOutline = (theme.cardOutlineColor || theme.secondaryColor || secondary || '').trim();
     if (cardOutline && /^#[0-9a-fA-F]{6}$/.test(cardOutline)) {
@@ -482,6 +496,19 @@
     document.querySelectorAll('.profile-book-btn').forEach(function (btn) {
       btn.style.display = theme.hideBookNowButton ? 'none' : '';
     });
+
+    document.body.classList.add('tenant-branded');
+
+    var footer = document.querySelector('.site-footer.site-footer--home-promo');
+    if (footer && theme.backgroundColor) {
+      footer.style.background = theme.backgroundColor;
+    }
+
+    var tenantStatusEl = document.getElementById('tenant-status');
+    if (tenantStatusEl) {
+      tenantStatusEl.style.background = document.body.style.backgroundColor || '';
+      tenantStatusEl.style.color = getComputedStyle(document.documentElement).getPropertyValue('--muted') || '#525252';
+    }
   }
 
   function applyBookingFormSettings(bookingPayment) {

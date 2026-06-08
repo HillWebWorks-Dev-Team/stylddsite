@@ -2237,9 +2237,31 @@ a:hover {
 
 /* Homepage footer: flat dark bar + magenta links (promo strip above copyright) */
 .site-footer.site-footer--home-promo {
-  background: #121212;
+  background: var(--site-footer-bg, #121212);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: 2.75rem;
+}
+
+.tpl-profile.page-review,
+.tpl-profile.page-manage-booking {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: var(--ink);
+  background: var(--cream, #fafafa);
+}
+
+.tpl-profile.page-review .review-page,
+.tpl-profile.page-manage-booking .manage-booking-main {
+  flex: 1;
+  background: transparent;
+  color: inherit;
+}
+
+.tpl-profile.page-review .site-footer.site-footer--home-promo,
+.tpl-profile.page-manage-booking .site-footer.site-footer--home-promo {
+  background: var(--site-footer-bg, var(--cream, #121212));
+  margin-top: auto;
 }
 
 .site-footer.site-footer--home-promo .footer-brand__name {
@@ -5525,6 +5547,10 @@ ul.price-menu__policy-list {
   background: var(--cream, #fafafa);
 }
 
+.tpl-profile.page-manage-booking .manage-booking-main {
+  background: transparent;
+}
+
 .manage-booking-page {
   max-width: 42rem;
   margin: 0 auto;
@@ -6746,9 +6772,14 @@ body.site-review-modal-open {
 /* ——— Review submit page ——— */
 .page-review {
   min-height: 100vh;
-  background: var(--cream, #fafafa);
   display: flex;
   flex-direction: column;
+  color: var(--ink);
+  background: var(--cream, #fafafa);
+}
+
+.tpl-profile.page-review {
+  background: var(--cream, #fafafa);
 }
 
 .page-review .review-page {
@@ -6757,6 +6788,7 @@ body.site-review-modal-open {
 
 .review-page {
   padding: clamp(2rem, 6vw, 4rem) 0;
+  color: inherit;
 }
 
 .review-page__inner {
@@ -6804,12 +6836,13 @@ body.site-review-modal-open {
   margin-top: 0.25rem;
   padding: 1.35rem 1.25rem;
   border-radius: 16px;
-  border: 1px solid var(--review-card-border, rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--card-outline, var(--review-card-border, rgba(0, 0, 0, 0.08)));
   background: var(--card-surface, var(--white, #fff));
 }
 
 .theme-dark-surface .review-form-wrap {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--card-outline, var(--review-card-border, rgba(255, 255, 255, 0.12)));
 }
 
 .review-form {
