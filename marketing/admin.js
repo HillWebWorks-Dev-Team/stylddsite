@@ -44,7 +44,11 @@
     }).then(function (res) {
       return res.json().then(function (data) {
         if (!res.ok) {
-          var err = new Error(data.error || 'Request failed');
+          var msg = data.error || data.message || 'Request failed';
+          if (data.code === 'UNAUTHORIZED_INVALID_JWT_FORMAT') {
+            msg = 'Admin API auth misconfigured (invalid JWT). Redeploy function with verify_jwt=false.';
+          }
+          var err = new Error(msg);
           err.status = res.status;
           err.payload = data;
           throw err;
@@ -505,7 +509,7 @@
         setStatus('');
       })
       .catch(function (err) {
-        if (err.status === 401) {
+        if (err.status === 401 && err.payload && err.payload.error === 'Invalid PIN') {
           clearPin();
           window.location.href = '/marketing/index.html?admin=denied';
           return;
