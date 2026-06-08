@@ -63,6 +63,7 @@
   var cancellationPolicyText = document.getElementById('cancellation-policy-text');
   var sidebarCancellationPolicy = document.getElementById('side-cancellation-policy');
   var sidebarCancellationPolicyText = document.getElementById('side-cancellation-policy-text');
+  var sidebarDepositNote = document.getElementById('side-deposit-note');
 
   var viewMonth = DateTime.now().setZone(zone).startOf('month');
   var selectedDate = null;
@@ -257,9 +258,26 @@
     }
   }
 
-  function updateCancellationPolicyDisplay() {
+  function getCancellationPolicySummary() {
+    if (window.__STYLD_CANCELLATION_POLICY_SUMMARY__) {
+      return String(window.__STYLD_CANCELLATION_POLICY_SUMMARY__).trim();
+    }
+    if (window.StyldTenant && window.StyldTenant.resolveCancellationPolicySummary) {
+      return window.StyldTenant.resolveCancellationPolicySummary(
+        window.__STYLD_CANCELLATION_POLICY__ || {},
+        window.__STYLD_SITE_CONTENT__ || {},
+      );
+    }
     var policy = window.__STYLD_CANCELLATION_POLICY__ || {};
-    var policySummary = policy.policySummary || policy.policy_summary || '';
+    var summary = policy.policySummary || policy.policy_summary || '';
+    if (summary) return String(summary).trim();
+    var content = window.__STYLD_SITE_CONTENT__ || {};
+    if (content.bookingPolicy) return String(content.bookingPolicy).trim();
+    return '';
+  }
+
+  function updateCancellationPolicyDisplay() {
+    var policySummary = getCancellationPolicySummary();
     var showPolicy = !!selectedStyle && !!policySummary;
 
     if (sidebarCancellationPolicy) {
@@ -268,6 +286,9 @@
     }
     if (sidebarCancellationPolicyText) {
       sidebarCancellationPolicyText.textContent = policySummary;
+    }
+    if (sidebarDepositNote) {
+      sidebarDepositNote.hidden = showPolicy;
     }
     if (cancellationPolicySection) {
       cancellationPolicySection.classList.toggle('hidden', !showPolicy);

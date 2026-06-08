@@ -268,9 +268,14 @@
     }
 
     var policySummary =
-      (cancelContext && cancelContext.policy_summary) ||
-      ((window.__STYLD_CANCELLATION_POLICY__ || {}).policySummary) ||
-      ((window.__STYLD_CANCELLATION_POLICY__ || {}).policy_summary) ||
+      (cancelContext && (cancelContext.policy_summary || cancelContext.policySummary)) ||
+      (window.__STYLD_CANCELLATION_POLICY_SUMMARY__ && String(window.__STYLD_CANCELLATION_POLICY_SUMMARY__).trim()) ||
+      (window.StyldTenant && window.StyldTenant.resolveCancellationPolicySummary
+        ? window.StyldTenant.resolveCancellationPolicySummary(
+            window.__STYLD_CANCELLATION_POLICY__ || {},
+            window.__STYLD_SITE_CONTENT__ || {},
+          )
+        : '') ||
       '';
     if (policyEl) {
       if (policySummary && !cancelled) {

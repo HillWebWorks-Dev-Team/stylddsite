@@ -235,6 +235,46 @@
     };
   }
 
+  function resolveCancellationPolicySummary(cancellationPolicy, siteContent) {
+    var policy =
+      cancellationPolicy && typeof cancellationPolicy === 'object' ? cancellationPolicy : {};
+    var summary = policy.policySummary || policy.policy_summary || '';
+    if (summary && String(summary).trim()) {
+      return String(summary).trim();
+    }
+
+    var hours = Number(policy.fullRefundNoticeHours || policy.full_refund_notice_hours);
+    var appliesTo = String(policy.refundAppliesTo || policy.refund_applies_to || 'both').toLowerCase();
+    if (Number.isFinite(hours) && hours > 0) {
+      var windowLabel =
+        hours >= 168
+          ? Math.round(hours / 168) + ' day' + (Math.round(hours / 168) === 1 ? '' : 's')
+          : hours >= 24
+            ? Math.round(hours / 24) + ' hour' + (Math.round(hours / 24) === 1 ? '' : 's')
+            : hours + ' hour' + (hours === 1 ? '' : 's');
+      var scope =
+        appliesTo === 'deposit'
+          ? 'Online deposits are fully refunded'
+          : appliesTo === 'full'
+            ? 'Full online payments are fully refunded'
+            : 'Online deposits and full payments are fully refunded';
+      return (
+        'You may cancel online anytime before your appointment. ' +
+        scope +
+        ' when you cancel at least ' +
+        windowLabel +
+        ' before your appointment time.'
+      );
+    }
+
+    var content = siteContent && typeof siteContent === 'object' ? siteContent : {};
+    if (content.bookingPolicy && String(content.bookingPolicy).trim()) {
+      return String(content.bookingPolicy).trim();
+    }
+
+    return '';
+  }
+
   function applyBookingFormSettings(bookingPayment) {
     var req = getBookingFormRequirements(bookingPayment);
     var hairLabel = document.querySelector('label[for="photo-hair"]');
@@ -271,6 +311,7 @@
     normalizeWeekdayHours: normalizeWeekdayHours,
     getBookingFormRequirements: getBookingFormRequirements,
     applyBookingFormSettings: applyBookingFormSettings,
+    resolveCancellationPolicySummary: resolveCancellationPolicySummary,
 
     loadPublishedSite: function () {
       var cfg = window.__STYLD_TENANT__ || {};
@@ -335,6 +376,9 @@
               }
               if (record.record_type === 'site_setting' && record.record_key === 'booking_payment') {
                 bookingPayment = value;
+                if (!cancellationPolicy && value && typeof value === 'object') {
+                  cancellationPolicy = value.cancellationPolicy || value.cancellation_policy || null;
+                }
               }
               if (record.record_type === 'site_setting' && record.record_key === 'cancellation_policy') {
                 cancellationPolicy = value;

@@ -4639,6 +4639,7 @@ ul.price-menu__policy-list {
   font-size: 0.85rem;
   line-height: 1.55;
   color: var(--muted);
+  white-space: pre-line;
 }
 
 @media (min-width: 721px) {
@@ -5591,6 +5592,7 @@ ul.price-menu__policy-list {
   font-size: 0.95rem;
   line-height: 1.6;
   color: var(--muted);
+  white-space: pre-line;
 }
 
 .manage-booking-refund-hint {
