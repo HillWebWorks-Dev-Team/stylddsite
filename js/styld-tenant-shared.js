@@ -290,6 +290,200 @@
     return '';
   }
 
+  function coverUrl(path, supabaseUrl) {
+    if (!path || !supabaseUrl) return null;
+    return (
+      supabaseUrl.replace(/\/$/, '') +
+      '/storage/v1/object/public/style-covers/' +
+      String(path).replace(/^\/+/, '')
+    );
+  }
+
+  function applySiteTheme(theme) {
+    theme = theme && typeof theme === 'object' ? theme : {};
+    var primary = theme.primaryColor || '#db2777';
+    var secondary = theme.secondaryColor || '#0a0a0a';
+
+    function hexToRgb(hex) {
+      var clean = String(hex || '').replace('#', '');
+      if (clean.length !== 6) return null;
+      return [
+        parseInt(clean.slice(0, 2), 16),
+        parseInt(clean.slice(2, 4), 16),
+        parseInt(clean.slice(4, 6), 16),
+      ];
+    }
+    function darken(hex, factor) {
+      var rgb = hexToRgb(hex);
+      if (!rgb) return hex;
+      return (
+        '#' +
+        rgb
+          .map(function (c) {
+            return Math.max(0, Math.round(c * factor)).toString(16).padStart(2, '0');
+          })
+          .join('')
+      );
+    }
+    function lighten(hex, factor) {
+      var rgb = hexToRgb(hex);
+      if (!rgb) return hex;
+      return (
+        '#' +
+        rgb
+          .map(function (c) {
+            return Math.min(255, Math.round(c + (255 - c) * factor)).toString(16).padStart(2, '0');
+          })
+          .join('')
+      );
+    }
+    function colorLuminance(hex) {
+      var rgb = hexToRgb(hex);
+      if (!rgb) return null;
+      return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+    }
+
+    var root = document.documentElement;
+    root.style.setProperty('--pink', primary);
+    root.style.setProperty('--pink-dark', darken(primary, 0.68));
+    root.style.setProperty('--pink-heading', lighten(primary, 0.1));
+    root.style.setProperty('--hero-pink', lighten(primary, 0.22));
+    root.style.setProperty('--hero-pink-deep', darken(primary, 0.68));
+    root.style.setProperty('--pink-light', lighten(primary, 0.22));
+    root.style.setProperty('--ink', secondary);
+    root.style.setProperty('--nav-text', secondary);
+
+    var secRgb = hexToRgb(secondary);
+    if (secRgb) {
+      var r = secRgb[0];
+      var g = secRgb[1];
+      var b = secRgb[2];
+      root.style.setProperty('--muted', 'rgba(' + r + ',' + g + ',' + b + ',0.62)');
+      root.style.setProperty('--muted-soft', 'rgba(' + r + ',' + g + ',' + b + ',0.46)');
+    }
+
+    var bg = (theme.backgroundColor || '').trim();
+    if (bg && /^#[0-9a-fA-F]{6}$/.test(bg)) {
+      root.style.setProperty('--cream', bg);
+      root.style.setProperty('--white', bg);
+      document.body.style.backgroundColor = bg;
+    }
+
+    var cardSurface = '#fafafa';
+    if (bg && /^#[0-9a-fA-F]{6}$/.test(bg)) {
+      cardSurface = bg;
+    } else {
+      var inkLum = colorLuminance(secondary);
+      if (inkLum != null && inkLum > 0.55) {
+        cardSurface = '#0a0a0a';
+        root.style.setProperty('--cream', cardSurface);
+        root.style.setProperty('--white', cardSurface);
+        document.body.style.backgroundColor = cardSurface;
+      }
+    }
+    root.style.setProperty('--card-surface', cardSurface);
+
+    var surfaceLum = colorLuminance(cardSurface);
+    var isDarkSurface = surfaceLum != null && surfaceLum < 0.35;
+    root.classList.toggle('theme-dark-surface', isDarkSurface);
+    if (isDarkSurface) {
+      root.style.setProperty('--review-card-border', 'rgba(255, 255, 255, 0.12)');
+      root.style.setProperty('--review-card-border-hover', 'rgba(255, 255, 255, 0.22)');
+      root.style.setProperty('--review-star-empty', 'rgba(255, 255, 255, 0.22)');
+    } else {
+      root.style.setProperty('--review-card-border', 'rgba(0, 0, 0, 0.08)');
+      root.style.setProperty('--review-card-border-hover', 'rgba(219, 39, 119, 0.22)');
+      root.style.setProperty('--review-star-empty', 'rgba(0, 0, 0, 0.15)');
+    }
+
+    var navBg = (theme.navbarColor || '').trim();
+    if (navBg && /^#[0-9a-fA-F]{6}$/.test(navBg)) {
+      root.style.setProperty('--nav-bg', navBg);
+      root.style.setProperty('--nav-bg-solid', navBg);
+    }
+
+    var cardOutline = (theme.cardOutlineColor || theme.secondaryColor || secondary || '').trim();
+    if (cardOutline && /^#[0-9a-fA-F]{6}$/.test(cardOutline)) {
+      root.style.setProperty('--card-outline', cardOutline);
+    }
+
+    var fontDisplayMap = {
+      cormorant: '"Cormorant Garamond", Georgia, serif',
+      playfair: '"Playfair Display", Georgia, serif',
+      inter: 'Inter, system-ui, sans-serif',
+      'dm-sans': '"DM Sans", system-ui, sans-serif',
+      montserrat: 'Montserrat, system-ui, sans-serif',
+      lora: '"Lora", Georgia, serif',
+      poppins: 'Poppins, system-ui, sans-serif',
+      nunito: '"Nunito", system-ui, sans-serif',
+    };
+    var fontBodyMap = {
+      cormorant: '"Source Sans 3", system-ui, sans-serif',
+      playfair: '"Source Sans 3", system-ui, sans-serif',
+      inter: 'Inter, system-ui, sans-serif',
+      'dm-sans': '"DM Sans", system-ui, sans-serif',
+      montserrat: 'Montserrat, system-ui, sans-serif',
+      lora: '"Source Sans 3", system-ui, sans-serif',
+      poppins: 'Poppins, system-ui, sans-serif',
+      nunito: '"Nunito", system-ui, sans-serif',
+    };
+    var fontId = theme.fontFamily || 'cormorant';
+    root.style.setProperty('--font-display', fontDisplayMap[fontId] || fontDisplayMap.cormorant);
+    root.style.setProperty('--font-body', fontBodyMap[fontId] || fontBodyMap.cormorant);
+
+    return { isDarkSurface: isDarkSurface };
+  }
+
+  function applyTenantBranding(site) {
+    site = site && typeof site === 'object' ? site : {};
+    var cfg = window.__STYLD_TENANT__ || {};
+    var content = site.content || {};
+    var theme = site.theme || {};
+    var logoImageUrl = coverUrl(theme.logoImagePath, cfg.supabaseUrl);
+
+    window.__STYLD_SITE_CONTENT__ = content;
+    window.__STYLD_CANCELLATION_POLICY__ = site.cancellationPolicy || {};
+    window.__STYLD_CANCELLATION_POLICY_SUMMARY__ = resolveCancellationPolicySummary(
+      site.cancellationPolicy,
+      content,
+    );
+    window.__STYLD_SITE_THEME__ = {
+      heroLayout: theme.heroLayout || 'split',
+      logoImageUrl: logoImageUrl,
+      primaryColor: theme.primaryColor || null,
+      secondaryColor: theme.secondaryColor || null,
+      navbarColor: theme.navbarColor || null,
+      cardOutlineColor: theme.cardOutlineColor || null,
+      fontFamily: theme.fontFamily || 'cormorant',
+      hideBookNowButton: !!theme.hideBookNowButton,
+      backgroundColor: theme.backgroundColor || null,
+    };
+
+    applySiteTheme(theme);
+    applySiteFooter(content);
+
+    var brandNameEl = document.getElementById('profile-brand-name');
+    if (brandNameEl) brandNameEl.textContent = content.brandName || 'Your Brand';
+
+    if (logoImageUrl) {
+      var logoPlaceholder = document.getElementById('profile-logo-placeholder');
+      if (logoPlaceholder) {
+        var logoImg = document.createElement('img');
+        logoImg.className = 'profile-brand__logo-img';
+        logoImg.src = logoImageUrl;
+        logoImg.alt = '';
+        logoImg.width = 38;
+        logoImg.height = 38;
+        logoImg.decoding = 'async';
+        logoPlaceholder.replaceWith(logoImg);
+      }
+    }
+
+    document.querySelectorAll('.profile-book-btn').forEach(function (btn) {
+      btn.style.display = theme.hideBookNowButton ? 'none' : '';
+    });
+  }
+
   function applyBookingFormSettings(bookingPayment) {
     var req = getBookingFormRequirements(bookingPayment);
     var hairLabel = document.querySelector('label[for="photo-hair"]');
@@ -322,6 +516,8 @@
   window.StyldTenant = {
     getSubdomain: getSubdomain,
     applySiteFooter: applySiteFooter,
+    applySiteTheme: applySiteTheme,
+    applyTenantBranding: applyTenantBranding,
     normalizeBookingHours: normalizeBookingHours,
     normalizeWeekdayHours: normalizeWeekdayHours,
     getBookingFormRequirements: getBookingFormRequirements,

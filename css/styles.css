@@ -6747,6 +6747,12 @@ body.site-review-modal-open {
 .page-review {
   min-height: 100vh;
   background: var(--cream, #fafafa);
+  display: flex;
+  flex-direction: column;
+}
+
+.page-review .review-page {
+  flex: 1;
 }
 
 .review-page {
@@ -6794,6 +6800,18 @@ body.site-review-modal-open {
   color: #065f46;
 }
 
+.review-form-wrap {
+  margin-top: 0.25rem;
+  padding: 1.35rem 1.25rem;
+  border-radius: 16px;
+  border: 1px solid var(--review-card-border, rgba(0, 0, 0, 0.08));
+  background: var(--card-surface, var(--white, #fff));
+}
+
+.theme-dark-surface .review-form-wrap {
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .review-form {
   display: grid;
   gap: 1.1rem;
@@ -6809,6 +6827,7 @@ body.site-review-modal-open {
   font-weight: 700;
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
+  color: var(--ink);
 }
 
 .review-stars-input {
@@ -6821,7 +6840,7 @@ body.site-review-modal-open {
   background: transparent;
   font-size: 1.75rem;
   line-height: 1;
-  color: rgba(0, 0, 0, 0.18);
+  color: var(--review-star-empty, rgba(0, 0, 0, 0.18));
   cursor: pointer;
   padding: 0.15rem;
 }
@@ -6838,16 +6857,38 @@ body.site-review-modal-open {
 .review-field span {
   font-weight: 600;
   font-size: 0.9rem;
+  color: var(--ink);
 }
 
 .review-field input,
 .review-field textarea {
   width: 100%;
-  border: 1px solid rgba(15, 23, 42, 0.14);
+  border: 1px solid var(--review-card-border, rgba(15, 23, 42, 0.14));
   border-radius: 10px;
   padding: 0.75rem 0.85rem;
   font: inherit;
-  background: #fff;
+  color: var(--ink);
+  background: var(--card-surface, #fff);
+}
+
+.theme-dark-surface .review-field input,
+.theme-dark-surface .review-field textarea {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.theme-dark-surface .review-status {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+}
+
+.theme-dark-surface .review-status--error {
+  background: rgba(244, 67, 54, 0.12);
+  color: #ef9a9a;
+}
+
+.theme-dark-surface .review-success {
+  background: rgba(76, 175, 80, 0.14);
+  color: #81c784;
 }
 
 .review-submit-btn {

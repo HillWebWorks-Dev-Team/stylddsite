@@ -356,20 +356,26 @@
   }
 
   function waitForSiteReady() {
-    return new Promise(function (resolve) {
-      if (window.__STYLD_SITE_CONTENT__) {
-        resolve();
-        return;
-      }
-      var attempts = 0;
-      var timer = setInterval(function () {
-        attempts += 1;
-        if (window.__STYLD_SITE_CONTENT__ || attempts > 80) {
-          clearInterval(timer);
-          resolve();
+    if (!window.StyldTenant || !window.StyldTenant.loadPublishedSite) {
+      return Promise.resolve();
+    }
+    return window.StyldTenant.loadPublishedSite()
+      .then(function (site) {
+        if (window.StyldTenant.applyTenantBranding) {
+          window.StyldTenant.applyTenantBranding(site);
         }
-      }, 50);
-    });
+        var loadingEl = document.getElementById('tenant-status');
+        if (loadingEl) loadingEl.hidden = true;
+        updatePageTitle();
+      })
+      .catch(function (err) {
+        var loadingEl = document.getElementById('tenant-status');
+        if (loadingEl) {
+          loadingEl.hidden = false;
+          loadingEl.textContent = err && err.message ? err.message : 'Could not load site.';
+        }
+        throw err;
+      });
   }
 
   function init() {
@@ -390,7 +396,6 @@
 
     waitForSiteReady()
       .then(function () {
-        updatePageTitle();
         return loadCancelContext(subdomain);
       })
       .then(function (context) {

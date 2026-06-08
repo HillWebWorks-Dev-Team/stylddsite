@@ -7,19 +7,48 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=49" />
+    <link rel="stylesheet" href="/css/styles.css?v=50" />
+    <style>
+      #tenant-status {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 2rem;
+        background: #fafafa;
+        color: #525252;
+        font: 600 1rem/1.5 "Source Sans 3", system-ui, sans-serif;
+        text-align: center;
+        z-index: 9999;
+      }
+      #tenant-status[hidden] {
+        display: none;
+      }
+    </style>
   </head>
-  <body class="page-review">
+  <body class="tpl-profile page-review">
+    <div id="tenant-status">Loading…</div>
+
+    <nav class="profile-nav" id="profile-nav">
+      <div class="container profile-nav__inner">
+        <a class="profile-brand" href="/">
+          <div class="profile-brand__logo" id="profile-logo-placeholder" aria-hidden="true"></div>
+          <span id="profile-brand-name">Your Brand</span>
+        </a>
+        <a class="profile-book-btn" href="/booking">Book Now</a>
+      </div>
+    </nav>
+
     <main class="review-page">
       <div class="container review-page__inner">
         <h1 id="review-page-title" class="review-page__title">Leave a review</h1>
         <p id="review-lead" class="review-page__lead">Share how your appointment went.</p>
 
-        <p id="review-status" class="review-status" hidden></p>
-        <p id="review-success" class="review-success" hidden></p>
+        <p id="review-status" class="review-status" role="status" hidden></p>
+        <p id="review-success" class="review-success" role="status" hidden></p>
 
         <div id="review-form-wrap" class="review-form-wrap" hidden>
           <form id="review-form" class="review-form">
@@ -42,18 +71,50 @@
 
             <label class="review-field" for="review-message">
               <span>Your review</span>
-              <textarea id="review-message" name="message" rows="5" required placeholder="What did you love about your visit?"></textarea>
+              <textarea
+                id="review-message"
+                name="message"
+                rows="5"
+                required
+                placeholder="What did you love about your visit?"
+              ></textarea>
             </label>
 
-            <button type="submit" class="hero-btn hero-btn--gold review-submit-btn">Submit review</button>
+            <button type="submit" class="btn btn-primary review-submit-btn">Submit review</button>
           </form>
         </div>
       </div>
     </main>
 
+    <footer class="site-footer site-footer--home-promo">
+      <div class="container footer-bottom">
+        <p id="preview-footer-brand">&copy; Your brand name</p>
+        <p class="footer-built-by">
+          <a
+            class="footer-built-by__link"
+            id="preview-footer-styld-link"
+            href="https://styldd.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              class="footer-built-by__logo"
+              src="/assets/styld-icon.png"
+              alt=""
+              width="22"
+              height="22"
+              decoding="async"
+            />
+            <span>Built with Styld</span>
+          </a>
+        </p>
+      </div>
+    </footer>
+
+    <script src="/js/vercel-analytics.bundle.js" defer></script>
     <script src="/js/styld-tenant-config.js?v=40"></script>
     <script src="/js/styld-tenant-config.local.js?v=40"></script>
-    <script src="/js/styld-tenant-shared.js?v=63"></script>
-    <script src="/js/review-page.js?v=2"></script>
+    <script src="/js/styld-tenant-shared.js?v=64"></script>
+    <script src="/js/review-page.js?v=3"></script>
   </body>
 </html>
