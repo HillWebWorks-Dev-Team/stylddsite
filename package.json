@@ -2,7 +2,8 @@
   "name": "stylddsite",
   "private": true,
   "scripts": {
-    "build": "node scripts/build-analytics.cjs",
+    "build": "node scripts/vercel-build-inject.cjs && node scripts/build-analytics.cjs",
+    "build:config": "node scripts/vercel-build-inject.cjs",
     "build:analytics": "node scripts/build-analytics.cjs"
   },
   "dependencies": {

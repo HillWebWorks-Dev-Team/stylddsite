@@ -4,3 +4,7 @@ node_modules/
 _prod/
 _prod-index.html
 .vercel
+.env
+.env.local
+js/styld-tenant-config.local.js
+js/marketing-config.local.js
