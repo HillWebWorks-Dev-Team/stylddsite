@@ -449,18 +449,183 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
   return { users };
 }
 
+function deriveClientsFromBookings(bookings: Record<string, unknown>[]) {
+  const map = new Map<
+    string,
+    {
+      client_name: string;
+      email: string;
+      phone: string;
+      booking_count: number;
+      total_spend: number;
+      last_booking_at: string | null;
+    }
+  >();
+  for (const b of bookings) {
+    const email = String(b.email || '').trim();
+    const phone = String(b.phone || '').trim();
+    const name = String(b.full_name || '').trim();
+    const key = `${email.toLowerCase()}::${phone}`;
+    const rev = revenueFromBookingData(b);
+    const appt = String(b.appointment_starts_at || '');
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, {
+        client_name: name,
+        email,
+        phone,
+        booking_count: 1,
+        total_spend: rev.gross,
+        last_booking_at: appt || null,
+      });
+    } else {
+      existing.booking_count += 1;
+      existing.total_spend += rev.gross;
+      if (appt && (!existing.last_booking_at || appt > existing.last_booking_at)) {
+        existing.last_booking_at = appt;
+      }
+    }
+  }
+  return [...map.values()].sort((a, b) => b.total_spend - a.total_spend);
+}
+
+function buildSalonAnalytics(
+  pageViews: Record<string, unknown>[],
+  analyticsEvents: Record<string, unknown>[],
+  bookings: Record<string, unknown>[],
+  reviews: { data?: unknown }[],
+) {
+  const events = pageViews.length ? pageViews : analyticsEvents;
+  const source = pageViews.length
+    ? 'styld_site_page_views'
+    : analyticsEvents.length
+      ? 'styld_analytics_events'
+      : 'none';
+
+  const now = Date.now();
+  const dayMs = 86400000;
+  let views7 = 0;
+  let views30 = 0;
+  let views90 = 0;
+  const dailyMap = new Map<string, number>();
+  const pathMap = new Map<string, number>();
+  const pageTypeMap = new Map<string, number>();
+  const deviceMap = new Map<string, number>();
+
+  for (const e of events) {
+    const created = String(e.created_at || '');
+    const t = new Date(created).getTime();
+    if (isNaN(t)) continue;
+    const age = now - t;
+    if (age <= 7 * dayMs) views7 += 1;
+    if (age <= 30 * dayMs) views30 += 1;
+    if (age <= 90 * dayMs) views90 += 1;
+    if (age <= 30 * dayMs) {
+      const day = created.slice(0, 10);
+      dailyMap.set(day, (dailyMap.get(day) || 0) + 1);
+    }
+    const path = String(e.path || '/');
+    pathMap.set(path, (pathMap.get(path) || 0) + 1);
+    const pt = String(e.page_type || 'other');
+    pageTypeMap.set(pt, (pageTypeMap.get(pt) || 0) + 1);
+    const dev = String(e.device_type || 'unknown');
+    deviceMap.set(dev, (deviceMap.get(dev) || 0) + 1);
+  }
+
+  const daily_views: { day: string; views: number }[] = [];
+  for (let i = 29; i >= 0; i -= 1) {
+    const d = new Date(now - i * dayMs);
+    const key = d.toISOString().slice(0, 10);
+    daily_views.push({ day: key, views: dailyMap.get(key) || 0 });
+  }
+
+  const monthMap = new Map<string, { revenue: number; bookings: number; collected: number }>();
+  const serviceMap = new Map<string, { count: number; revenue: number }>();
+  const statusMap = new Map<string, number>();
+  const paymentMap = new Map<string, number>();
+
+  for (const b of bookings) {
+    const rev = revenueFromBookingData(b);
+    const status = String(b.booking_status || 'unknown');
+    statusMap.set(status, (statusMap.get(status) || 0) + 1);
+    const pay = String(b.payment_status || 'unknown');
+    paymentMap.set(pay, (paymentMap.get(pay) || 0) + 1);
+
+    const style = String(b.style_name || 'Unknown');
+    const svc = serviceMap.get(style) || { count: 0, revenue: 0 };
+    svc.count += 1;
+    svc.revenue += rev.gross;
+    serviceMap.set(style, svc);
+
+    const when = String(b.appointment_starts_at || b.created_at || '');
+    if (when.length >= 7) {
+      const month = when.slice(0, 7);
+      const m = monthMap.get(month) || { revenue: 0, bookings: 0, collected: 0 };
+      m.revenue += rev.gross;
+      m.collected += rev.collected;
+      m.bookings += 1;
+      monthMap.set(month, m);
+    }
+  }
+
+  let ratingSum = 0;
+  let ratingCount = 0;
+  for (const r of reviews) {
+    const d = (r.data || {}) as Record<string, unknown>;
+    const rating = Number(d.rating);
+    if (rating >= 1 && rating <= 5) {
+      ratingSum += rating;
+      ratingCount += 1;
+    }
+  }
+
+  return {
+    source,
+    total_views: events.length,
+    views_7d: views7,
+    views_30d: views30,
+    views_90d: views90,
+    daily_views,
+    top_paths: [...pathMap.entries()]
+      .map(([path, views]) => ({ path, views }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 10),
+    by_page_type: [...pageTypeMap.entries()].map(([page_type, views]) => ({ page_type, views })),
+    by_device: [...deviceMap.entries()].map(([device_type, views]) => ({ device_type, views })),
+    revenue_by_month: [...monthMap.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .slice(-12)
+      .map(([month, v]) => ({
+        month,
+        revenue: Math.round(v.revenue * 100) / 100,
+        collected: Math.round(v.collected * 100) / 100,
+        bookings: v.bookings,
+      })),
+    top_services: [...serviceMap.entries()]
+      .map(([name, v]) => ({ name, count: v.count, revenue: Math.round(v.revenue * 100) / 100 }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 8),
+    booking_status: [...statusMap.entries()].map(([status, count]) => ({ status, count })),
+    payment_status: [...paymentMap.entries()].map(([status, count]) => ({ status, count })),
+    reviews_avg_rating: ratingCount ? Math.round((ratingSum / ratingCount) * 10) / 10 : null,
+    reviews_count: reviews.length,
+  };
+}
+
 async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
   const userId = String(filters.user_id || '');
   if (!userId) return { error: 'user_id required' };
 
-  const [profile, settings, bookings, inquiries, reviews, blocks, covers, stripe, push, cancels, subscription] =
+  const since90 = new Date(Date.now() - 90 * 86400000).toISOString();
+
+  const [profile, settings, bookings, inquiries, reviews, blocks, covers, stripe, push, cancels, subscription, userSite, pageViews, analyticsEvents, authUser] =
     await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
       safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
         q.select('*').eq('user_id', userId).eq('record_type', 'site_setting'),
       ),
       safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
-        q.select('*').eq('user_id', userId).eq('record_type', 'booking').order('created_at', { ascending: false }).limit(200),
+        q.select('*').eq('user_id', userId).eq('record_type', 'booking').order('created_at', { ascending: false }).limit(500),
       ),
       safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
         q.select('*').eq('user_id', userId).eq('record_type', 'inquiry').order('created_at', { ascending: false }).limit(100),
@@ -480,6 +645,23 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
         q.select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
       ),
       fetchRevenueCatStatus(userId),
+      supabase.from('styld_user_sites').select('*').eq('user_id', userId).maybeSingle(),
+      safeTable<Record<string, unknown>>(supabase, 'styld_site_page_views', (q) =>
+        q
+          .select('path,page_type,referrer,created_at,subdomain')
+          .eq('user_id', userId)
+          .gte('created_at', since90)
+          .order('created_at', { ascending: false })
+          .limit(5000),
+      ),
+      safeTable<Record<string, unknown>>(supabase, 'styld_analytics_events', (q) =>
+        q
+          .select('path,device_type,referrer,created_at,subdomain')
+          .gte('created_at', since90)
+          .order('created_at', { ascending: false })
+          .limit(5000),
+      ),
+      supabase.auth.admin.getUserById(userId),
     ]);
 
   const siteSettings: Record<string, unknown> = {};
@@ -491,7 +673,20 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
   const siteContent = (siteSettings.site_content || {}) as Record<string, unknown>;
   const siteTheme = (siteSettings.site_theme || {}) as Record<string, unknown>;
   const sitePublish = (siteSettings.site_publish || {}) as Record<string, unknown>;
-  const subdomain = String(sitePublish.subdomain || '');
+  const subdomain = String(
+    sitePublish.subdomain || (userSite.data as Record<string, unknown> | null)?.subdomain || '',
+  );
+  const filteredAnalytics =
+    subdomain && analyticsEvents.length
+      ? analyticsEvents.filter((e) => String(e.subdomain || '') === subdomain)
+      : [];
+
+  const parsedReviews = reviews.map((r) => ({
+    id: r.id,
+    created_at: r.created_at,
+    data: pickData(r),
+  }));
+
   const parsedBookings = bookings.map((b) => ({
     id: b.id,
     created_at: b.created_at,
@@ -515,12 +710,31 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
     if (email || phone) clientKeys.add(`${email}::${phone}`);
   }
 
+  const analytics = buildSalonAnalytics(pageViews, filteredAnalytics, parsedBookings, parsedReviews);
+  const clients = deriveClientsFromBookings(parsedBookings);
+  const auth = authUser.data?.user;
+  const contact = (siteContent.contact || {}) as Record<string, unknown>;
+  const visit = (siteContent.visit || {}) as Record<string, unknown>;
+
   return {
     profile: profile.data,
     brand_name: String(siteContent.brandName || profileRow.business_name || profileRow.full_name || 'Salon'),
+    tagline: siteContent.tagline || null,
     image_url: salonImageUrl(profileRow, siteContent, siteTheme),
     public_url: subdomain ? `https://${subdomain}.${ROOT_DOMAIN}` : null,
     subdomain,
+    published_at: (userSite.data as Record<string, unknown> | null)?.published_at || sitePublish.publishedAt || null,
+    last_sign_in_at: auth?.last_sign_in_at || null,
+    email_confirmed_at: auth?.email_confirmed_at || null,
+    contact: {
+      phone: contact.phone || siteContent.phone || null,
+      email: contact.email || siteContent.email || null,
+      instagram: contact.instagram || siteContent.instagram || null,
+      address: siteContent.address || visit.addressLine1 || null,
+      city: visit.city || null,
+      state: visit.state || null,
+      timezone: siteContent.timezone || null,
+    },
     revenue_summary: {
       gross: Math.round(gross * 100) / 100,
       collected: Math.round(collected * 100) / 100,
@@ -529,13 +743,16 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
       cancelled_count: cancelledCount,
       unique_clients: clientKeys.size,
     },
+    analytics,
+    clients,
     site_settings: siteSettings,
+    booking_payment: siteSettings.booking_payment || null,
+    booking_hours: siteSettings.booking_hours || null,
+    cancellation_policy: siteSettings.cancellation_policy || null,
     onboarding_responses: siteSettings.onboarding_responses || null,
-    bookings: parsedBookings.map((b) => ({
-      ...b,
-    })),
+    bookings: parsedBookings,
     inquiries: inquiries.map((r) => ({ id: r.id, created_at: r.created_at, data: pickData(r) })),
-    reviews: reviews.map((r) => ({ id: r.id, created_at: r.created_at, data: pickData(r) })),
+    reviews: parsedReviews,
     blocked_intervals: blocks.map((r) => ({ id: r.id, data: pickData(r) })),
     style_covers: covers.map((r) => ({ id: r.id, record_key: r.record_key, data: pickData(r) })),
     stripe: stripe.data,

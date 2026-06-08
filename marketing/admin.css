@@ -633,6 +633,219 @@ body.admin-drawer-open {
   color: var(--white-dim);
 }
 
+.footer-admin-link:hover {
+  color: var(--white-dim);
+}
+
+/* Full-screen salon dashboard */
+body.admin-salon-open {
+  overflow: hidden;
+}
+
+.admin-salon-view {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--admin-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-salon-view[hidden] {
+  display: none;
+}
+
+.admin-salon-view__head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--admin-border);
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(10px);
+}
+
+.admin-salon-view__title-wrap h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.admin-salon-view__title-wrap p {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+}
+
+.admin-salon-view__head .admin-btn:first-child {
+  flex-shrink: 0;
+}
+
+.admin-salon-view__head .admin-salon-view__title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-salon-view__tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.55rem 1.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--admin-border);
+  background: var(--admin-bg);
+}
+
+.admin-salon-tab {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--admin-muted);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.admin-salon-tab.is-active {
+  color: var(--admin-text);
+  background: var(--admin-accent-dim);
+  border-color: rgba(255, 45, 138, 0.35);
+}
+
+.admin-salon-view__body {
+  flex: 1;
+  overflow: auto;
+  padding: 1.25rem;
+  max-width: var(--admin-wrap);
+  width: 100%;
+  margin: 0 auto;
+}
+
+.admin-salon-metrics--wide {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.admin-salon-metrics article small {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
+  color: var(--admin-muted);
+  font-weight: 500;
+}
+
+.admin-salon-hero--dash {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  background: var(--admin-surface);
+}
+
+.admin-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.admin-dash-card {
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+}
+
+.admin-dash-card--wide {
+  grid-column: 1 / -1;
+}
+
+.admin-dash-card h4 {
+  margin: 0 0 0.85rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--admin-muted);
+}
+
+.admin-chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.admin-chart-row {
+  display: grid;
+  grid-template-columns: minmax(70px, 1fr) 1.5fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.admin-chart-label {
+  font-size: 0.75rem;
+  color: var(--admin-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-chart-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.admin-chart-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--admin-accent), #ff6eb3);
+}
+
+.admin-chart-val {
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 120px;
+  padding-top: 0.5rem;
+}
+
+.admin-sparkline__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  min-width: 0;
+}
+
+.admin-sparkline__bar {
+  width: 100%;
+  max-width: 14px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, var(--admin-accent), rgba(255, 45, 138, 0.35));
+  min-height: 4px;
+}
+
+.admin-sparkline__day {
+  font-size: 0.55rem;
+  color: var(--admin-muted);
+  margin-top: 0.25rem;
+  transform: rotate(-45deg);
+  transform-origin: top center;
+}
+
+.admin-dl--spaced {
+  margin-top: 0.75rem;
+}
+
 @media (max-width: 720px) {
   .admin-topbar {
     flex-direction: column;

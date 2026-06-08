@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/marketing/admin.css?v=2">
+  <link rel="stylesheet" href="/marketing/admin.css?v=3">
 </head>
 <body class="admin-page">
   <div class="admin-shell">
@@ -165,6 +165,26 @@
     </main>
   </div>
 
+  <div id="admin-salon-view" class="admin-salon-view" hidden>
+    <header class="admin-salon-view__head">
+      <button type="button" class="admin-btn admin-btn--ghost" id="admin-salon-back">← All salons</button>
+      <div class="admin-salon-view__title-wrap">
+        <h2 id="admin-salon-view-title">Salon</h2>
+        <p id="admin-salon-view-sub" class="admin-muted"></p>
+      </div>
+      <a id="admin-salon-view-link" class="admin-btn admin-btn--ghost" href="#" target="_blank" rel="noopener noreferrer" hidden>Open site</a>
+    </header>
+    <nav class="admin-salon-view__tabs" id="admin-salon-tabs" aria-label="Salon sections">
+      <button type="button" class="admin-salon-tab is-active" data-salon-tab="overview">Overview</button>
+      <button type="button" class="admin-salon-tab" data-salon-tab="analytics">Analytics</button>
+      <button type="button" class="admin-salon-tab" data-salon-tab="bookings">Bookings</button>
+      <button type="button" class="admin-salon-tab" data-salon-tab="clients">Clients</button>
+      <button type="button" class="admin-salon-tab" data-salon-tab="reviews">Reviews</button>
+      <button type="button" class="admin-salon-tab" data-salon-tab="business">Business</button>
+    </nav>
+    <div id="admin-salon-view-body" class="admin-salon-view__body"></div>
+  </div>
+
   <div id="admin-drawer" class="admin-drawer" hidden>
     <div class="admin-drawer__panel admin-drawer__panel--wide">
       <div class="admin-drawer__head">
@@ -177,6 +197,6 @@
 
   <script src="/js/marketing-config.js?v=2"></script>
   <script src="/js/marketing-config.local.js?v=2"></script>
-  <script src="/marketing/admin.js?v=3"></script>
+  <script src="/marketing/admin.js?v=4"></script>
 </body>
 </html>

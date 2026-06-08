@@ -114,6 +114,8 @@
     clients: [],
     overview: null,
     search: '',
+    salonTab: 'overview',
+    salonData: null,
   };
 
   var els = {};
@@ -393,174 +395,431 @@
     document.body.classList.remove('admin-drawer-open');
   }
 
-  function renderSalonDetail(data) {
-    var p = data.profile || {};
-    var rev = data.revenue_summary || {};
-    var settings = data.site_settings || {};
-    var content = settings.site_content || {};
-    var stripe = data.stripe || {};
-    var sub = data.subscription || {};
-    var name = data.brand_name || p.business_name || p.full_name || 'Salon';
-    var img = data.image_url
-      ? '<img class="admin-salon-hero__img" src="' + esc(data.image_url) + '" alt="">'
-      : '<span class="admin-salon-hero__fallback">' + esc(salonInitials(name)) + '</span>';
-
-    var bookingRows = (data.bookings || [])
-      .slice(0, 25)
-      .map(function (b) {
-        return (
-          '<tr><td>' +
-          fmtDate(b.appointment_starts_at) +
-          '</td><td>' +
-          esc(b.full_name) +
-          '</td><td>' +
-          esc(b.style_name) +
-          '</td><td>' +
-          esc(b.booking_status) +
-          '</td><td>' +
-          esc(b.payment_status) +
-          '</td><td>' +
-          fmtMoney(b.estimated_total) +
-          '</td></tr>'
-        );
-      })
-      .join('');
-
-    var reviewRows = (data.reviews || [])
-      .slice(0, 10)
-      .map(function (r) {
-        var d = r.data || {};
-        return (
-          '<tr><td>' +
-          fmtDate(r.created_at) +
-          '</td><td>' +
-          esc(d.rating) +
-          '★</td><td>' +
-          esc(d.client_name) +
-          '</td><td>' +
-          esc(d.message) +
-          '</td></tr>'
-        );
-      })
-      .join('');
-
-    var onboarding = data.onboarding_responses || null;
-    var onboardingHtml = onboarding
-      ? '<pre class="admin-json">' + esc(JSON.stringify(onboarding, null, 2)) + '</pre>'
-      : '<p class="admin-muted">No onboarding responses saved.</p>';
-
+  function barChartHtml(items, labelKey, valueKey, maxItems, formatVal) {
+    items = items || [];
+    if (!items.length) return '<p class="admin-muted">No data yet.</p>';
+    var max = 1;
+    items.forEach(function (item) {
+      var v = Number(item[valueKey]) || 0;
+      if (v > max) max = v;
+    });
     return (
-      '<div class="admin-salon-hero">' +
-      '<div class="admin-salon-hero__media">' +
-      img +
-      '</div>' +
-      '<div class="admin-salon-hero__copy">' +
-      '<h3>' +
-      esc(name) +
-      '</h3>' +
-      '<p class="admin-muted">' +
-      esc(p.email) +
-      '</p>' +
-      (data.public_url
-        ? '<a class="admin-salon-link" href="' +
-          esc(data.public_url) +
-          '" target="_blank" rel="noopener">' +
-          esc(data.public_url) +
-          '</a>'
-        : '<p class="admin-muted">Site not published</p>') +
-      '</div></div>' +
-      '<div class="admin-salon-metrics">' +
-      '<article><span>Total revenue</span><strong>' +
-      fmtMoney(rev.gross) +
-      '</strong></article>' +
-      '<article><span>Collected</span><strong>' +
-      fmtMoney(rev.collected) +
-      '</strong></article>' +
-      '<article><span>Pending</span><strong>' +
-      fmtMoney(rev.pending) +
-      '</strong></article>' +
-      '<article><span>Bookings</span><strong>' +
-      esc(rev.booking_count || 0) +
-      '</strong></article>' +
-      '<article><span>Clients</span><strong>' +
-      esc(rev.unique_clients || 0) +
-      '</strong></article>' +
-      '<article><span>Cancelled</span><strong>' +
-      esc(rev.cancelled_count || 0) +
-      '</strong></article>' +
-      '</div>' +
-      '<div class="admin-drawer-section"><h4>Account</h4><dl class="admin-dl">' +
-      '<dt>Owner</dt><dd>' +
-      esc(p.full_name) +
-      '</dd>' +
-      '<dt>Business</dt><dd>' +
-      esc(p.business_name || '—') +
-      '</dd>' +
-      '<dt>Joined</dt><dd>' +
-      fmtDate(p.created_at) +
-      '</dd>' +
-      '<dt>Last sign-in</dt><dd>' +
-      fmtDate(data.last_sign_in_at || p.last_sign_in_at) +
-      '</dd>' +
-      '<dt>Published</dt><dd>' +
-      (settings.site_publish && settings.site_publish.published ? 'Yes' : 'No') +
-      '</dd>' +
-      '<dt>Subscription</dt><dd>' +
-      esc(sub.status || 'unknown') +
-      (sub.product ? ' · ' + esc(sub.product) : '') +
-      '</dd>' +
-      '</dl></div>' +
-      '<div class="admin-drawer-section"><h4>Stripe Connect</h4><dl class="admin-dl">' +
-      '<dt>Charges</dt><dd>' +
-      (stripe.charges_enabled ? 'Enabled' : 'No') +
-      '</dd>' +
-      '<dt>Payouts</dt><dd>' +
-      (stripe.payouts_enabled ? 'Enabled' : 'No') +
-      '</dd>' +
-      '<dt>Available</dt><dd>' +
-      (stripe.balance_available_cents != null
-        ? fmtMoney(Number(stripe.balance_available_cents) / 100)
-        : '—') +
-      '</dd>' +
-      '<dt>Pending</dt><dd>' +
-      (stripe.balance_pending_cents != null
-        ? fmtMoney(Number(stripe.balance_pending_cents) / 100)
-        : '—') +
-      '</dd>' +
-      '</dl></div>' +
-      '<div class="admin-drawer-section"><h4>Recent bookings</h4>' +
-      (bookingRows
-        ? '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Appointment</th><th>Client</th><th>Service</th><th>Status</th><th>Payment</th><th>Total</th></tr></thead><tbody>' +
-          bookingRows +
-          '</tbody></table></div>'
-        : '<p class="admin-muted">No bookings yet.</p>') +
-      '</div>' +
-      '<div class="admin-drawer-section"><h4>Reviews</h4>' +
-      (reviewRows
-        ? '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>When</th><th>Rating</th><th>Client</th><th>Message</th></tr></thead><tbody>' +
-          reviewRows +
-          '</tbody></table></div>'
-        : '<p class="admin-muted">No reviews yet.</p>') +
-      '</div>' +
-      '<div class="admin-drawer-section"><h4>Onboarding survey</h4>' +
-      onboardingHtml +
-      '</div>' +
-      '<div class="admin-drawer-section"><h4>Site settings</h4><pre class="admin-json">' +
-      esc(JSON.stringify(settings, null, 2)) +
-      '</pre></div>' +
-      '<div class="admin-drawer-section"><h4>Cancellations</h4><pre class="admin-json">' +
-      esc(JSON.stringify(data.cancellations || [], null, 2)) +
-      '</pre></div>'
+      '<div class="admin-chart-bars">' +
+      items
+        .slice(0, maxItems || 12)
+        .map(function (item) {
+          var val = Number(item[valueKey]) || 0;
+          var pct = Math.max(4, Math.round((val / max) * 100));
+          var label = item[labelKey];
+          var display = formatVal ? formatVal(val, item) : String(val);
+          return (
+            '<div class="admin-chart-row">' +
+            '<span class="admin-chart-label">' +
+            esc(label) +
+            '</span>' +
+            '<div class="admin-chart-track"><div class="admin-chart-fill" style="width:' +
+            pct +
+            '%"></div></div>' +
+            '<span class="admin-chart-val">' +
+            esc(display) +
+            '</span></div>'
+          );
+        })
+        .join('') +
+      '</div>'
     );
   }
 
+  function sparklineHtml(daily) {
+    daily = daily || [];
+    if (!daily.length) return '<p class="admin-muted">No page views in the last 30 days.</p>';
+    var max = 1;
+    daily.forEach(function (d) {
+      if (d.views > max) max = d.views;
+    });
+    return (
+      '<div class="admin-sparkline">' +
+      daily
+        .map(function (d) {
+          var h = Math.max(4, Math.round(((d.views || 0) / max) * 100));
+          return (
+            '<div class="admin-sparkline__col" title="' +
+            esc(d.day + ': ' + d.views + ' views') +
+            '"><div class="admin-sparkline__bar" style="height:' +
+            h +
+            '%"></div><span class="admin-sparkline__day">' +
+            esc(d.day.slice(5)) +
+            '</span></div>'
+          );
+        })
+        .join('') +
+      '</div>'
+    );
+  }
+
+  function statCards(items) {
+    return (
+      '<div class="admin-salon-metrics admin-salon-metrics--wide">' +
+      items
+        .map(function (item) {
+          return (
+            '<article><span>' +
+            esc(item.label) +
+            '</span><strong>' +
+            esc(item.value) +
+            '</strong>' +
+            (item.hint ? '<small>' + esc(item.hint) + '</small>' : '') +
+            '</article>'
+          );
+        })
+        .join('') +
+      '</div>'
+    );
+  }
+
+  function renderSalonTab(data, tab) {
+    var p = data.profile || {};
+    var rev = data.revenue_summary || {};
+    var a = data.analytics || {};
+    var stripe = data.stripe || {};
+    var sub = data.subscription || {};
+    var contact = data.contact || {};
+    var settings = data.site_settings || {};
+
+    if (tab === 'overview') {
+      var name = data.brand_name || 'Salon';
+      var img = data.image_url
+        ? '<img class="admin-salon-hero__img" src="' + esc(data.image_url) + '" alt="">'
+        : '<span class="admin-salon-hero__fallback">' + esc(salonInitials(name)) + '</span>';
+      var hero =
+        '<div class="admin-salon-hero admin-salon-hero--dash">' +
+        '<div class="admin-salon-hero__media">' +
+        img +
+        '</div><div class="admin-salon-hero__copy"><h3>' +
+        esc(name) +
+        '</h3><p class="admin-muted">' +
+        esc((data.profile && data.profile.email) || '') +
+        '</p>' +
+        (data.public_url
+          ? '<a class="admin-salon-link" href="' + esc(data.public_url) + '" target="_blank" rel="noopener">' + esc(data.public_url) + '</a>'
+          : '') +
+        '</div></div>';
+      return (
+        hero +
+        statCards([
+          { label: 'Total revenue', value: fmtMoney(rev.gross) },
+          { label: 'Collected', value: fmtMoney(rev.collected) },
+          { label: 'Pending', value: fmtMoney(rev.pending) },
+          { label: 'Bookings', value: rev.booking_count || 0 },
+          { label: 'Clients', value: rev.unique_clients || 0 },
+          { label: 'Site views (30d)', value: a.views_30d || 0 },
+          { label: 'Reviews', value: a.reviews_count || 0, hint: a.reviews_avg_rating ? a.reviews_avg_rating + '★ avg' : '' },
+          { label: 'Subscription', value: sub.status || 'unknown' },
+        ]) +
+        '<div class="admin-dash-grid">' +
+        '<section class="admin-dash-card"><h4>Revenue by month</h4>' +
+        barChartHtml(a.revenue_by_month, 'month', 'revenue', 12, function (v) {
+          return fmtMoney(v);
+        }) +
+        '</section>' +
+        '<section class="admin-dash-card"><h4>Top services</h4>' +
+        barChartHtml(a.top_services, 'name', 'revenue', 8, function (v, item) {
+          return fmtMoney(v) + ' (' + item.count + ')';
+        }) +
+        '</section>' +
+        '<section class="admin-dash-card admin-dash-card--wide"><h4>Site traffic — last 30 days</h4>' +
+        sparklineHtml(a.daily_views) +
+        '</section>' +
+        '<section class="admin-dash-card"><h4>Recent bookings</h4>' +
+        renderBookingsMiniTable((data.bookings || []).slice(0, 8)) +
+        '</section></div>'
+      );
+    }
+
+    if (tab === 'analytics') {
+      return (
+        statCards([
+          { label: 'Views (7d)', value: a.views_7d || 0 },
+          { label: 'Views (30d)', value: a.views_30d || 0 },
+          { label: 'Views (90d)', value: a.views_90d || 0 },
+          { label: 'Data source', value: a.source || 'none' },
+        ]) +
+        '<div class="admin-dash-grid">' +
+        '<section class="admin-dash-card admin-dash-card--wide"><h4>Daily page views</h4>' +
+        sparklineHtml(a.daily_views) +
+        '</section>' +
+        '<section class="admin-dash-card"><h4>Top pages</h4>' +
+        barChartHtml(a.top_paths, 'path', 'views', 10) +
+        '</section>' +
+        '<section class="admin-dash-card"><h4>Page type</h4>' +
+        barChartHtml(a.by_page_type, 'page_type', 'views', 6) +
+        '</section>' +
+        '<section class="admin-dash-card"><h4>Device type</h4>' +
+        barChartHtml(a.by_device, 'device_type', 'views', 6) +
+        '</section>' +
+        '<section class="admin-dash-card"><h4>Booking status</h4>' +
+        barChartHtml(a.booking_status, 'status', 'count', 8) +
+        '</section>' +
+        '<section class="admin-dash-card"><h4>Payment status</h4>' +
+        barChartHtml(a.payment_status, 'status', 'count', 8) +
+        '</section></div>'
+      );
+    }
+
+    if (tab === 'bookings') {
+      return (
+        '<div class="admin-panel-head"><h3>All bookings (' + (data.bookings || []).length + ')</h3></div>' +
+        renderBookingsFullTable(data.bookings || [])
+      );
+    }
+
+    if (tab === 'clients') {
+      var clientRows = (data.clients || [])
+        .map(function (c) {
+          return (
+            '<tr><td>' +
+            esc(c.client_name) +
+            '</td><td>' +
+            esc(c.email) +
+            '</td><td>' +
+            esc(c.phone) +
+            '</td><td>' +
+            esc(c.booking_count) +
+            '</td><td>' +
+            fmtMoney(c.total_spend) +
+            '</td><td>' +
+            fmtDate(c.last_booking_at) +
+            '</td></tr>'
+          );
+        })
+        .join('');
+      return (
+        '<div class="admin-panel-head"><h3>Clients (' + (data.clients || []).length + ')</h3></div>' +
+        (clientRows
+          ? '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Visits</th><th>Spend</th><th>Last booking</th></tr></thead><tbody>' +
+            clientRows +
+            '</tbody></table></div>'
+          : '<p class="admin-muted">No clients yet.</p>')
+      );
+    }
+
+    if (tab === 'reviews') {
+      var reviewRows = (data.reviews || [])
+        .map(function (r) {
+          var d = r.data || {};
+          return (
+            '<tr><td>' +
+            fmtDate(r.created_at) +
+            '</td><td>' +
+            esc(d.rating) +
+            '★</td><td>' +
+            esc(d.client_name) +
+            '</td><td>' +
+            esc(d.message) +
+            '</td><td>' +
+            (d.published ? 'Public' : 'Hidden') +
+            '</td></tr>'
+          );
+        })
+        .join('');
+      return (
+        statCards([
+          { label: 'Total reviews', value: a.reviews_count || 0 },
+          { label: 'Average rating', value: a.reviews_avg_rating ? a.reviews_avg_rating + '★' : '—' },
+        ]) +
+        (reviewRows
+          ? '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>When</th><th>Rating</th><th>Client</th><th>Message</th><th>Status</th></tr></thead><tbody>' +
+            reviewRows +
+            '</tbody></table></div>'
+          : '<p class="admin-muted">No reviews yet.</p>')
+      );
+    }
+
+    if (tab === 'business') {
+      var onboarding = data.onboarding_responses;
+      var survey = onboarding && onboarding.survey ? onboarding.survey : null;
+      var biz = onboarding && onboarding.business ? onboarding.business : null;
+      return (
+        '<div class="admin-dash-grid">' +
+        '<section class="admin-dash-card"><h4>Account</h4><dl class="admin-dl">' +
+        '<dt>Owner</dt><dd>' +
+        esc(p.full_name) +
+        '</dd>' +
+        '<dt>Email</dt><dd>' +
+        esc(p.email) +
+        '</dd>' +
+        '<dt>Joined</dt><dd>' +
+        fmtDate(p.created_at) +
+        '</dd>' +
+        '<dt>Last sign-in</dt><dd>' +
+        fmtDate(data.last_sign_in_at) +
+        '</dd>' +
+        '<dt>Published</dt><dd>' +
+        fmtDate(data.published_at) +
+        '</dd></dl></section>' +
+        '<section class="admin-dash-card"><h4>Contact & location</h4><dl class="admin-dl">' +
+        '<dt>Phone</dt><dd>' +
+        esc(contact.phone || '—') +
+        '</dd>' +
+        '<dt>Email</dt><dd>' +
+        esc(contact.email || '—') +
+        '</dd>' +
+        '<dt>Instagram</dt><dd>' +
+        esc(contact.instagram || '—') +
+        '</dd>' +
+        '<dt>Address</dt><dd>' +
+        esc([contact.address, contact.city, contact.state].filter(Boolean).join(', ') || '—') +
+        '</dd>' +
+        '<dt>Timezone</dt><dd>' +
+        esc(contact.timezone || '—') +
+        '</dd></dl></section>' +
+        '<section class="admin-dash-card"><h4>Stripe Connect</h4><dl class="admin-dl">' +
+        '<dt>Charges</dt><dd>' +
+        (stripe.charges_enabled ? 'Enabled' : 'No') +
+        '</dd>' +
+        '<dt>Payouts</dt><dd>' +
+        (stripe.payouts_enabled ? 'Enabled' : 'No') +
+        '</dd>' +
+        '<dt>Available</dt><dd>' +
+        (stripe.balance_available_cents != null ? fmtMoney(stripe.balance_available_cents / 100) : '—') +
+        '</dd>' +
+        '<dt>Pending</dt><dd>' +
+        (stripe.balance_pending_cents != null ? fmtMoney(stripe.balance_pending_cents / 100) : '—') +
+        '</dd></dl></section>' +
+        '<section class="admin-dash-card"><h4>Onboarding survey</h4>' +
+        (survey
+          ? '<dl class="admin-dl"><dt>Heard from</dt><dd>' +
+            esc(survey.heardFrom || '—') +
+            '</dd><dt>Why Styld</dt><dd>' +
+            esc((survey.whyStyld || []).join(', ') || '—') +
+            '</dd><dt>Dream outcome</dt><dd>' +
+            esc(survey.dreamOutcome || '—') +
+            '</dd></dl>'
+          : '<p class="admin-muted">No survey responses.</p>') +
+        (biz
+          ? '<dl class="admin-dl admin-dl--spaced"><dt>Business</dt><dd>' +
+            esc(biz.name || '—') +
+            '</dd><dt>Phone</dt><dd>' +
+            esc(biz.phone || '—') +
+            '</dd></dl>'
+          : '') +
+        '</section>' +
+        '<section class="admin-dash-card admin-dash-card--wide"><h4>Booking & payments config</h4><pre class="admin-json">' +
+        esc(JSON.stringify({ booking_payment: data.booking_payment, booking_hours: data.booking_hours, cancellation_policy: data.cancellation_policy }, null, 2)) +
+        '</pre></section>' +
+        '<section class="admin-dash-card admin-dash-card--wide"><h4>Inquiries (' +
+        (data.inquiries || []).length +
+        ')</h4><pre class="admin-json">' +
+        esc(JSON.stringify(data.inquiries || [], null, 2)) +
+        '</pre></section></div>'
+      );
+    }
+
+    return '';
+  }
+
+  function renderBookingsMiniTable(bookings) {
+    if (!bookings.length) return '<p class="admin-muted">No bookings yet.</p>';
+    return (
+      '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>When</th><th>Client</th><th>Service</th><th>Total</th></tr></thead><tbody>' +
+      bookings
+        .map(function (b) {
+          return (
+            '<tr><td>' +
+            fmtDate(b.appointment_starts_at) +
+            '</td><td>' +
+            esc(b.full_name) +
+            '</td><td>' +
+            esc(b.style_name) +
+            '</td><td>' +
+            fmtMoney(b.estimated_total) +
+            '</td></tr>'
+          );
+        })
+        .join('') +
+      '</tbody></table></div>'
+    );
+  }
+
+  function renderBookingsFullTable(bookings) {
+    if (!bookings.length) return '<p class="admin-muted">No bookings yet.</p>';
+    return (
+      '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Appointment</th><th>Client</th><th>Service</th><th>Status</th><th>Payment</th><th>Total</th><th>Deposit</th></tr></thead><tbody>' +
+      bookings
+        .map(function (b) {
+          return (
+            '<tr><td>' +
+            fmtDate(b.appointment_starts_at) +
+            '</td><td>' +
+            esc(b.full_name) +
+            '<br><span class="admin-muted">' +
+            esc(b.email) +
+            '</span></td><td>' +
+            esc(b.style_name) +
+            '</td><td>' +
+            esc(b.booking_status) +
+            '</td><td>' +
+            esc(b.payment_status) +
+            '</td><td>' +
+            fmtMoney(b.estimated_total) +
+            '</td><td>' +
+            fmtMoney(b.deposit_amount) +
+            '</td></tr>'
+          );
+        })
+        .join('') +
+      '</tbody></table></div>'
+    );
+  }
+
+  function setSalonTab(tab) {
+    state.salonTab = tab;
+    document.querySelectorAll('.admin-salon-tab').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.getAttribute('data-salon-tab') === tab);
+    });
+    if (els.salonViewBody && state.salonData) {
+      els.salonViewBody.innerHTML = renderSalonTab(state.salonData, tab);
+    }
+  }
+
+  function openSalonDashboard(data) {
+    state.salonData = data;
+    state.salonTab = 'overview';
+    var name = data.brand_name || 'Salon';
+    if (els.salonViewTitle) els.salonViewTitle.textContent = name;
+    if (els.salonViewSub) {
+      els.salonViewSub.textContent = data.tagline || data.subdomain ? data.subdomain + '.styldd.com' : '';
+    }
+    if (els.salonViewLink) {
+      if (data.public_url) {
+        els.salonViewLink.href = data.public_url;
+        els.salonViewLink.hidden = false;
+      } else {
+        els.salonViewLink.hidden = true;
+      }
+    }
+    setSalonTab('overview');
+    if (els.salonView) {
+      els.salonView.hidden = false;
+      document.body.classList.add('admin-salon-open');
+    }
+  }
+
+  function closeSalonDashboard() {
+    state.salonData = null;
+    if (els.salonView) {
+      els.salonView.hidden = true;
+      document.body.classList.remove('admin-salon-open');
+    }
+  }
+
   function openUserDrawer(userId) {
-    setStatus('Loading salon…');
+    setStatus('Loading salon dashboard…');
     api('user_detail', { user_id: userId }, state.pin)
       .then(function (data) {
         setStatus('');
-        var name = data.brand_name || (data.profile && data.profile.business_name) || 'Salon detail';
-        openDrawer(name, renderSalonDetail(data));
+        if (data.error) throw new Error(data.error);
+        openSalonDashboard(data);
       })
       .catch(function (err) {
         setStatus(err.message, true);
@@ -751,7 +1010,20 @@
     });
 
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeDrawer();
+      if (e.key === 'Escape') {
+        if (state.salonData) closeSalonDashboard();
+        else closeDrawer();
+      }
+    });
+
+    if (els.salonBack) {
+      els.salonBack.addEventListener('click', closeSalonDashboard);
+    }
+
+    document.querySelectorAll('.admin-salon-tab').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setSalonTab(btn.getAttribute('data-salon-tab'));
+      });
     });
   }
 
@@ -766,6 +1038,12 @@
       subNote: $('admin-sub-note'),
       salonsGrid: $('admin-salons-grid'),
       overviewSalons: $('admin-overview-salons'),
+      salonView: $('admin-salon-view'),
+      salonViewTitle: $('admin-salon-view-title'),
+      salonViewSub: $('admin-salon-view-sub'),
+      salonViewLink: $('admin-salon-view-link'),
+      salonViewBody: $('admin-salon-view-body'),
+      salonBack: $('admin-salon-back'),
       bookingsBody: $('admin-bookings-body'),
       clientsBody: $('admin-clients-body'),
       cancellationsBody: $('admin-cancellations-body'),
