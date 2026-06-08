@@ -8,6 +8,7 @@
     { "source": "/marketing", "destination": "/marketing/index.html" },
     { "source": "/marketing/admin", "destination": "/marketing/admin.html" },
     { "source": "/support", "destination": "/marketing/support.html" },
-    { "source": "/privacy", "destination": "/marketing/privacy.html" }
+    { "source": "/privacy", "destination": "/marketing/privacy.html" },
+    { "source": "/terms", "destination": "/marketing/terms.html" }
   ]
 }
