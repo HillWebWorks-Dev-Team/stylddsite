@@ -8,7 +8,7 @@
 
   var errorEl = document.getElementById('manage-booking-error');
   var successEl = document.getElementById('manage-booking-success');
-  var cardWrap = document.getElementById('manage-booking-card-wrap');
+  var contentWrap = document.getElementById('manage-booking-content');
   var cancelBtn = document.getElementById('manage-cancel-btn');
   var rebookBtn = document.getElementById('manage-rebook-btn');
   var actionsEl = document.getElementById('manage-booking-actions');
@@ -57,7 +57,8 @@
       errorEl.textContent = message;
     }
     if (successEl) successEl.hidden = true;
-    if (cardWrap) cardWrap.hidden = true;
+    if (contentWrap) contentWrap.hidden = true;
+    if (statusEl) statusEl.hidden = true;
   }
 
   function showSuccess(message) {
@@ -145,7 +146,7 @@
   function renderBooking(data) {
     booking = data || {};
     hideMessages();
-    if (cardWrap) cardWrap.hidden = false;
+    if (contentWrap) contentWrap.hidden = false;
 
     var cancelled = isCancelledStatus(booking.booking_status);
     var displayName = booking.full_name || clientName || 'there';
@@ -164,9 +165,10 @@
     setText('manage-booking-id', booking.id || bookingId);
 
     if (statusEl) {
+      statusEl.hidden = false;
       statusEl.textContent = bookingStatusLabel(booking.booking_status);
       statusEl.className =
-        'lookup-status ' + (cancelled ? 'is-cancelled' : 'is-active');
+        'manage-booking-status ' + (cancelled ? 'is-cancelled' : 'is-active');
     }
 
     var title = document.getElementById('manage-booking-title');

@@ -5478,6 +5478,7 @@ ul.price-menu__policy-list {
 .manage-booking-main {
   flex: 1;
   padding: clamp(2rem, 5vw, 3.5rem) 0 4rem;
+  background: var(--cream, #fafafa);
 }
 
 .manage-booking-page {
@@ -5486,7 +5487,7 @@ ul.price-menu__policy-list {
 }
 
 .manage-booking-hero {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .manage-booking-hero__eyebrow {
@@ -5498,18 +5499,113 @@ ul.price-menu__policy-list {
   color: var(--pink-dark, var(--pink));
 }
 
+.manage-booking-hero__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+}
+
+.manage-booking-hero__title-row h1 {
+  margin: 0;
+}
+
 .manage-booking-hero__lead {
   margin: 0.75rem 0 0;
   color: var(--muted);
   line-height: 1.6;
 }
 
-.manage-booking-card {
-  margin-top: 1rem;
+.manage-booking-status {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: 999px;
+  padding: 0.32rem 0.7rem;
 }
 
-.manage-booking-detail {
-  margin-top: 0.75rem;
+.manage-booking-status.is-active {
+  background: rgba(46, 125, 50, 0.14);
+  color: #1b5e20;
+}
+
+.manage-booking-status.is-cancelled {
+  background: rgba(198, 40, 40, 0.14);
+  color: #8e1d1d;
+}
+
+.theme-dark-surface .manage-booking-status.is-active {
+  background: rgba(76, 175, 80, 0.18);
+  color: #81c784;
+}
+
+.theme-dark-surface .manage-booking-status.is-cancelled {
+  background: rgba(244, 67, 54, 0.18);
+  color: #ef9a9a;
+}
+
+.manage-booking-content {
+  margin-top: 0.25rem;
+}
+
+.manage-booking-greeting {
+  margin: 0 0 1.25rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.manage-booking-details {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.manage-booking-details__row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9.5rem) 1fr;
+  gap: 0.35rem 1rem;
+  align-items: baseline;
+}
+
+.manage-booking-details__label {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+.manage-booking-details__value {
+  margin: 0;
+  color: var(--muted);
+  word-break: break-word;
+}
+
+.manage-booking-ref {
+  margin: 1.25rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--review-card-border, rgba(0, 0, 0, 0.1));
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.manage-booking-ref code {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+  color: var(--ink);
+}
+
+.manage-booking-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
 }
 
 .manage-booking-actions--cancelled {
