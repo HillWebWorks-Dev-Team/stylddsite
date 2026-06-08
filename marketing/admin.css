@@ -219,10 +219,130 @@ body.admin-drawer-open {
   margin-top: 1.5rem;
 }
 
-.admin-salon-grid {
+.admin-salon-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.admin-salon-row {
+  appearance: none;
+  width: 100%;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 1rem;
+  grid-template-columns: 56px minmax(140px, 1.4fr) repeat(3, minmax(72px, 0.7fr)) minmax(88px, 0.8fr) 24px;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: inherit;
+  border-radius: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.admin-salon-row:hover {
+  border-color: rgba(255, 45, 138, 0.4);
+  background: rgba(255, 45, 138, 0.05);
+}
+
+.admin-salon-row__media {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--admin-surface-2);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.admin-salon-row__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-salon-row__fallback {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--admin-accent);
+}
+
+.admin-salon-row__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.admin-salon-row__name {
+  font-size: 0.925rem;
+  letter-spacing: -0.02em;
+}
+
+.admin-salon-row__meta {
+  font-size: 0.74rem;
+  color: var(--admin-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-salon-row__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.admin-salon-row__stat-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--admin-muted);
+}
+
+.admin-salon-row__stat strong {
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.admin-salon-row__sub {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-salon-row__arrow {
+  color: var(--admin-muted);
+  font-size: 1.1rem;
+}
+
+.admin-salon-hero__sub {
+  margin-top: 0.5rem;
+}
+
+.admin-salon-summary-bookings {
+  margin-top: 1rem;
+}
+
+#admin-salon-tab-panel {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.admin-text-warn {
+  color: #fcd34d;
+}
+
+/* Legacy card grid — kept for reference, list is primary */
+.admin-salon-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
 }
 
 .admin-salon-card {
@@ -972,6 +1092,17 @@ body.admin-salon-open {
   text-transform: none;
   letter-spacing: 0;
   font-size: 0.68rem;
+}
+
+@media (max-width: 900px) {
+  .admin-salon-row {
+    grid-template-columns: 48px minmax(0, 1fr) 20px;
+  }
+
+  .admin-salon-row__stat,
+  .admin-salon-row__sub {
+    display: none;
+  }
 }
 
 @media (max-width: 720px) {

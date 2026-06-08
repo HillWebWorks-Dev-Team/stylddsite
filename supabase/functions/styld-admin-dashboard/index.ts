@@ -174,7 +174,13 @@ async function safeTable<T>(
 
 async function fetchRevenueCatStatus(userId: string) {
   const key = Deno.env.get('REVENUECAT_SECRET_API_KEY');
-  if (!key) return { status: 'unknown', message: 'Configure REVENUECAT_SECRET_API_KEY' };
+  if (!key) {
+    return {
+      status: 'unknown',
+      message: 'Set REVENUECAT_SECRET_API_KEY in Supabase Edge Function secrets',
+      plan_label: 'Unknown',
+    };
+  }
   try {
     const res = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
       headers: {
@@ -182,22 +188,78 @@ async function fetchRevenueCatStatus(userId: string) {
         'Content-Type': 'application/json',
       },
     });
-    if (!res.ok) return { status: 'error', message: `RevenueCat ${res.status}` };
-    const body = await res.json();
-    const entitlements = body?.subscriber?.entitlements || {};
-    const pro = entitlements.pro;
-    if (pro && pro.expires_date) {
-      const active = new Date(pro.expires_date) > new Date();
+    if (res.status === 404) {
       return {
-        status: active ? 'active' : 'expired',
-        product: pro.product_identifier ?? null,
-        expires_date: pro.expires_date,
-        store: pro.store ?? null,
+        status: 'none',
+        entitlement: null,
+        product: null,
+        plan_label: 'Free',
+        expires_date: null,
+        purchase_date: null,
+        store: null,
+        will_renew: false,
       };
     }
-    return { status: 'none', product: null, expires_date: null, store: null };
+    if (!res.ok) {
+      return { status: 'error', message: `RevenueCat HTTP ${res.status}`, plan_label: 'Error' };
+    }
+
+    const body = await res.json();
+    const subscriber = (body?.subscriber || {}) as Record<string, unknown>;
+    const entitlements = (subscriber.entitlements || {}) as Record<string, Record<string, unknown>>;
+    const subscriptions = (subscriber.subscriptions || {}) as Record<string, Record<string, unknown>>;
+    const pro = entitlements.pro;
+
+    if (!pro) {
+      return {
+        status: 'none',
+        entitlement: null,
+        product: null,
+        plan_label: 'Free',
+        expires_date: null,
+        purchase_date: null,
+        store: null,
+        will_renew: false,
+      };
+    }
+
+    const productId = String(pro.product_identifier || '') || null;
+    const expiresDate = (pro.expires_date as string | null) ?? null;
+    const purchaseDate = (pro.purchase_date as string | null) ?? null;
+    const storeRaw = String(pro.store || '');
+    const store =
+      storeRaw === 'app_store' ? 'App Store' : storeRaw === 'play_store' ? 'Google Play' : storeRaw || null;
+
+    const active = !expiresDate || new Date(expiresDate) > new Date();
+    const planLabel =
+      productId === 'styld_yearly'
+        ? 'Pro Yearly'
+        : productId === 'styld_monthly'
+          ? 'Pro Monthly'
+          : productId
+            ? productId
+            : 'Pro';
+
+    const subRow = productId ? subscriptions[productId] : null;
+    const unsubscribeAt = subRow?.unsubscribe_detected_at ?? null;
+    const billingIssues = !!subRow?.billing_issues_detected_at;
+
+    return {
+      status: active ? 'active' : 'expired',
+      entitlement: 'pro',
+      product: productId,
+      plan_label: planLabel,
+      expires_date: expiresDate,
+      purchase_date: purchaseDate,
+      store,
+      period_type: subRow?.period_type ?? null,
+      will_renew: active && !unsubscribeAt,
+      unsubscribe_detected_at: unsubscribeAt,
+      billing_issues: billingIssues,
+      is_sandbox: subRow?.is_sandbox ?? null,
+    };
   } catch (e) {
-    return { status: 'error', message: String(e) };
+    return { status: 'error', message: String(e), plan_label: 'Error' };
   }
 }
 
@@ -434,15 +496,19 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
   users.sort((a, b) => (b.total_revenue as number) - (a.total_revenue as number));
 
   const rcKey = Deno.env.get('REVENUECAT_SECRET_API_KEY');
-  if (rcKey && users.length <= 50) {
+  if (rcKey) {
     await Promise.all(
       users.map(async (u) => {
-        u.subscription = (await fetchRevenueCatStatus(u.user_id)) as typeof u.subscription;
+        u.subscription = (await fetchRevenueCatStatus(String(u.user_id))) as typeof u.subscription;
       }),
     );
-  } else if (!rcKey) {
+  } else {
     users.forEach((u) => {
-      u.subscription = { status: 'unknown', message: 'Configure REVENUECAT_SECRET_API_KEY' } as typeof u.subscription;
+      u.subscription = {
+        status: 'unknown',
+        message: 'Set REVENUECAT_SECRET_API_KEY in Supabase secrets',
+        plan_label: 'Unknown',
+      } as typeof u.subscription;
     });
   }
 

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/marketing/admin.css?v=4">
+  <link rel="stylesheet" href="/marketing/admin.css?v=5">
 </head>
 <body class="admin-page">
   <div class="admin-shell">
@@ -32,7 +32,6 @@
 
     <nav class="admin-nav" aria-label="Admin sections">
       <button type="button" class="admin-tab is-active" data-tab="salons">Salons</button>
-      <button type="button" class="admin-tab" data-tab="overview">Overview</button>
       <button type="button" class="admin-tab" data-tab="bookings">Bookings</button>
       <button type="button" class="admin-tab" data-tab="clients">Clients</button>
       <button type="button" class="admin-tab" data-tab="cancellations">Cancellations</button>
@@ -45,21 +44,12 @@
     <main class="admin-main">
       <p id="admin-status" class="admin-status" role="status"></p>
 
-      <section class="admin-panel" data-panel="overview" hidden>
-        <div id="admin-kpi-grid" class="admin-kpi-grid"></div>
-        <p id="admin-sub-note" class="admin-muted"></p>
-        <div class="admin-panel-head admin-panel-head--spaced">
-          <h2>Top salons by revenue</h2>
-        </div>
-        <div id="admin-overview-salons" class="admin-salon-grid"></div>
-      </section>
-
       <section class="admin-panel" data-panel="salons">
         <div class="admin-panel-head">
           <h2>All salons</h2>
-          <p class="admin-muted">Click a salon for the full breakdown.</p>
+          <p class="admin-muted">Click a row for the full dashboard — subscription from RevenueCat.</p>
         </div>
-        <div id="admin-salons-grid" class="admin-salon-grid"></div>
+        <div id="admin-salons-grid" class="admin-salon-list"></div>
       </section>
 
       <section class="admin-panel" data-panel="bookings" hidden>
@@ -175,14 +165,16 @@
       <a id="admin-salon-view-link" class="admin-btn admin-btn--ghost" href="#" target="_blank" rel="noopener noreferrer" hidden>Open site</a>
     </header>
     <nav class="admin-salon-view__tabs" id="admin-salon-tabs" aria-label="Salon sections">
-      <button type="button" class="admin-salon-tab is-active" data-salon-tab="overview">Overview</button>
-      <button type="button" class="admin-salon-tab" data-salon-tab="analytics">Analytics</button>
+      <button type="button" class="admin-salon-tab is-active" data-salon-tab="analytics">Analytics</button>
       <button type="button" class="admin-salon-tab" data-salon-tab="bookings">Bookings</button>
       <button type="button" class="admin-salon-tab" data-salon-tab="clients">Clients</button>
       <button type="button" class="admin-salon-tab" data-salon-tab="reviews">Reviews</button>
       <button type="button" class="admin-salon-tab" data-salon-tab="business">Business</button>
     </nav>
-    <div id="admin-salon-view-body" class="admin-salon-view__body"></div>
+    <div id="admin-salon-view-body" class="admin-salon-view__body">
+      <div id="admin-salon-summary"></div>
+      <div id="admin-salon-tab-panel"></div>
+    </div>
   </div>
 
   <div id="admin-drawer" class="admin-drawer" hidden>
@@ -197,6 +189,6 @@
 
   <script src="/js/marketing-config.js?v=2"></script>
   <script src="/js/marketing-config.local.js?v=2"></script>
-  <script src="/marketing/admin.js?v=5"></script>
+  <script src="/marketing/admin.js?v=6"></script>
 </body>
 </html>

@@ -162,7 +162,7 @@
     clients: [],
     overview: null,
     search: '',
-    salonTab: 'overview',
+    salonTab: 'analytics',
     salonData: null,
   };
 
@@ -215,62 +215,122 @@
       .toUpperCase();
   }
 
-  function salonCardHtml(u) {
+  function subscriptionPill(sub) {
+    sub = sub || {};
+    var label = sub.plan_label || sub.status || 'Unknown';
+    if (sub.status === 'active') {
+      return '<span class="admin-pill admin-pill--good">' + esc(label) + '</span>';
+    }
+    if (sub.status === 'none') {
+      return '<span class="admin-pill admin-pill--neutral">Free</span>';
+    }
+    if (sub.status === 'expired') {
+      return '<span class="admin-pill admin-pill--bad">Expired</span>';
+    }
+    if (sub.status === 'unknown') {
+      return '<span class="admin-pill admin-pill--neutral" title="' + esc(sub.message || '') + '">Sub N/A</span>';
+    }
+    if (sub.status === 'error') {
+      return '<span class="admin-pill admin-pill--bad">RC Error</span>';
+    }
+    return '<span class="admin-pill admin-pill--neutral">' + esc(label) + '</span>';
+  }
+
+  function subscriptionDetailHtml(sub) {
+    sub = sub || {};
+    if (sub.status === 'unknown') {
+      return '<p class="admin-muted">' + esc(sub.message || 'RevenueCat not configured.') + '</p>';
+    }
+    return (
+      '<dl class="admin-dl">' +
+      '<dt>Status</dt><dd>' +
+      esc(sub.status || '—') +
+      '</dd>' +
+      '<dt>Plan</dt><dd>' +
+      esc(sub.plan_label || sub.product || '—') +
+      '</dd>' +
+      '<dt>Entitlement</dt><dd>' +
+      esc(sub.entitlement || '—') +
+      '</dd>' +
+      '<dt>Store</dt><dd>' +
+      esc(sub.store || '—') +
+      '</dd>' +
+      '<dt>Renews</dt><dd>' +
+      (sub.will_renew ? 'Yes' : 'No') +
+      '</dd>' +
+      '<dt>Expires</dt><dd>' +
+      (sub.expires_date ? fmtDate(sub.expires_date) : '—') +
+      '</dd>' +
+      '<dt>Purchased</dt><dd>' +
+      (sub.purchase_date ? fmtDate(sub.purchase_date) : '—') +
+      '</dd>' +
+      (sub.billing_issues ? '<dt>Billing</dt><dd class="admin-text-warn">Issue detected</dd>' : '') +
+      (sub.unsubscribe_detected_at
+        ? '<dt>Cancelled</dt><dd>' + fmtDate(sub.unsubscribe_detected_at) + '</dd>'
+        : '') +
+      '</dl>'
+    );
+  }
+
+  function salonRowHtml(u) {
     var name = u.brand_name || u.business_name || u.full_name || 'Salon';
     var img = u.image_url
-      ? '<img class="admin-salon-card__img" src="' + esc(u.image_url) + '" alt="" loading="lazy" decoding="async">'
-      : '';
-    var fallback =
-      '<span class="admin-salon-card__fallback"' +
-      (u.image_url ? ' hidden' : '') +
-      '>' +
-      esc(salonInitials(name)) +
-      '</span>';
+      ? '<img class="admin-salon-row__img" src="' + esc(u.image_url) + '" alt="" loading="lazy" decoding="async">'
+      : '<span class="admin-salon-row__fallback">' + esc(salonInitials(name)) + '</span>';
     return (
-      '<button type="button" class="admin-salon-card" data-open-user="' +
+      '<button type="button" class="admin-salon-row" data-open-user="' +
       esc(u.user_id) +
       '">' +
-      '<div class="admin-salon-card__media">' +
+      '<div class="admin-salon-row__media">' +
       img +
-      fallback +
       '</div>' +
-      '<div class="admin-salon-card__body">' +
-      '<h3 class="admin-salon-card__title">' +
+      '<div class="admin-salon-row__main">' +
+      '<strong class="admin-salon-row__name">' +
       esc(name) +
-      '</h3>' +
-      '<p class="admin-salon-card__meta">' +
-      (u.public_url
-        ? esc(u.subdomain) + '.styldd.com'
-        : esc(u.subdomain || 'No site yet')) +
-      '</p>' +
-      '<p class="admin-salon-card__revenue">' +
-      fmtMoney(u.total_revenue) +
-      '</p>' +
-      '<p class="admin-salon-card__stats">' +
-      esc(u.booking_count) +
-      ' bookings · ' +
-      fmtMoney(u.revenue_collected) +
-      ' collected</p>' +
-      '<span class="admin-salon-card__cta">View breakdown →</span>' +
+      '</strong>' +
+      '<span class="admin-salon-row__meta">' +
+      esc(u.email || '') +
+      (u.subdomain ? ' · ' + esc(u.subdomain) + '.styldd.com' : '') +
+      '</span>' +
       '</div>' +
+      '<div class="admin-salon-row__stat">' +
+      '<span class="admin-salon-row__stat-label">Revenue</span>' +
+      '<strong>' +
+      fmtMoney(u.total_revenue) +
+      '</strong>' +
+      '</div>' +
+      '<div class="admin-salon-row__stat">' +
+      '<span class="admin-salon-row__stat-label">Bookings</span>' +
+      '<strong>' +
+      esc(u.booking_count) +
+      '</strong>' +
+      '</div>' +
+      '<div class="admin-salon-row__stat">' +
+      '<span class="admin-salon-row__stat-label">Collected</span>' +
+      '<strong>' +
+      fmtMoney(u.revenue_collected) +
+      '</strong>' +
+      '</div>' +
+      '<div class="admin-salon-row__sub">' +
+      subscriptionPill(u.subscription) +
+      '</div>' +
+      '<span class="admin-salon-row__arrow" aria-hidden="true">→</span>' +
       '</button>'
     );
   }
 
-  function renderSalonGrid(users, target, limit) {
+  function renderSalonList(users, target) {
     if (!target) return;
-    var list = (users || []).slice();
-    if (limit) list = list.slice(0, limit);
+    var list = users || [];
     if (!list.length) {
       target.innerHTML = '<p class="admin-muted">No salons found.</p>';
       return;
     }
-    target.innerHTML = list.map(salonCardHtml).join('');
+    target.innerHTML = list.map(salonRowHtml).join('');
   }
 
   function renderUsersTable(users) {
-    renderSalonGrid(users, els.salonsGrid);
-    renderSalonGrid(users, els.overviewSalons, 6);
+    renderSalonList(users, els.salonsGrid);
   }
 
   function renderBookingsTable(bookings) {
@@ -525,6 +585,48 @@
     );
   }
 
+  function renderSalonSummary(data) {
+    var rev = data.revenue_summary || {};
+    var a = data.analytics || {};
+    var sub = data.subscription || {};
+    var name = data.brand_name || 'Salon';
+    var img = data.image_url
+      ? '<img class="admin-salon-hero__img" src="' + esc(data.image_url) + '" alt="">'
+      : '<span class="admin-salon-hero__fallback">' + esc(salonInitials(name)) + '</span>';
+
+    return (
+      '<div class="admin-salon-hero admin-salon-hero--dash">' +
+      '<div class="admin-salon-hero__media">' +
+      img +
+      '</div><div class="admin-salon-hero__copy"><h3>' +
+      esc(name) +
+      '</h3><p class="admin-muted">' +
+      esc((data.profile && data.profile.email) || '') +
+      '</p>' +
+      (data.public_url
+        ? '<a class="admin-salon-link" href="' +
+          esc(data.public_url) +
+          '" target="_blank" rel="noopener">' +
+          esc(data.public_url) +
+          '</a>'
+        : '') +
+      '<div class="admin-salon-hero__sub">' +
+      subscriptionPill(sub) +
+      '</div></div></div>' +
+      statCards([
+        { label: 'Total revenue', value: fmtMoney(rev.gross) },
+        { label: 'Collected', value: fmtMoney(rev.collected) },
+        { label: 'Bookings', value: rev.booking_count || 0 },
+        { label: 'Clients', value: rev.unique_clients || 0 },
+        { label: 'Views (30d)', value: a.views_30d || 0 },
+        { label: 'Subscription', value: sub.plan_label || sub.status || '—', hint: sub.expires_date ? 'Renews ' + fmtDate(sub.expires_date) : '' },
+      ]) +
+      '<section class="admin-dash-card admin-dash-card--wide admin-salon-summary-bookings"><h4>Recent bookings</h4>' +
+      renderBookingsMiniTable((data.bookings || []).slice(0, 6)) +
+      '</section>'
+    );
+  }
+
   function renderSalonTab(data, tab) {
     var p = data.profile || {};
     var rev = data.revenue_summary || {};
@@ -532,57 +634,6 @@
     var stripe = data.stripe || {};
     var sub = data.subscription || {};
     var contact = data.contact || {};
-    var settings = data.site_settings || {};
-
-    if (tab === 'overview') {
-      var name = data.brand_name || 'Salon';
-      var img = data.image_url
-        ? '<img class="admin-salon-hero__img" src="' + esc(data.image_url) + '" alt="">'
-        : '<span class="admin-salon-hero__fallback">' + esc(salonInitials(name)) + '</span>';
-      var hero =
-        '<div class="admin-salon-hero admin-salon-hero--dash">' +
-        '<div class="admin-salon-hero__media">' +
-        img +
-        '</div><div class="admin-salon-hero__copy"><h3>' +
-        esc(name) +
-        '</h3><p class="admin-muted">' +
-        esc((data.profile && data.profile.email) || '') +
-        '</p>' +
-        (data.public_url
-          ? '<a class="admin-salon-link" href="' + esc(data.public_url) + '" target="_blank" rel="noopener">' + esc(data.public_url) + '</a>'
-          : '') +
-        '</div></div>';
-      return (
-        hero +
-        statCards([
-          { label: 'Total revenue', value: fmtMoney(rev.gross) },
-          { label: 'Collected', value: fmtMoney(rev.collected) },
-          { label: 'Pending', value: fmtMoney(rev.pending) },
-          { label: 'Bookings', value: rev.booking_count || 0 },
-          { label: 'Clients', value: rev.unique_clients || 0 },
-          { label: 'Site views (30d)', value: a.views_30d || 0 },
-          { label: 'Reviews', value: a.reviews_count || 0, hint: a.reviews_avg_rating ? a.reviews_avg_rating + '★ avg' : '' },
-          { label: 'Subscription', value: sub.status || 'unknown' },
-        ]) +
-        '<div class="admin-dash-grid">' +
-        '<section class="admin-dash-card"><h4>Revenue by month</h4>' +
-        barChartHtml(a.revenue_by_month, 'month', 'revenue', 12, function (v) {
-          return fmtMoney(v);
-        }) +
-        '</section>' +
-        '<section class="admin-dash-card"><h4>Top services</h4>' +
-        barChartHtml(a.top_services, 'name', 'revenue', 8, function (v, item) {
-          return fmtMoney(v) + ' (' + item.count + ')';
-        }) +
-        '</section>' +
-        '<section class="admin-dash-card admin-dash-card--wide"><h4>Site traffic — last 30 days</h4>' +
-        sparklineHtml(a.daily_views) +
-        '</section>' +
-        '<section class="admin-dash-card admin-dash-card--wide"><h4>Recent bookings</h4>' +
-        renderBookingsMiniTable((data.bookings || []).slice(0, 8)) +
-        '</section></div>'
-      );
-    }
 
     if (tab === 'analytics') {
       return (
@@ -721,6 +772,9 @@
         '<dt>Timezone</dt><dd>' +
         esc(contact.timezone || '—') +
         '</dd></dl></section>' +
+        '<section class="admin-dash-card"><h4>RevenueCat subscription</h4>' +
+        subscriptionDetailHtml(sub) +
+        '</section>' +
         '<section class="admin-dash-card"><h4>Stripe Connect</h4><dl class="admin-dl">' +
         '<dt>Charges</dt><dd>' +
         (stripe.charges_enabled ? 'Enabled' : 'No') +
@@ -855,18 +909,29 @@
     document.querySelectorAll('.admin-salon-tab').forEach(function (btn) {
       btn.classList.toggle('is-active', btn.getAttribute('data-salon-tab') === tab);
     });
-    if (els.salonViewBody && state.salonData) {
-      els.salonViewBody.innerHTML = renderSalonTab(state.salonData, tab);
+    if (els.salonTabPanel && state.salonData) {
+      els.salonTabPanel.innerHTML = renderSalonTab(state.salonData, tab);
     }
+  }
+
+  function renderSalonDashboard(data) {
+    if (els.salonSummary) {
+      els.salonSummary.innerHTML = renderSalonSummary(data);
+    }
+    setSalonTab(state.salonTab || 'analytics');
   }
 
   function openSalonDashboard(data) {
     state.salonData = data;
-    state.salonTab = 'overview';
+    state.salonTab = 'analytics';
     var name = data.brand_name || 'Salon';
     if (els.salonViewTitle) els.salonViewTitle.textContent = name;
     if (els.salonViewSub) {
-      els.salonViewSub.textContent = data.tagline || data.subdomain ? data.subdomain + '.styldd.com' : '';
+      var sub = data.subscription || {};
+      var subLine = sub.plan_label || sub.status || '';
+      els.salonViewSub.textContent =
+        (data.subdomain ? data.subdomain + '.styldd.com' : '') +
+        (subLine ? ' · ' + subLine : '');
     }
     if (els.salonViewLink) {
       if (data.public_url) {
@@ -876,7 +941,7 @@
         els.salonViewLink.hidden = true;
       }
     }
-    setSalonTab('overview');
+    renderSalonDashboard(data);
     if (els.salonView) {
       els.salonView.hidden = false;
       document.body.classList.add('admin-salon-open');
@@ -929,23 +994,6 @@
     var search = state.search;
 
     switch (tab) {
-      case 'overview':
-        promise = api('overview', {}, state.pin)
-          .then(function (data) {
-            state.overview = data;
-            renderKpis(data);
-          })
-          .then(function () {
-            if (state.users.length) {
-              renderSalonGrid(state.users, els.overviewSalons, 6);
-              return;
-            }
-            return api('users', { search: search }, state.pin).then(function (data) {
-              state.users = data.users || [];
-              renderSalonGrid(state.users, els.overviewSalons, 6);
-            });
-          });
-        break;
       case 'salons':
       case 'users':
         promise = api('users', { search: search }, state.pin).then(function (data) {
@@ -1112,15 +1160,13 @@
     }
 
     els = {
-      kpiGrid: $('admin-kpi-grid'),
-      subNote: $('admin-sub-note'),
       salonsGrid: $('admin-salons-grid'),
-      overviewSalons: $('admin-overview-salons'),
       salonView: $('admin-salon-view'),
       salonViewTitle: $('admin-salon-view-title'),
       salonViewSub: $('admin-salon-view-sub'),
       salonViewLink: $('admin-salon-view-link'),
-      salonViewBody: $('admin-salon-view-body'),
+      salonSummary: $('admin-salon-summary'),
+      salonTabPanel: $('admin-salon-tab-panel'),
       salonBack: $('admin-salon-back'),
       bookingsBody: $('admin-bookings-body'),
       clientsBody: $('admin-clients-body'),
