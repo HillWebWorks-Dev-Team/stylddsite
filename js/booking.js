@@ -61,6 +61,8 @@
   var paymentSection = document.getElementById('payment-section');
   var cancellationPolicySection = document.getElementById('cancellation-policy-section');
   var cancellationPolicyText = document.getElementById('cancellation-policy-text');
+  var sidebarCancellationPolicy = document.getElementById('side-cancellation-policy');
+  var sidebarCancellationPolicyText = document.getElementById('side-cancellation-policy-text');
 
   var viewMonth = DateTime.now().setZone(zone).startOf('month');
   var selectedDate = null;
@@ -255,6 +257,27 @@
     }
   }
 
+  function updateCancellationPolicyDisplay() {
+    var policy = window.__STYLD_CANCELLATION_POLICY__ || {};
+    var policySummary = policy.policySummary || policy.policy_summary || '';
+    var showPolicy = !!selectedStyle && !!policySummary;
+
+    if (sidebarCancellationPolicy) {
+      sidebarCancellationPolicy.classList.toggle('hidden', !showPolicy);
+      sidebarCancellationPolicy.setAttribute('aria-hidden', showPolicy ? 'false' : 'true');
+    }
+    if (sidebarCancellationPolicyText) {
+      sidebarCancellationPolicyText.textContent = policySummary;
+    }
+    if (cancellationPolicySection) {
+      cancellationPolicySection.classList.toggle('hidden', !showPolicy);
+      cancellationPolicySection.setAttribute('aria-hidden', showPolicy ? 'false' : 'true');
+    }
+    if (cancellationPolicyText) {
+      cancellationPolicyText.textContent = policySummary;
+    }
+  }
+
   function updatePricingDisplay() {
     if (!selectedStyle) return;
     var p = computePricing(selectedStyle);
@@ -284,16 +307,7 @@
       paymentSection.setAttribute('aria-hidden', showPayment ? 'false' : 'true');
     }
 
-    var policy = window.__STYLD_CANCELLATION_POLICY__ || {};
-    var policySummary = policy.policySummary || policy.policy_summary || '';
-    if (cancellationPolicySection) {
-      var showPolicy = showPayment && !!policySummary;
-      cancellationPolicySection.classList.toggle('hidden', !showPolicy);
-      cancellationPolicySection.setAttribute('aria-hidden', showPolicy ? 'false' : 'true');
-    }
-    if (cancellationPolicyText && policySummary) {
-      cancellationPolicyText.textContent = policySummary;
-    }
+    updateCancellationPolicyDisplay();
   }
 
   function currentDurationMinutes() {
@@ -520,6 +534,7 @@
       if (slotsContainer) slotsContainer.innerHTML = '';
       stopSlotsPoll();
       updateSelectedSummary();
+      updateCancellationPolicyDisplay();
       return;
     }
 

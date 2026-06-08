@@ -4159,7 +4159,7 @@ ul.price-menu__policy-list {
   background: transparent;
   min-height: 2.4rem;
   font-size: 1rem;
-  color: #15314f;
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -4168,22 +4168,22 @@ ul.price-menu__policy-list {
 }
 
 .booking-calendar__day.is-selected {
-  background: #111;
-  color: #fff;
+  background: var(--ink);
+  color: var(--cream, #fff);
   font-weight: 700;
 }
 
 .booking-calendar__day.is-today:not(.is-selected) {
-  box-shadow: inset 0 0 0 2px #111;
+  box-shadow: inset 0 0 0 2px var(--ink);
   border-radius: 8px;
 }
 
 .booking-calendar__day.is-outside {
-  color: rgba(22, 49, 79, 0.35);
+  color: var(--muted-soft, rgba(0, 0, 0, 0.35));
 }
 
 .booking-calendar__day.is-disabled {
-  color: rgba(22, 49, 79, 0.2);
+  color: var(--muted-soft, rgba(0, 0, 0, 0.2));
   cursor: not-allowed;
 }
 
@@ -4617,6 +4617,34 @@ ul.price-menu__policy-list {
   font-size: 0.85rem;
   color: var(--muted);
   margin: 1rem 0 0;
+}
+
+.pricing-sidebar-policy {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed rgba(184, 134, 11, 0.35);
+}
+
+.pricing-sidebar-policy__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pink-dark, var(--pink));
+}
+
+.pricing-sidebar-policy__text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+@media (min-width: 721px) {
+  #cancellation-policy-section {
+    display: none !important;
+  }
 }
 
 .booking-due-breakdown {
