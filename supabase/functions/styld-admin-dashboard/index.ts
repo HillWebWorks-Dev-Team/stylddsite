@@ -1,0 +1,696 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const ROOT_DOMAIN = Deno.env.get('STYLD_ROOT_DOMAIN') || 'styldd.com';
+const ADMIN_PIN = Deno.env.get('ADMIN_PIN') || '0000';
+
+const wrongPinAttempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_WRONG_PINS = 8;
+const LOCKOUT_MS = 15 * 60 * 1000;
+
+type Body = {
+  pin?: string;
+  action?: string;
+  filters?: Record<string, unknown>;
+};
+
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+function clientIp(req: Request) {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    'unknown'
+  );
+}
+
+function verifyPin(req: Request, pin: string | undefined) {
+  if (!pin || pin !== ADMIN_PIN) {
+    const ip = clientIp(req);
+    const now = Date.now();
+    const entry = wrongPinAttempts.get(ip) || { count: 0, resetAt: now + LOCKOUT_MS };
+    if (now > entry.resetAt) {
+      entry.count = 0;
+      entry.resetAt = now + LOCKOUT_MS;
+    }
+    entry.count += 1;
+    wrongPinAttempts.set(ip, entry);
+    if (entry.count >= MAX_WRONG_PINS) {
+      return { ok: false as const, locked: true, retryAfterMs: entry.resetAt - now };
+    }
+    return { ok: false as const, locked: false };
+  }
+  wrongPinAttempts.delete(clientIp(req));
+  return { ok: true as const };
+}
+
+function adminClient() {
+  const url = Deno.env.get('SUPABASE_URL')!;
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+function pickData(row: { data?: unknown }) {
+  const d = row?.data;
+  if (d && typeof d === 'object' && 'value' in (d as Record<string, unknown>)) {
+    return (d as { value: unknown }).value;
+  }
+  return d ?? null;
+}
+
+function bookingFields(data: Record<string, unknown> | null) {
+  if (!data || typeof data !== 'object') return {};
+  const d = data as Record<string, unknown>;
+  return {
+    id: d.id ?? null,
+    full_name: d.full_name ?? null,
+    email: d.email ?? null,
+    phone: d.phone ?? null,
+    style_id: d.style_id ?? null,
+    style_name: d.style_name ?? null,
+    service_address: d.service_address ?? null,
+    appointment_date: d.appointment_date ?? null,
+    appointment_slot: d.appointment_slot ?? null,
+    appointment_starts_at: d.appointment_starts_at ?? null,
+    duration_minutes: d.duration_minutes ?? null,
+    booking_status: d.booking_status ?? null,
+    payment_status: d.payment_status ?? null,
+    estimated_total: d.estimated_total ?? null,
+    deposit_amount: d.deposit_amount ?? null,
+    stripe_payment_intent_id: d.stripe_payment_intent_id ?? d.unit_payment_id ?? null,
+    photo_hair_path: d.photo_hair_path ?? d.current_hair_photo_path ?? null,
+    photo_ref_path: d.photo_ref_path ?? d.reference_photo_path ?? null,
+    notes: d.notes ?? null,
+    source: d.source ?? null,
+    google_calendar_id: d.google_calendar_id ?? null,
+    refund_status: d.refund_status ?? null,
+    refund_amount_cents: d.refund_amount_cents ?? null,
+    review_token: d.review_token ?? null,
+  };
+}
+
+async function safeTable<T>(
+  supabase: ReturnType<typeof adminClient>,
+  table: string,
+  build: (q: ReturnType<ReturnType<typeof adminClient>['from']>) => ReturnType<ReturnType<typeof adminClient>['from']>,
+): Promise<T[]> {
+  try {
+    const { data, error } = await build(supabase.from(table));
+    if (error) {
+      console.warn(`table ${table}:`, error.message);
+      return [];
+    }
+    return (data as T[]) || [];
+  } catch (e) {
+    console.warn(`table ${table} missing:`, e);
+    return [];
+  }
+}
+
+async function fetchRevenueCatStatus(userId: string) {
+  const key = Deno.env.get('REVENUECAT_SECRET_API_KEY');
+  if (!key) return { status: 'unknown', message: 'Configure REVENUECAT_SECRET_API_KEY' };
+  try {
+    const res = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!res.ok) return { status: 'error', message: `RevenueCat ${res.status}` };
+    const body = await res.json();
+    const entitlements = body?.subscriber?.entitlements || {};
+    const pro = entitlements.pro;
+    if (pro && pro.expires_date) {
+      const active = new Date(pro.expires_date) > new Date();
+      return {
+        status: active ? 'active' : 'expired',
+        product: pro.product_identifier ?? null,
+        expires_date: pro.expires_date,
+        store: pro.store ?? null,
+      };
+    }
+    return { status: 'none', product: null, expires_date: null, store: null };
+  } catch (e) {
+    return { status: 'error', message: String(e) };
+  }
+}
+
+async function loadAuthUsers(supabase: ReturnType<typeof adminClient>) {
+  const map = new Map<string, Record<string, unknown>>();
+  let page = 1;
+  const perPage = 1000;
+  while (page <= 20) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      console.warn('auth.admin.listUsers:', error.message);
+      break;
+    }
+    for (const u of data.users) {
+      const meta = (u.app_metadata || {}) as Record<string, unknown>;
+      map.set(u.id, {
+        last_sign_in_at: u.last_sign_in_at,
+        email_confirmed_at: u.email_confirmed_at,
+        provider: meta.provider ?? (Array.isArray(u.identities) && u.identities[0]?.provider) ?? null,
+        auth_created_at: u.created_at,
+      });
+    }
+    if (data.users.length < perPage) break;
+    page += 1;
+  }
+  return map;
+}
+
+async function actionOverview(supabase: ReturnType<typeof adminClient>) {
+  const [
+    profiles,
+    userSites,
+    bookings,
+    inquiries,
+    reviews,
+    stripeAccounts,
+  ] = await Promise.all([
+    safeTable<{ id: string }>(supabase, 'profiles', (q) => q.select('id')),
+    safeTable<{ user_id: string; published_at: string | null }>(supabase, 'styld_user_sites', (q) =>
+      q.select('user_id,published_at'),
+    ),
+    safeTable<{ user_id: string; data: unknown }>(supabase, 'styld_site_records', (q) =>
+      q.select('user_id,data').eq('record_type', 'booking'),
+    ),
+    safeTable(supabase, 'styld_site_records', (q) => q.select('id').eq('record_type', 'inquiry')),
+    safeTable(supabase, 'styld_site_records', (q) => q.select('id').eq('record_type', 'review')),
+    safeTable<{ charges_enabled: boolean | null }>(supabase, 'styld_stripe_accounts', (q) =>
+      q.select('charges_enabled'),
+    ),
+  ]);
+
+  const publishedSites = userSites.filter((s) => s.published_at).length;
+  const stripeLive = stripeAccounts.filter((s) => s.charges_enabled).length;
+
+  const clientKeys = new Set<string>();
+  const globalClients = new Set<string>();
+  for (const b of bookings) {
+    const d = pickData(b) as Record<string, unknown> | null;
+    const email = String(d?.email || '').toLowerCase().trim();
+    const phone = String(d?.phone || '').trim();
+    if (!email && !phone) continue;
+    const key = `${b.user_id}::${email}::${phone}`;
+    clientKeys.add(key);
+    globalClients.add(`${email}::${phone}`);
+  }
+
+  return {
+    total_stylists: profiles.length,
+    published_sites: publishedSites,
+    draft_sites: Math.max(0, profiles.length - publishedSites),
+    total_bookings: bookings.length,
+    unique_clients_per_stylist: clientKeys.size,
+    unique_clients_global: globalClients.size,
+    total_inquiries: inquiries.length,
+    total_reviews: reviews.length,
+    stripe_merchants_live: stripeLive,
+    subscriptions_note: Deno.env.get('REVENUECAT_SECRET_API_KEY')
+      ? 'RevenueCat configured — see Users tab'
+      : 'Subscription unknown — configure REVENUECAT_SECRET_API_KEY',
+  };
+}
+
+async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const search = String(filters.search || '')
+    .toLowerCase()
+    .trim();
+
+  const [profiles, userSites, subdomains, stripeRows, settingsRows, recordCounts, pushRows, pageViews, authMap] =
+    await Promise.all([
+      safeTable<Record<string, unknown>>(supabase, 'profiles', (q) =>
+        q.select('id,email,full_name,business_name,avatar_url,created_at,updated_at').order('created_at', {
+          ascending: false,
+        }),
+      ),
+      safeTable<Record<string, unknown>>(supabase, 'styld_user_sites', (q) =>
+        q.select('user_id,subdomain,published_at'),
+      ),
+      safeTable<Record<string, unknown>>(supabase, 'styld_site_subdomains', (q) =>
+        q.select('user_id,subdomain,published_at'),
+      ),
+      safeTable<Record<string, unknown>>(supabase, 'styld_stripe_accounts', (q) => q.select('*')),
+      safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+        q.select('user_id,record_type,record_key,data').eq('record_type', 'site_setting').in('record_key', [
+          'onboarding_state',
+          'onboarding_responses',
+          'site_publish',
+        ]),
+      ),
+      safeTable<{ user_id: string; record_type: string }>(supabase, 'styld_site_records', (q) =>
+        q.select('user_id,record_type').in('record_type', ['booking', 'inquiry', 'review']),
+      ),
+      safeTable<{ user_id: string }>(supabase, 'styld_push_tokens', (q) => q.select('user_id')),
+      safeTable<{ subdomain: string; created_at: string }>(supabase, 'styld_site_page_views', (q) =>
+        q.select('subdomain,created_at'),
+      ),
+      loadAuthUsers(supabase),
+    ]);
+
+  const analyticsEvents = await safeTable<{ subdomain: string; created_at: string }>(
+    supabase,
+    'styld_analytics_events',
+    (q) => q.select('subdomain,created_at'),
+  );
+  const views = analyticsEvents.length ? analyticsEvents : pageViews;
+
+  const siteByUser = new Map(userSites.map((s) => [String(s.user_id), s]));
+  const subByUser = new Map(subdomains.map((s) => [String(s.user_id), s]));
+  const stripeByUser = new Map(stripeRows.map((s) => [String(s.user_id), s]));
+
+  const settingsByUser = new Map<string, Record<string, unknown>>();
+  for (const row of settingsRows) {
+    const uid = String(row.user_id);
+    if (!settingsByUser.has(uid)) settingsByUser.set(uid, {});
+    settingsByUser.get(uid)![String(row.record_key)] = pickData(row);
+  }
+
+  const countsByUser = new Map<string, { bookings: number; inquiries: number; reviews: number }>();
+  for (const row of recordCounts) {
+    const uid = String(row.user_id);
+    if (!countsByUser.has(uid)) countsByUser.set(uid, { bookings: 0, inquiries: 0, reviews: 0 });
+    const c = countsByUser.get(uid)!;
+    if (row.record_type === 'booking') c.bookings += 1;
+    if (row.record_type === 'inquiry') c.inquiries += 1;
+    if (row.record_type === 'review') c.reviews += 1;
+  }
+
+  const pushCount = new Map<string, number>();
+  for (const row of pushRows) {
+    const uid = String(row.user_id);
+    pushCount.set(uid, (pushCount.get(uid) || 0) + 1);
+  }
+
+  const now = Date.now();
+  const ms7 = 7 * 86400000;
+  const ms30 = 30 * 86400000;
+  const viewsBySub7 = new Map<string, number>();
+  const viewsBySub30 = new Map<string, number>();
+  for (const v of views) {
+    const sub = String(v.subdomain || '');
+    const t = new Date(v.created_at).getTime();
+    if (now - t <= ms7) viewsBySub7.set(sub, (viewsBySub7.get(sub) || 0) + 1);
+    if (now - t <= ms30) viewsBySub30.set(sub, (viewsBySub30.get(sub) || 0) + 1);
+  }
+
+  let users = profiles.map((p) => {
+    const uid = String(p.id);
+    const site = siteByUser.get(uid) || subByUser.get(uid) || {};
+    const subdomain = String(site.subdomain || '');
+    const settings = settingsByUser.get(uid) || {};
+    const onboardingState = (settings.onboarding_state || {}) as Record<string, unknown>;
+    const sitePublish = (settings.site_publish || {}) as Record<string, unknown>;
+    const stripe = stripeByUser.get(uid) || {};
+    const auth = authMap.get(uid) || {};
+    const counts = countsByUser.get(uid) || { bookings: 0, inquiries: 0, reviews: 0 };
+
+    return {
+      user_id: uid,
+      email: p.email,
+      full_name: p.full_name,
+      business_name: p.business_name,
+      avatar_url: p.avatar_url,
+      created_at: p.created_at,
+      updated_at: p.updated_at,
+      last_sign_in_at: auth.last_sign_in_at ?? null,
+      email_confirmed_at: auth.email_confirmed_at ?? null,
+      provider: auth.provider ?? null,
+      subdomain,
+      published_at: site.published_at ?? null,
+      public_url: subdomain ? `https://${subdomain}.${ROOT_DOMAIN}` : null,
+      onboarding_completed: !!onboardingState.completed,
+      onboarding_responses_saved: !!settings.onboarding_responses,
+      site_published: !!(sitePublish.published ?? site.published_at),
+      stripe: {
+        onboarding_complete: stripe.onboarding_complete ?? null,
+        charges_enabled: stripe.charges_enabled ?? null,
+        payouts_enabled: stripe.payouts_enabled ?? null,
+        balance_available_cents: stripe.balance_available_cents ?? null,
+        balance_pending_cents: stripe.balance_pending_cents ?? null,
+      },
+      push_tokens: pushCount.get(uid) || 0,
+      booking_count: counts.bookings,
+      inquiry_count: counts.inquiries,
+      review_count: counts.reviews,
+      page_views_7d: viewsBySub7.get(subdomain) || 0,
+      page_views_30d: viewsBySub30.get(subdomain) || 0,
+      subscription: { status: 'pending' as const },
+    };
+  });
+
+  if (search) {
+    users = users.filter((u) => {
+      const hay = [u.email, u.full_name, u.business_name, u.subdomain].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(search);
+    });
+  }
+
+  const rcKey = Deno.env.get('REVENUECAT_SECRET_API_KEY');
+  if (rcKey && users.length <= 50) {
+    await Promise.all(
+      users.map(async (u) => {
+        u.subscription = (await fetchRevenueCatStatus(u.user_id)) as typeof u.subscription;
+      }),
+    );
+  } else if (!rcKey) {
+    users.forEach((u) => {
+      u.subscription = { status: 'unknown', message: 'Configure REVENUECAT_SECRET_API_KEY' } as typeof u.subscription;
+    });
+  }
+
+  return { users };
+}
+
+async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const userId = String(filters.user_id || '');
+  if (!userId) return { error: 'user_id required' };
+
+  const [profile, settings, bookings, inquiries, reviews, blocks, covers, stripe, push, cancels, subscription] =
+    await Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+      safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+        q.select('*').eq('user_id', userId).eq('record_type', 'site_setting'),
+      ),
+      safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+        q.select('*').eq('user_id', userId).eq('record_type', 'booking').order('created_at', { ascending: false }).limit(200),
+      ),
+      safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+        q.select('*').eq('user_id', userId).eq('record_type', 'inquiry').order('created_at', { ascending: false }).limit(100),
+      ),
+      safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+        q.select('*').eq('user_id', userId).eq('record_type', 'review').order('created_at', { ascending: false }).limit(100),
+      ),
+      safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+        q.select('*').eq('user_id', userId).eq('record_type', 'blocked_interval'),
+      ),
+      safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+        q.select('*').eq('user_id', userId).eq('record_type', 'style_cover_image'),
+      ),
+      supabase.from('styld_stripe_accounts').select('*').eq('user_id', userId).maybeSingle(),
+      safeTable<Record<string, unknown>>(supabase, 'styld_push_tokens', (q) => q.select('*').eq('user_id', userId)),
+      safeTable<Record<string, unknown>>(supabase, 'styld_cancellation_events', (q) =>
+        q.select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
+      ),
+      fetchRevenueCatStatus(userId),
+    ]);
+
+  const siteSettings: Record<string, unknown> = {};
+  for (const row of settings) {
+    siteSettings[String(row.record_key)] = pickData(row);
+  }
+
+  return {
+    profile: profile.data,
+    site_settings: siteSettings,
+    bookings: bookings.map((b) => ({
+      id: b.id,
+      created_at: b.created_at,
+      updated_at: b.updated_at,
+      ...bookingFields(pickData(b) as Record<string, unknown>),
+    })),
+    inquiries: inquiries.map((r) => ({ id: r.id, created_at: r.created_at, data: pickData(r) })),
+    reviews: reviews.map((r) => ({ id: r.id, created_at: r.created_at, data: pickData(r) })),
+    blocked_intervals: blocks.map((r) => ({ id: r.id, data: pickData(r) })),
+    style_covers: covers.map((r) => ({ id: r.id, record_key: r.record_key, data: pickData(r) })),
+    stripe: stripe.data,
+    push_tokens: push,
+    cancellations: cancels,
+    subscription,
+  };
+}
+
+async function actionBookings(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const search = String(filters.search || '').toLowerCase().trim();
+  const limit = Math.min(Number(filters.limit) || 500, 1000);
+
+  const rows = await safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+    q
+      .select('id,user_id,created_at,updated_at,data')
+      .eq('record_type', 'booking')
+      .order('created_at', { ascending: false })
+      .limit(limit),
+  );
+
+  let bookings = rows.map((b) => ({
+    row_id: b.id,
+    user_id: b.user_id,
+    created_at: b.created_at,
+    updated_at: b.updated_at,
+    ...bookingFields(pickData(b) as Record<string, unknown>),
+  }));
+
+  if (search) {
+    bookings = bookings.filter((b) => {
+      const hay = [b.full_name, b.email, b.phone, b.style_name, b.id, b.user_id].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(search);
+    });
+  }
+
+  return { bookings };
+}
+
+async function actionClients(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const search = String(filters.search || '').toLowerCase().trim();
+  const rows = await safeTable<{ user_id: string; data: unknown }>(supabase, 'styld_site_records', (q) =>
+    q.select('user_id,data').eq('record_type', 'booking'),
+  );
+
+  const map = new Map<
+    string,
+    {
+      user_id: string;
+      client_name: string;
+      email: string;
+      phone: string;
+      booking_count: number;
+      last_booking_at: string | null;
+      total_spend: number;
+    }
+  >();
+
+  for (const row of rows) {
+    const d = pickData(row) as Record<string, unknown> | null;
+    const email = String(d?.email || '').trim();
+    const phone = String(d?.phone || '').trim();
+    const name = String(d?.full_name || '').trim();
+    const key = `${row.user_id}::${email.toLowerCase()}::${phone}`;
+    const existing = map.get(key);
+    const total = Number(d?.estimated_total) || 0;
+    const appt = String(d?.appointment_starts_at || '');
+    if (!existing) {
+      map.set(key, {
+        user_id: String(row.user_id),
+        client_name: name,
+        email,
+        phone,
+        booking_count: 1,
+        last_booking_at: appt || null,
+        total_spend: total,
+      });
+    } else {
+      existing.booking_count += 1;
+      existing.total_spend += total;
+      if (appt && (!existing.last_booking_at || appt > existing.last_booking_at)) {
+        existing.last_booking_at = appt;
+      }
+    }
+  }
+
+  let clients = [...map.values()];
+  if (search) {
+    clients = clients.filter((c) => {
+      const hay = [c.client_name, c.email, c.phone, c.user_id].join(' ').toLowerCase();
+      return hay.includes(search);
+    });
+  }
+  clients.sort((a, b) => b.booking_count - a.booking_count);
+  return { clients };
+}
+
+async function actionCancellations(supabase: ReturnType<typeof adminClient>) {
+  const rows = await safeTable<Record<string, unknown>>(supabase, 'styld_cancellation_events', (q) =>
+    q.select('*').order('created_at', { ascending: false }).limit(500),
+  );
+  return { cancellations: rows };
+}
+
+async function actionInquiries(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const search = String(filters.search || '').toLowerCase().trim();
+  const rows = await safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+    q.select('id,user_id,created_at,data').eq('record_type', 'inquiry').order('created_at', { ascending: false }).limit(500),
+  );
+  let inquiries = rows.map((r) => ({
+    id: r.id,
+    user_id: r.user_id,
+    created_at: r.created_at,
+    data: pickData(r),
+  }));
+  if (search) {
+    inquiries = inquiries.filter((r) => JSON.stringify(r.data).toLowerCase().includes(search));
+  }
+  return { inquiries };
+}
+
+async function actionReviews(supabase: ReturnType<typeof adminClient>) {
+  const rows = await safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+    q.select('id,user_id,created_at,data').eq('record_type', 'review').order('created_at', { ascending: false }).limit(500),
+  );
+  return {
+    reviews: rows.map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      created_at: r.created_at,
+      data: pickData(r),
+    })),
+  };
+}
+
+async function actionOnboarding(supabase: ReturnType<typeof adminClient>) {
+  const rows = await safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+    q
+      .select('id,user_id,created_at,data')
+      .eq('record_type', 'site_setting')
+      .eq('record_key', 'onboarding_responses')
+      .order('created_at', { ascending: false }),
+  );
+  return {
+    responses: rows.map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      created_at: r.created_at,
+      value: pickData(r),
+    })),
+  };
+}
+
+async function actionAnalytics(supabase: ReturnType<typeof adminClient>) {
+  const events = await safeTable<Record<string, unknown>>(supabase, 'styld_analytics_events', (q) =>
+    q.select('subdomain,path,referrer,device_type,session_id,created_at').order('created_at', { ascending: false }).limit(5000),
+  );
+
+  if (events.length) {
+    const bySub = new Map<string, number>();
+    const byPath = new Map<string, number>();
+    const byDevice = new Map<string, number>();
+    for (const e of events) {
+      const sub = String(e.subdomain || '(unknown)');
+      bySub.set(sub, (bySub.get(sub) || 0) + 1);
+      const path = String(e.path || '/');
+      byPath.set(path, (byPath.get(path) || 0) + 1);
+      const dev = String(e.device_type || 'unknown');
+      byDevice.set(dev, (byDevice.get(dev) || 0) + 1);
+    }
+    return {
+      source: 'styld_analytics_events',
+      total_events: events.length,
+      by_subdomain: [...bySub.entries()].map(([subdomain, views]) => ({ subdomain, views })).sort((a, b) => b.views - a.views),
+      top_paths: [...byPath.entries()].map(([path, views]) => ({ path, views })).sort((a, b) => b.views - a.views).slice(0, 20),
+      by_device: [...byDevice.entries()].map(([device_type, views]) => ({ device_type, views })),
+    };
+  }
+
+  const views = await safeTable<Record<string, unknown>>(supabase, 'styld_site_page_views', (q) =>
+    q.select('subdomain,path,referrer,page_type,created_at').order('created_at', { ascending: false }).limit(5000),
+  );
+  const bySub = new Map<string, number>();
+  const byPath = new Map<string, number>();
+  for (const v of views) {
+    const sub = String(v.subdomain || '(unknown)');
+    bySub.set(sub, (bySub.get(sub) || 0) + 1);
+    const path = String(v.path || '/');
+    byPath.set(path, (byPath.get(path) || 0) + 1);
+  }
+  return {
+    source: 'styld_site_page_views',
+    total_events: views.length,
+    by_subdomain: [...bySub.entries()].map(([subdomain, views]) => ({ subdomain, views })).sort((a, b) => b.views - a.views),
+    top_paths: [...byPath.entries()].map(([path, views]) => ({ path, views })).sort((a, b) => b.views - a.views).slice(0, 20),
+    by_device: [],
+  };
+}
+
+async function actionExport(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const type = String(filters.type || 'bookings');
+  if (type === 'onboarding') {
+    const data = await actionOnboarding(supabase);
+    return data;
+  }
+  return actionBookings(supabase, { ...filters, limit: 2000 });
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+  if (req.method !== 'POST') {
+    return json({ error: 'Method not allowed' }, 405);
+  }
+
+  let body: Body;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  const pinCheck = verifyPin(req, body.pin);
+  if (!pinCheck.ok) {
+    return json(
+      {
+        error: pinCheck.locked ? 'Too many attempts. Try again later.' : 'Invalid PIN',
+        locked: !!pinCheck.locked,
+        retryAfterMs: pinCheck.locked ? pinCheck.retryAfterMs : undefined,
+      },
+      pinCheck.locked ? 429 : 401,
+    );
+  }
+
+  const supabase = adminClient();
+  const action = String(body.action || 'overview');
+  const filters = body.filters || {};
+
+  try {
+    switch (action) {
+      case 'overview':
+        return json(await actionOverview(supabase));
+      case 'users':
+        return json(await actionUsers(supabase, filters));
+      case 'user_detail':
+        return json(await actionUserDetail(supabase, filters));
+      case 'bookings':
+        return json(await actionBookings(supabase, filters));
+      case 'clients':
+        return json(await actionClients(supabase, filters));
+      case 'cancellations':
+        return json(await actionCancellations(supabase));
+      case 'inquiries':
+        return json(await actionInquiries(supabase, filters));
+      case 'reviews':
+        return json(await actionReviews(supabase));
+      case 'onboarding':
+        return json(await actionOnboarding(supabase));
+      case 'analytics':
+        return json(await actionAnalytics(supabase));
+      case 'export':
+        return json(await actionExport(supabase, filters));
+      default:
+        return json({ error: `Unknown action: ${action}` }, 400);
+    }
+  } catch (e) {
+    console.error(e);
+    return json({ error: String(e) }, 500);
+  }
+});

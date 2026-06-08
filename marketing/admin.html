@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Styld Admin</title>
+  <link rel="icon" href="/assets/styld-icon.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/marketing/admin.css?v=1">
+</head>
+<body class="admin-page">
+  <div class="admin-shell">
+    <header class="admin-topbar">
+      <div class="admin-brand">
+        <img src="/assets/styld-icon.png" width="28" height="28" alt="">
+        <div>
+          <span>Styld</span>
+          <small>Internal admin</small>
+        </div>
+      </div>
+      <div class="admin-toolbar">
+        <input type="search" id="admin-search" class="admin-search" placeholder="Search (Enter)" aria-label="Search current tab">
+        <button type="button" id="admin-refresh" class="admin-btn">Refresh</button>
+        <button type="button" id="admin-export-bookings" class="admin-btn admin-btn--ghost">Export bookings</button>
+        <button type="button" id="admin-export-onboarding" class="admin-btn admin-btn--ghost">Export onboarding</button>
+        <button type="button" id="admin-logout" class="admin-btn admin-btn--accent">Sign out</button>
+      </div>
+    </header>
+
+    <nav class="admin-nav" aria-label="Admin sections">
+      <button type="button" class="admin-tab is-active" data-tab="overview">Overview</button>
+      <button type="button" class="admin-tab" data-tab="users">Stylists</button>
+      <button type="button" class="admin-tab" data-tab="bookings">Bookings</button>
+      <button type="button" class="admin-tab" data-tab="clients">Clients</button>
+      <button type="button" class="admin-tab" data-tab="cancellations">Cancellations</button>
+      <button type="button" class="admin-tab" data-tab="inquiries">Inquiries</button>
+      <button type="button" class="admin-tab" data-tab="reviews">Reviews</button>
+      <button type="button" class="admin-tab" data-tab="onboarding">Onboarding</button>
+      <button type="button" class="admin-tab" data-tab="analytics">Analytics</button>
+    </nav>
+
+    <main class="admin-main">
+      <p id="admin-status" class="admin-status" role="status"></p>
+
+      <section class="admin-panel" data-panel="overview">
+        <div id="admin-kpi-grid" class="admin-kpi-grid"></div>
+        <p id="admin-sub-note" class="admin-muted"></p>
+      </section>
+
+      <section class="admin-panel" data-panel="users" hidden>
+        <div class="admin-panel-head"><h2>Stylists</h2></div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Name / email</th>
+                <th>Subdomain</th>
+                <th>Published</th>
+                <th>Onboarded</th>
+                <th>Bookings</th>
+                <th>Views 30d</th>
+                <th>Stripe</th>
+                <th>Sub</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-panel" data-panel="bookings" hidden>
+        <div class="admin-panel-head"><h2>All bookings</h2></div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Created</th>
+                <th>ID</th>
+                <th>Client</th>
+                <th>Service</th>
+                <th>Appointment</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th>Total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="admin-bookings-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-panel" data-panel="clients" hidden>
+        <div class="admin-panel-head"><h2>Clients (from bookings)</h2></div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Stylist</th>
+                <th>Bookings</th>
+                <th>Spend</th>
+                <th>Last booking</th>
+              </tr>
+            </thead>
+            <tbody id="admin-clients-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-panel" data-panel="cancellations" hidden>
+        <div class="admin-panel-head"><h2>Cancellations &amp; refunds</h2></div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Booking</th>
+                <th>By</th>
+                <th>Refund status</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody id="admin-cancellations-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-panel" data-panel="inquiries" hidden>
+        <div class="admin-panel-head"><h2>Inquiries</h2></div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr><th>When</th><th>Stylist</th><th>Message</th></tr>
+            </thead>
+            <tbody id="admin-inquiries-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-panel" data-panel="reviews" hidden>
+        <div class="admin-panel-head"><h2>Reviews</h2></div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr><th>When</th><th>Stylist</th><th>Review</th></tr>
+            </thead>
+            <tbody id="admin-reviews-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-panel" data-panel="onboarding" hidden>
+        <div class="admin-panel-head"><h2>Onboarding responses</h2></div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr><th>When</th><th>Stylist</th><th>Summary</th></tr>
+            </thead>
+            <tbody id="admin-onboarding-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-panel" data-panel="analytics" hidden>
+        <div class="admin-panel-head"><h2>Site analytics</h2></div>
+        <div id="admin-analytics-panel"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="admin-drawer" class="admin-drawer" hidden>
+    <div class="admin-drawer__panel">
+      <div class="admin-drawer__head">
+        <h2 id="admin-drawer-title">Detail</h2>
+        <button type="button" class="admin-btn admin-btn--ghost" data-drawer-close>Close</button>
+      </div>
+      <div id="admin-drawer-body" class="admin-drawer__body"></div>
+    </div>
+  </div>
+
+  <script src="/js/marketing-config.js?v=1"></script>
+  <script src="/marketing/admin.js?v=1"></script>
+</body>
+</html>

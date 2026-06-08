@@ -39,6 +39,12 @@ export default function middleware(request) {
     return;
   }
 
+  if (!isRootHost(host)) {
+    if (url.pathname.startsWith('/marketing/admin')) {
+      return new Response('Not found', { status: 404 });
+    }
+  }
+
   if (isRootHost(host)) {
     if (url.pathname.startsWith('/marketing/')) {
       return;

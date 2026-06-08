@@ -7,7 +7,8 @@
   <title>Styld — CRM for Salons &amp; Braiders</title>
   <link rel="icon" href="/assets/styld-icon.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/styld-icon.png">
-  <link rel="stylesheet" href="/marketing/styles.css?v=47">
+  <link rel="stylesheet" href="/marketing/styles.css?v=48">
+  <link rel="stylesheet" href="/marketing/admin.css?v=1">
   <link rel="stylesheet" href="../css/hero-effects.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -570,16 +571,33 @@
           <strong>App Store</strong>
         </span>
       </button>
-      <p class="copy">&copy; 2026 Styld</p>
+      <p class="copy">&copy; 2026 Styld · <button type="button" id="footer-admin-btn" class="footer-admin-link">Admin</button></p>
     </div>
   </footer>
 
+  <div id="admin-pin-overlay" class="admin-pin-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="admin-pin-title">
+    <div class="admin-pin-card">
+      <h2 id="admin-pin-title">Admin access</h2>
+      <p>Enter your PIN to open the internal dashboard.</p>
+      <form id="admin-pin-form">
+        <input id="admin-pin-input" class="admin-pin-input" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="PIN" aria-label="Admin PIN">
+        <p id="admin-pin-error" class="admin-pin-error" role="alert"></p>
+        <div class="admin-pin-actions">
+          <button type="button" id="admin-pin-cancel" class="admin-btn admin-btn--ghost">Cancel</button>
+          <button type="submit" class="admin-btn admin-btn--accent">Continue</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/marketing-config.js?v=1"></script>
   <script src="/js/vercel-analytics.bundle.js" defer></script>
   <script src="/marketing/marquee.js?v=1" defer></script>
   <script src="/marketing/hero-parallax.js?v=1" defer></script>
   <script src="/marketing/scroll-reveal.js?v=3"></script>
   <script src="/marketing/media-carousel.js?v=2" defer></script>
   <script src="/marketing/screenshot-explorer.js?v=2" defer></script>
+  <script src="/marketing/admin-access.js?v=1" defer></script>
   <script src="../js/hero-effects.js"></script>
   <script>
     (function () {
