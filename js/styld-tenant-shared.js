@@ -257,7 +257,22 @@
           ? 'Online deposits are fully refunded'
           : appliesTo === 'full'
             ? 'Full online payments are fully refunded'
-            : 'Online deposits and full payments are fully refunded';
+            : appliesTo === 'deposit_non_refundable' ||
+                appliesTo === 'deposits_non_refundable' ||
+                appliesTo === 'deposits-non-refundable'
+              ? 'All deposits are non-refundable. Full online payments are fully refunded'
+              : appliesTo === 'no_online_refunds' ||
+                  appliesTo === 'none' ||
+                  appliesTo === 'no-refunds'
+                ? 'Deposits and full online payments are non-refundable. You may still cancel online anytime before your appointment'
+                : 'Online deposits and full payments are fully refunded';
+      if (
+        appliesTo === 'no_online_refunds' ||
+        appliesTo === 'none' ||
+        appliesTo === 'no-refunds'
+      ) {
+        return scope + '.';
+      }
       return (
         'You may cancel online anytime before your appointment. ' +
         scope +

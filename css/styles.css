@@ -4654,6 +4654,20 @@ ul.price-menu__policy-list {
   border-top: 1px dashed rgba(184, 134, 11, 0.35);
 }
 
+.booking-deposit-pricing {
+  margin-top: 0.75rem;
+}
+
+.booking-deposit-pricing p {
+  margin: 0.45rem 0;
+}
+
+.booking-deposit-separate-note {
+  margin-top: 0.65rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 .booking-due-breakdown p {
   margin: 0.35rem 0;
 }

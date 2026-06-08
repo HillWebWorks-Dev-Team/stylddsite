@@ -221,13 +221,24 @@
 
   function updateDueBreakdown(p) {
     var showDue = p.deposit > 0;
+    var isDepositMode = p.mode === 'deposit' && p.deposit > 0;
     var lineBreakdown = document.getElementById('line-due-breakdown');
     var sideBreakdown = document.getElementById('side-due-breakdown');
+    var lineDepositPricing = document.getElementById('line-deposit-pricing');
+    var sideDepositPricing = document.getElementById('side-deposit-pricing');
     var lineBalanceWrap = document.getElementById('line-balance-wrap');
     var sideBalanceWrap = document.getElementById('side-balance-wrap');
+    var lineEstimatedWrap = document.getElementById('line-estimated-total-wrap');
+    var sideEstimatedWrap = document.getElementById('side-estimated-total-wrap');
+    var lineSeparateNote = document.getElementById('line-deposit-separate-note');
+    var sideSeparateNote = document.getElementById('side-deposit-separate-note');
 
     if (lineBreakdown) lineBreakdown.hidden = !showDue;
     if (sideBreakdown) sideBreakdown.hidden = !showDue;
+    if (lineDepositPricing) lineDepositPricing.hidden = !isDepositMode;
+    if (sideDepositPricing) sideDepositPricing.hidden = !isDepositMode;
+    if (lineEstimatedWrap) lineEstimatedWrap.hidden = isDepositMode;
+    if (sideEstimatedWrap) sideEstimatedWrap.hidden = isDepositMode;
 
     function setText(id, value) {
       var el = document.getElementById(id);
@@ -249,9 +260,11 @@
     setText('side-total-due', moneyPrecise(p.totalDue));
     setText('pay-total-due-preview', moneyPrecise(p.totalDue));
 
-    var showBalance = p.mode === 'deposit' && p.balanceDue > 0;
+    var showBalance = isDepositMode && p.balanceDue > 0;
     if (lineBalanceWrap) lineBalanceWrap.hidden = !showBalance;
     if (sideBalanceWrap) sideBalanceWrap.hidden = !showBalance;
+    if (lineSeparateNote) lineSeparateNote.hidden = !showBalance;
+    if (sideSeparateNote) sideSeparateNote.hidden = !showBalance;
     if (showBalance) {
       setText('line-balance-due', moneyPrecise(p.balanceDue));
       setText('side-balance-due', moneyPrecise(p.balanceDue));
