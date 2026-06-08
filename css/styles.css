@@ -5551,10 +5551,28 @@ ul.price-menu__policy-list {
 }
 
 .manage-booking-greeting {
-  margin: 0 0 1.25rem;
+  margin: 0 0 1rem;
   font-size: 1rem;
   line-height: 1.55;
   color: var(--ink);
+}
+
+.manage-booking-policy,
+.cancellation-policy-text {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.manage-booking-refund-hint {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ink);
+  border: 1px solid var(--review-card-border, rgba(0, 0, 0, 0.1));
 }
 
 .manage-booking-details {

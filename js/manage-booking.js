@@ -5,6 +5,7 @@
   var contact = (params.get('contact') || '').trim();
   var clientName = (params.get('name') || '').trim();
   var booking = null;
+  var cancelContext = null;
 
   var errorEl = document.getElementById('manage-booking-error');
   var successEl = document.getElementById('manage-booking-success');
@@ -13,6 +14,8 @@
   var rebookBtn = document.getElementById('manage-rebook-btn');
   var actionsEl = document.getElementById('manage-booking-actions');
   var statusEl = document.getElementById('manage-booking-status');
+  var policyEl = document.getElementById('manage-booking-policy');
+  var refundHintEl = document.getElementById('manage-booking-refund-hint');
 
   function getSubdomain() {
     if (window.StyldTenant && window.StyldTenant.getSubdomain) {
@@ -44,6 +47,30 @@
         if (!res.ok) {
           var msg =
             (payload && (payload.message || payload.error || payload.hint)) || 'Request failed';
+          throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+        }
+        return payload;
+      });
+    });
+  }
+
+  function edgeFunction(name, body) {
+    if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) {
+      return Promise.reject(new Error('This site is not configured yet.'));
+    }
+    return fetch(cfg.supabaseUrl.replace(/\/$/, '') + '/functions/v1/' + name, {
+      method: 'POST',
+      headers: {
+        apikey: cfg.supabaseAnonKey,
+        Authorization: 'Bearer ' + cfg.supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    }).then(function (res) {
+      return res.json().then(function (payload) {
+        if (!res.ok) {
+          var msg =
+            (payload && (payload.error || payload.message)) || 'Request failed';
           throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
         }
         return payload;
@@ -143,12 +170,63 @@
     document.title = brand + ' | Your appointment';
   }
 
-  function renderBooking(data) {
+  function normalizeCancelContext(result) {
+    if (!result || typeof result !== 'object') return null;
+
+    var ctx = {
+      can_cancel:
+        result.can_cancel != null
+          ? !!result.can_cancel
+          : result.canCancel != null
+            ? !!result.canCancel
+            : true,
+      qualifies_for_refund:
+        result.qualifies_for_refund != null
+          ? !!result.qualifies_for_refund
+          : result.qualifiesForRefund != null
+            ? !!result.qualifiesForRefund
+            : false,
+      policy_summary: result.policy_summary || result.policySummary || '',
+      cancel_blocked_reason: result.cancel_blocked_reason || result.cancelBlockedReason || '',
+    };
+
+    var bookingData;
+    if (result.booking && typeof result.booking === 'object') {
+      bookingData = result.booking;
+    } else {
+      bookingData = Object.assign({}, result);
+      [
+        'can_cancel',
+        'canCancel',
+        'qualifies_for_refund',
+        'qualifiesForRefund',
+        'policy_summary',
+        'policySummary',
+        'cancel_blocked_reason',
+        'cancelBlockedReason',
+        'booking',
+      ].forEach(function (key) {
+        delete bookingData[key];
+      });
+    }
+
+    if (!bookingData || typeof bookingData !== 'object' || !bookingData.id) {
+      return null;
+    }
+
+    ctx.booking = bookingData;
+    return ctx;
+  }
+
+  function renderBooking(data, context) {
+    cancelContext = context || cancelContext;
     booking = data || {};
     hideMessages();
     if (contentWrap) contentWrap.hidden = false;
 
     var cancelled = isCancelledStatus(booking.booking_status);
+    var canCancel = cancelContext && cancelContext.can_cancel === true && !cancelled;
+    var qualifiesForRefund = cancelContext && cancelContext.qualifies_for_refund === true;
     var displayName = booking.full_name || clientName || 'there';
     var greeting = cancelled
       ? 'Hi ' + displayName + ', this appointment has been cancelled.'
@@ -178,39 +256,98 @@
 
     var lead = document.getElementById('manage-booking-lead');
     if (lead) {
-      lead.textContent = cancelled
-        ? 'This appointment is no longer on the schedule.'
-        : 'Review your booking below. You can cancel here if your plans change.';
+      if (cancelled) {
+        lead.textContent = 'This appointment is no longer on the schedule.';
+      } else if (canCancel) {
+        lead.textContent = 'You can cancel online anytime before your appointment. Refunds depend on the policy below.';
+      } else if (cancelContext && cancelContext.cancel_blocked_reason) {
+        lead.textContent = cancelContext.cancel_blocked_reason;
+      } else {
+        lead.textContent = 'This appointment can no longer be changed online.';
+      }
     }
 
-    if (cancelBtn) cancelBtn.hidden = cancelled;
+    var policySummary =
+      (cancelContext && cancelContext.policy_summary) ||
+      ((window.__STYLD_CANCELLATION_POLICY__ || {}).policySummary) ||
+      ((window.__STYLD_CANCELLATION_POLICY__ || {}).policy_summary) ||
+      '';
+    if (policyEl) {
+      if (policySummary && !cancelled) {
+        policyEl.hidden = false;
+        policyEl.textContent = policySummary;
+      } else {
+        policyEl.hidden = true;
+        policyEl.textContent = '';
+      }
+    }
+
+    if (refundHintEl) {
+      if (canCancel && !qualifiesForRefund) {
+        refundHintEl.hidden = false;
+        refundHintEl.textContent =
+          'You can still cancel, but no refund applies under the current cancellation policy.';
+      } else {
+        refundHintEl.hidden = true;
+        refundHintEl.textContent = '';
+      }
+    }
+
+    if (cancelBtn) {
+      cancelBtn.hidden = !canCancel;
+      cancelBtn.disabled = false;
+    }
     if (rebookBtn) rebookBtn.hidden = !cancelled;
-    if (actionsEl && cancelled && rebookBtn) {
-      actionsEl.classList.toggle('manage-booking-actions--cancelled', true);
+    if (actionsEl) {
+      actionsEl.classList.toggle('manage-booking-actions--cancelled', cancelled);
     }
   }
 
-  function lookupBooking(subdomain) {
-    return rpc('styld_tenant_lookup_booking', {
+  function loadCancelContext(subdomain) {
+    return rpc('styld_tenant_get_cancel_context', {
       p_subdomain: subdomain,
       p_booking_id: bookingId.toLowerCase(),
       p_contact: contact,
     }).then(function (result) {
-      if (!result || typeof result !== 'object') {
+      var context = normalizeCancelContext(result);
+      if (!context) {
         throw new Error(
           'We could not find this appointment. Check that you opened the full link from your email.',
         );
       }
-      return result;
+      return context;
     });
   }
 
   function cancelBooking(subdomain) {
-    return rpc('styld_tenant_cancel_booking', {
-      p_subdomain: subdomain,
-      p_booking_id: bookingId.toLowerCase(),
-      p_contact: contact,
+    return edgeFunction('booking-cancel', {
+      bookingId: bookingId.toLowerCase(),
+      subdomain: subdomain,
+      contact: contact,
+      cancelledBy: 'client',
     });
+  }
+
+  function buildConfirmMessage() {
+    var qualifiesForRefund = cancelContext && cancelContext.qualifies_for_refund === true;
+    if (qualifiesForRefund) {
+      return 'Cancel this appointment? Your payment will be refunded according to the cancellation policy.';
+    }
+    return 'Cancel this appointment? No refund applies under the current cancellation policy.';
+  }
+
+  function buildSuccessMessage(payload) {
+    var refunded =
+      payload &&
+      (payload.refunded === true ||
+        payload.refund_issued === true ||
+        payload.refundIssued === true ||
+        payload.qualifies_for_refund === true ||
+        payload.qualifiesForRefund === true);
+    if (refunded || (cancelContext && cancelContext.qualifies_for_refund)) {
+      return 'Your appointment has been cancelled. A refund will be processed if one applies.';
+    }
+    return 'Your appointment has been cancelled. No refund applies under the cancellation policy.';
   }
 
   function waitForSiteReady() {
@@ -249,10 +386,10 @@
     waitForSiteReady()
       .then(function () {
         updatePageTitle();
-        return lookupBooking(subdomain);
+        return loadCancelContext(subdomain);
       })
-      .then(function (data) {
-        renderBooking(data);
+      .then(function (context) {
+        renderBooking(context.booking, context);
       })
       .catch(function (err) {
         showError(err && err.message ? err.message : 'Could not load this appointment.');
@@ -260,21 +397,27 @@
 
     if (cancelBtn) {
       cancelBtn.addEventListener('click', function () {
-        if (!booking || isCancelledStatus(booking.booking_status)) return;
-        var confirmed = window.confirm(
-          'Cancel this appointment? This cannot be undone from this page.',
-        );
+        if (!booking || !cancelContext || cancelContext.can_cancel !== true) return;
+        if (isCancelledStatus(booking.booking_status)) return;
+
+        var confirmed = window.confirm(buildConfirmMessage());
         if (!confirmed) return;
 
         cancelBtn.disabled = true;
         hideMessages();
 
         cancelBooking(getSubdomain())
-          .then(function (updated) {
-            var next = updated && typeof updated === 'object' ? updated : booking;
-            next = Object.assign({}, next, { booking_status: 'cancelled' });
-            renderBooking(next);
-            showSuccess('Your appointment has been cancelled.');
+          .then(function (payload) {
+            var nextBooking =
+              (payload && payload.booking) ||
+              (payload && typeof payload === 'object' ? payload : booking);
+            nextBooking = Object.assign({}, booking, nextBooking, { booking_status: 'cancelled' });
+            cancelContext = Object.assign({}, cancelContext, {
+              can_cancel: false,
+              qualifies_for_refund: false,
+            });
+            renderBooking(nextBooking, cancelContext);
+            showSuccess(buildSuccessMessage(payload));
           })
           .catch(function (err) {
             cancelBtn.disabled = false;

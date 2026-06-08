@@ -59,6 +59,8 @@
   var submitBtn = document.getElementById('booking-submit-btn');
   var feedbackEl = document.getElementById('booking-feedback');
   var paymentSection = document.getElementById('payment-section');
+  var cancellationPolicySection = document.getElementById('cancellation-policy-section');
+  var cancellationPolicyText = document.getElementById('cancellation-policy-text');
 
   var viewMonth = DateTime.now().setZone(zone).startOf('month');
   var selectedDate = null;
@@ -280,6 +282,17 @@
     if (paymentSection) {
       paymentSection.classList.toggle('hidden', !showPayment);
       paymentSection.setAttribute('aria-hidden', showPayment ? 'false' : 'true');
+    }
+
+    var policy = window.__STYLD_CANCELLATION_POLICY__ || {};
+    var policySummary = policy.policySummary || policy.policy_summary || '';
+    if (cancellationPolicySection) {
+      var showPolicy = showPayment && !!policySummary;
+      cancellationPolicySection.classList.toggle('hidden', !showPolicy);
+      cancellationPolicySection.setAttribute('aria-hidden', showPolicy ? 'false' : 'true');
+    }
+    if (cancellationPolicyText && policySummary) {
+      cancellationPolicyText.textContent = policySummary;
     }
   }
 

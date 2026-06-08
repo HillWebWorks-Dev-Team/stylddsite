@@ -316,6 +316,7 @@
             var covers = {};
             var bookingHours = null;
             var bookingPayment = null;
+            var cancellationPolicy = null;
 
             records.forEach(function (record) {
               var value = settingValue(record);
@@ -335,6 +336,9 @@
               if (record.record_type === 'site_setting' && record.record_key === 'booking_payment') {
                 bookingPayment = value;
               }
+              if (record.record_type === 'site_setting' && record.record_key === 'cancellation_policy') {
+                cancellationPolicy = value;
+              }
               if (record.record_type === 'style_cover_image' && record.record_key) {
                 var coverPath = coverStoragePath(value);
                 if (typeof coverPath === 'string') covers[record.record_key] = coverPath;
@@ -353,6 +357,7 @@
               covers: covers,
               bookingHours: normalizeBookingHours(bookingHours),
               bookingPayment: bookingPayment,
+              cancellationPolicy: cancellationPolicy,
               bookingStyles: buildBookingStyles(meta, prices),
               catalogCards: buildCatalogCards(meta, prices, covers, cfg.supabaseUrl, theme.logoImagePath),
             };
