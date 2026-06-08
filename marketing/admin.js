@@ -108,7 +108,7 @@
 
   var state = {
     pin: getPin(),
-    tab: 'overview',
+    tab: 'salons',
     users: [],
     bookings: [],
     clients: [],
@@ -153,58 +153,74 @@
     if (els.subNote) els.subNote.textContent = data.subscriptions_note || '';
   }
 
-  function renderUsersTable(users) {
-    if (!els.usersBody) return;
-    els.usersBody.innerHTML = (users || [])
-      .map(function (u) {
-        var sub = u.subscription || {};
-        var subLabel =
-          sub.status === 'active'
-            ? 'Pro'
-            : sub.status === 'none'
-              ? 'None'
-              : sub.status === 'unknown'
-                ? 'Unknown'
-                : sub.status || '—';
-        return (
-          '<tr data-user-id="' +
-          esc(u.user_id) +
-          '">' +
-          '<td>' +
-          esc(u.full_name || u.business_name || '—') +
-          '<br><span class="admin-muted">' +
-          esc(u.email) +
-          '</span></td>' +
-          '<td>' +
-          (u.public_url
-            ? '<a href="' + esc(u.public_url) + '" target="_blank" rel="noopener">' + esc(u.subdomain) + '</a>'
-            : esc(u.subdomain || '—')) +
-          '</td>' +
-          '<td>' +
-          (u.site_published ? 'Yes' : 'No') +
-          '</td>' +
-          '<td>' +
-          (u.onboarding_completed ? 'Yes' : 'No') +
-          '</td>' +
-          '<td>' +
-          esc(u.booking_count) +
-          '</td>' +
-          '<td>' +
-          esc(u.page_views_30d) +
-          '</td>' +
-          '<td>' +
-          (u.stripe && u.stripe.charges_enabled ? 'Live' : '—') +
-          '</td>' +
-          '<td>' +
-          esc(subLabel) +
-          '</td>' +
-          '<td><button type="button" class="admin-link-btn" data-open-user="' +
-          esc(u.user_id) +
-          '">View</button></td>' +
-          '</tr>'
-        );
+  function salonInitials(name) {
+    return String(name || 'S')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(function (w) {
+        return w.charAt(0);
       })
-      .join('');
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+  function salonCardHtml(u) {
+    var name = u.brand_name || u.business_name || u.full_name || 'Salon';
+    var img = u.image_url
+      ? '<img class="admin-salon-card__img" src="' + esc(u.image_url) + '" alt="" loading="lazy" decoding="async">'
+      : '';
+    var fallback =
+      '<span class="admin-salon-card__fallback"' +
+      (u.image_url ? ' hidden' : '') +
+      '>' +
+      esc(salonInitials(name)) +
+      '</span>';
+    return (
+      '<button type="button" class="admin-salon-card" data-open-user="' +
+      esc(u.user_id) +
+      '">' +
+      '<div class="admin-salon-card__media">' +
+      img +
+      fallback +
+      '</div>' +
+      '<div class="admin-salon-card__body">' +
+      '<h3 class="admin-salon-card__title">' +
+      esc(name) +
+      '</h3>' +
+      '<p class="admin-salon-card__meta">' +
+      (u.public_url
+        ? esc(u.subdomain) + '.styldd.com'
+        : esc(u.subdomain || 'No site yet')) +
+      '</p>' +
+      '<p class="admin-salon-card__revenue">' +
+      fmtMoney(u.total_revenue) +
+      '</p>' +
+      '<p class="admin-salon-card__stats">' +
+      esc(u.booking_count) +
+      ' bookings · ' +
+      fmtMoney(u.revenue_collected) +
+      ' collected</p>' +
+      '<span class="admin-salon-card__cta">View breakdown →</span>' +
+      '</div>' +
+      '</button>'
+    );
+  }
+
+  function renderSalonGrid(users, target, limit) {
+    if (!target) return;
+    var list = (users || []).slice();
+    if (limit) list = list.slice(0, limit);
+    if (!list.length) {
+      target.innerHTML = '<p class="admin-muted">No salons found.</p>';
+      return;
+    }
+    target.innerHTML = list.map(salonCardHtml).join('');
+  }
+
+  function renderUsersTable(users) {
+    renderSalonGrid(users, els.salonsGrid);
+    renderSalonGrid(users, els.overviewSalons, 6);
   }
 
   function renderBookingsTable(bookings) {
@@ -377,39 +393,174 @@
     document.body.classList.remove('admin-drawer-open');
   }
 
+  function renderSalonDetail(data) {
+    var p = data.profile || {};
+    var rev = data.revenue_summary || {};
+    var settings = data.site_settings || {};
+    var content = settings.site_content || {};
+    var stripe = data.stripe || {};
+    var sub = data.subscription || {};
+    var name = data.brand_name || p.business_name || p.full_name || 'Salon';
+    var img = data.image_url
+      ? '<img class="admin-salon-hero__img" src="' + esc(data.image_url) + '" alt="">'
+      : '<span class="admin-salon-hero__fallback">' + esc(salonInitials(name)) + '</span>';
+
+    var bookingRows = (data.bookings || [])
+      .slice(0, 25)
+      .map(function (b) {
+        return (
+          '<tr><td>' +
+          fmtDate(b.appointment_starts_at) +
+          '</td><td>' +
+          esc(b.full_name) +
+          '</td><td>' +
+          esc(b.style_name) +
+          '</td><td>' +
+          esc(b.booking_status) +
+          '</td><td>' +
+          esc(b.payment_status) +
+          '</td><td>' +
+          fmtMoney(b.estimated_total) +
+          '</td></tr>'
+        );
+      })
+      .join('');
+
+    var reviewRows = (data.reviews || [])
+      .slice(0, 10)
+      .map(function (r) {
+        var d = r.data || {};
+        return (
+          '<tr><td>' +
+          fmtDate(r.created_at) +
+          '</td><td>' +
+          esc(d.rating) +
+          '★</td><td>' +
+          esc(d.client_name) +
+          '</td><td>' +
+          esc(d.message) +
+          '</td></tr>'
+        );
+      })
+      .join('');
+
+    var onboarding = data.onboarding_responses || null;
+    var onboardingHtml = onboarding
+      ? '<pre class="admin-json">' + esc(JSON.stringify(onboarding, null, 2)) + '</pre>'
+      : '<p class="admin-muted">No onboarding responses saved.</p>';
+
+    return (
+      '<div class="admin-salon-hero">' +
+      '<div class="admin-salon-hero__media">' +
+      img +
+      '</div>' +
+      '<div class="admin-salon-hero__copy">' +
+      '<h3>' +
+      esc(name) +
+      '</h3>' +
+      '<p class="admin-muted">' +
+      esc(p.email) +
+      '</p>' +
+      (data.public_url
+        ? '<a class="admin-salon-link" href="' +
+          esc(data.public_url) +
+          '" target="_blank" rel="noopener">' +
+          esc(data.public_url) +
+          '</a>'
+        : '<p class="admin-muted">Site not published</p>') +
+      '</div></div>' +
+      '<div class="admin-salon-metrics">' +
+      '<article><span>Total revenue</span><strong>' +
+      fmtMoney(rev.gross) +
+      '</strong></article>' +
+      '<article><span>Collected</span><strong>' +
+      fmtMoney(rev.collected) +
+      '</strong></article>' +
+      '<article><span>Pending</span><strong>' +
+      fmtMoney(rev.pending) +
+      '</strong></article>' +
+      '<article><span>Bookings</span><strong>' +
+      esc(rev.booking_count || 0) +
+      '</strong></article>' +
+      '<article><span>Clients</span><strong>' +
+      esc(rev.unique_clients || 0) +
+      '</strong></article>' +
+      '<article><span>Cancelled</span><strong>' +
+      esc(rev.cancelled_count || 0) +
+      '</strong></article>' +
+      '</div>' +
+      '<div class="admin-drawer-section"><h4>Account</h4><dl class="admin-dl">' +
+      '<dt>Owner</dt><dd>' +
+      esc(p.full_name) +
+      '</dd>' +
+      '<dt>Business</dt><dd>' +
+      esc(p.business_name || '—') +
+      '</dd>' +
+      '<dt>Joined</dt><dd>' +
+      fmtDate(p.created_at) +
+      '</dd>' +
+      '<dt>Last sign-in</dt><dd>' +
+      fmtDate(data.last_sign_in_at || p.last_sign_in_at) +
+      '</dd>' +
+      '<dt>Published</dt><dd>' +
+      (settings.site_publish && settings.site_publish.published ? 'Yes' : 'No') +
+      '</dd>' +
+      '<dt>Subscription</dt><dd>' +
+      esc(sub.status || 'unknown') +
+      (sub.product ? ' · ' + esc(sub.product) : '') +
+      '</dd>' +
+      '</dl></div>' +
+      '<div class="admin-drawer-section"><h4>Stripe Connect</h4><dl class="admin-dl">' +
+      '<dt>Charges</dt><dd>' +
+      (stripe.charges_enabled ? 'Enabled' : 'No') +
+      '</dd>' +
+      '<dt>Payouts</dt><dd>' +
+      (stripe.payouts_enabled ? 'Enabled' : 'No') +
+      '</dd>' +
+      '<dt>Available</dt><dd>' +
+      (stripe.balance_available_cents != null
+        ? fmtMoney(Number(stripe.balance_available_cents) / 100)
+        : '—') +
+      '</dd>' +
+      '<dt>Pending</dt><dd>' +
+      (stripe.balance_pending_cents != null
+        ? fmtMoney(Number(stripe.balance_pending_cents) / 100)
+        : '—') +
+      '</dd>' +
+      '</dl></div>' +
+      '<div class="admin-drawer-section"><h4>Recent bookings</h4>' +
+      (bookingRows
+        ? '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Appointment</th><th>Client</th><th>Service</th><th>Status</th><th>Payment</th><th>Total</th></tr></thead><tbody>' +
+          bookingRows +
+          '</tbody></table></div>'
+        : '<p class="admin-muted">No bookings yet.</p>') +
+      '</div>' +
+      '<div class="admin-drawer-section"><h4>Reviews</h4>' +
+      (reviewRows
+        ? '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>When</th><th>Rating</th><th>Client</th><th>Message</th></tr></thead><tbody>' +
+          reviewRows +
+          '</tbody></table></div>'
+        : '<p class="admin-muted">No reviews yet.</p>') +
+      '</div>' +
+      '<div class="admin-drawer-section"><h4>Onboarding survey</h4>' +
+      onboardingHtml +
+      '</div>' +
+      '<div class="admin-drawer-section"><h4>Site settings</h4><pre class="admin-json">' +
+      esc(JSON.stringify(settings, null, 2)) +
+      '</pre></div>' +
+      '<div class="admin-drawer-section"><h4>Cancellations</h4><pre class="admin-json">' +
+      esc(JSON.stringify(data.cancellations || [], null, 2)) +
+      '</pre></div>'
+    );
+  }
+
   function openUserDrawer(userId) {
-    setStatus('Loading stylist…');
+    setStatus('Loading salon…');
     api('user_detail', { user_id: userId }, state.pin)
       .then(function (data) {
         setStatus('');
-        var p = data.profile || {};
-        var settings = data.site_settings || {};
-        var html =
-          '<div class="admin-drawer-section">' +
-          '<h3>' +
-          esc(p.full_name || p.business_name || 'Stylist') +
-          '</h3>' +
-          '<p class="admin-muted">' +
-          esc(p.email) +
-          '</p>' +
-          '<dl class="admin-dl">' +
-          '<dt>Bookings</dt><dd>' +
-          (data.bookings || []).length +
-          '</dd>' +
-          '<dt>Stripe charges</dt><dd>' +
-          (data.stripe && data.stripe.charges_enabled ? 'Enabled' : 'No') +
-          '</dd>' +
-          '<dt>Subscription</dt><dd>' +
-          esc(JSON.stringify(data.subscription)) +
-          '</dd>' +
-          '</dl></div>' +
-          '<div class="admin-drawer-section"><h4>Site settings</h4><pre class="admin-json">' +
-          esc(JSON.stringify(settings, null, 2)) +
-          '</pre></div>' +
-          '<div class="admin-drawer-section"><h4>Recent bookings</h4><pre class="admin-json">' +
-          esc(JSON.stringify((data.bookings || []).slice(0, 10), null, 2)) +
-          '</pre></div>';
-        openDrawer('Stylist detail', html);
+        var name = data.brand_name || (data.profile && data.profile.business_name) || 'Salon detail';
+        openDrawer(name, renderSalonDetail(data));
       })
       .catch(function (err) {
         setStatus(err.message, true);
@@ -442,11 +593,23 @@
 
     switch (tab) {
       case 'overview':
-        promise = api('overview', {}, state.pin).then(function (data) {
-          state.overview = data;
-          renderKpis(data);
-        });
+        promise = api('overview', {}, state.pin)
+          .then(function (data) {
+            state.overview = data;
+            renderKpis(data);
+          })
+          .then(function () {
+            if (state.users.length) {
+              renderSalonGrid(state.users, els.overviewSalons, 6);
+              return;
+            }
+            return api('users', { search: search }, state.pin).then(function (data) {
+              state.users = data.users || [];
+              renderSalonGrid(state.users, els.overviewSalons, 6);
+            });
+          });
         break;
+      case 'salons':
       case 'users':
         promise = api('users', { search: search }, state.pin).then(function (data) {
           state.users = data.users || [];
@@ -601,7 +764,8 @@
     els = {
       kpiGrid: $('admin-kpi-grid'),
       subNote: $('admin-sub-note'),
-      usersBody: $('admin-users-body'),
+      salonsGrid: $('admin-salons-grid'),
+      overviewSalons: $('admin-overview-salons'),
       bookingsBody: $('admin-bookings-body'),
       clientsBody: $('admin-clients-body'),
       cancellationsBody: $('admin-cancellations-body'),
@@ -621,7 +785,7 @@
     };
 
     bindEvents();
-    loadTab('overview');
+    loadTab('salons');
   }
 
   if (document.readyState === 'loading') {

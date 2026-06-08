@@ -67,6 +67,62 @@ function pickData(row: { data?: unknown }) {
   return d ?? null;
 }
 
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+
+function publicAssetUrl(path: unknown, bucket = 'style-covers') {
+  if (!path || typeof path !== 'string') return null;
+  const p = path.trim();
+  if (!p) return null;
+  if (p.startsWith('http://') || p.startsWith('https://')) return p;
+  if (!SUPABASE_URL) return null;
+  return `${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/public/${bucket}/${p.replace(/^\/+/, '')}`;
+}
+
+function salonImageUrl(
+  profile: Record<string, unknown>,
+  siteContent: Record<string, unknown> | null,
+  siteTheme: Record<string, unknown> | null,
+) {
+  const theme = siteTheme || {};
+  const content = siteContent || {};
+  return (
+    publicAssetUrl(theme.logoImagePath) ||
+    publicAssetUrl(theme.heroImagePath) ||
+    publicAssetUrl(profile.avatar_url, 'style-covers') ||
+    (typeof profile.avatar_url === 'string' && profile.avatar_url.startsWith('http') ? profile.avatar_url : null) ||
+    null
+  );
+}
+
+function revenueFromBookingData(data: Record<string, unknown> | null) {
+  if (!data) return { gross: 0, collected: 0, pending: 0 };
+  const status = String(data.booking_status || '').toLowerCase();
+  if (status === 'cancelled') return { gross: 0, collected: 0, pending: 0 };
+  const gross = Number(data.estimated_total) || 0;
+  const deposit = Number(data.deposit_amount) || 0;
+  const payment = String(data.payment_status || '').toLowerCase();
+  let collected = 0;
+  if (payment === 'paid') collected = gross;
+  else if (payment === 'deposit_paid') collected = deposit;
+  const pending = Math.max(0, gross - collected);
+  return { gross, collected, pending };
+}
+
+function aggregateRevenueByUser(bookingRows: { user_id: string; data: unknown }[]) {
+  const map = new Map<string, { gross: number; collected: number; pending: number; count: number }>();
+  for (const row of bookingRows) {
+    const uid = String(row.user_id);
+    const rev = revenueFromBookingData(pickData(row) as Record<string, unknown>);
+    const existing = map.get(uid) || { gross: 0, collected: 0, pending: 0, count: 0 };
+    existing.gross += rev.gross;
+    existing.collected += rev.collected;
+    existing.pending += rev.pending;
+    existing.count += rev.gross > 0 || rev.collected > 0 ? 1 : 0;
+    map.set(uid, existing);
+  }
+  return map;
+}
+
 function bookingFields(data: Record<string, unknown> | null) {
   if (!data || typeof data !== 'object') return {};
   const d = data as Record<string, unknown>;
@@ -229,7 +285,7 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
     .toLowerCase()
     .trim();
 
-  const [profiles, userSites, subdomains, stripeRows, settingsRows, recordCounts, pushRows, pageViews, authMap] =
+  const [profiles, userSites, subdomains, stripeRows, settingsRows, bookingRows, recordCounts, pushRows, pageViews, authMap] =
     await Promise.all([
       safeTable<Record<string, unknown>>(supabase, 'profiles', (q) =>
         q.select('id,email,full_name,business_name,avatar_url,created_at,updated_at').order('created_at', {
@@ -248,7 +304,12 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
           'onboarding_state',
           'onboarding_responses',
           'site_publish',
+          'site_content',
+          'site_theme',
         ]),
+      ),
+      safeTable<{ user_id: string; data: unknown }>(supabase, 'styld_site_records', (q) =>
+        q.select('user_id,data').eq('record_type', 'booking'),
       ),
       safeTable<{ user_id: string; record_type: string }>(supabase, 'styld_site_records', (q) =>
         q.select('user_id,record_type').in('record_type', ['booking', 'inquiry', 'review']),
@@ -277,6 +338,8 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
     if (!settingsByUser.has(uid)) settingsByUser.set(uid, {});
     settingsByUser.get(uid)![String(row.record_key)] = pickData(row);
   }
+
+  const revenueByUser = aggregateRevenueByUser(bookingRows);
 
   const countsByUser = new Map<string, { bookings: number; inquiries: number; reviews: number }>();
   for (const row of recordCounts) {
@@ -311,20 +374,30 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
     const site = siteByUser.get(uid) || subByUser.get(uid) || {};
     const subdomain = String(site.subdomain || '');
     const settings = settingsByUser.get(uid) || {};
+    const siteContent = (settings.site_content || {}) as Record<string, unknown>;
+    const siteTheme = (settings.site_theme || {}) as Record<string, unknown>;
     const onboardingState = (settings.onboarding_state || {}) as Record<string, unknown>;
     const sitePublish = (settings.site_publish || {}) as Record<string, unknown>;
     const stripe = stripeByUser.get(uid) || {};
     const auth = authMap.get(uid) || {};
     const counts = countsByUser.get(uid) || { bookings: 0, inquiries: 0, reviews: 0 };
+    const revenue = revenueByUser.get(uid) || { gross: 0, collected: 0, pending: 0, count: 0 };
+    const brandName =
+      String(siteContent.brandName || p.business_name || p.full_name || 'Salon').trim() || 'Salon';
 
     return {
       user_id: uid,
       email: p.email,
       full_name: p.full_name,
       business_name: p.business_name,
+      brand_name: brandName,
       avatar_url: p.avatar_url,
+      image_url: salonImageUrl(p, siteContent, siteTheme),
       created_at: p.created_at,
       updated_at: p.updated_at,
+      total_revenue: Math.round(revenue.gross * 100) / 100,
+      revenue_collected: Math.round(revenue.collected * 100) / 100,
+      revenue_pending: Math.round(revenue.pending * 100) / 100,
       last_sign_in_at: auth.last_sign_in_at ?? null,
       email_confirmed_at: auth.email_confirmed_at ?? null,
       provider: auth.provider ?? null,
@@ -353,10 +426,12 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
 
   if (search) {
     users = users.filter((u) => {
-      const hay = [u.email, u.full_name, u.business_name, u.subdomain].filter(Boolean).join(' ').toLowerCase();
+      const hay = [u.email, u.full_name, u.business_name, u.brand_name, u.subdomain].filter(Boolean).join(' ').toLowerCase();
       return hay.includes(search);
     });
   }
+
+  users.sort((a, b) => (b.total_revenue as number) - (a.total_revenue as number));
 
   const rcKey = Deno.env.get('REVENUECAT_SECRET_API_KEY');
   if (rcKey && users.length <= 50) {
@@ -412,14 +487,52 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
     siteSettings[String(row.record_key)] = pickData(row);
   }
 
+  const profileRow = (profile.data || {}) as Record<string, unknown>;
+  const siteContent = (siteSettings.site_content || {}) as Record<string, unknown>;
+  const siteTheme = (siteSettings.site_theme || {}) as Record<string, unknown>;
+  const sitePublish = (siteSettings.site_publish || {}) as Record<string, unknown>;
+  const subdomain = String(sitePublish.subdomain || '');
+  const parsedBookings = bookings.map((b) => ({
+    id: b.id,
+    created_at: b.created_at,
+    updated_at: b.updated_at,
+    ...bookingFields(pickData(b) as Record<string, unknown>),
+  }));
+
+  let gross = 0;
+  let collected = 0;
+  let pending = 0;
+  let cancelledCount = 0;
+  const clientKeys = new Set<string>();
+  for (const b of parsedBookings) {
+    const rev = revenueFromBookingData(b as Record<string, unknown>);
+    gross += rev.gross;
+    collected += rev.collected;
+    pending += rev.pending;
+    if (String(b.booking_status || '').toLowerCase() === 'cancelled') cancelledCount += 1;
+    const email = String(b.email || '').toLowerCase().trim();
+    const phone = String(b.phone || '').trim();
+    if (email || phone) clientKeys.add(`${email}::${phone}`);
+  }
+
   return {
     profile: profile.data,
+    brand_name: String(siteContent.brandName || profileRow.business_name || profileRow.full_name || 'Salon'),
+    image_url: salonImageUrl(profileRow, siteContent, siteTheme),
+    public_url: subdomain ? `https://${subdomain}.${ROOT_DOMAIN}` : null,
+    subdomain,
+    revenue_summary: {
+      gross: Math.round(gross * 100) / 100,
+      collected: Math.round(collected * 100) / 100,
+      pending: Math.round(pending * 100) / 100,
+      booking_count: parsedBookings.length,
+      cancelled_count: cancelledCount,
+      unique_clients: clientKeys.size,
+    },
     site_settings: siteSettings,
-    bookings: bookings.map((b) => ({
-      id: b.id,
-      created_at: b.created_at,
-      updated_at: b.updated_at,
-      ...bookingFields(pickData(b) as Record<string, unknown>),
+    onboarding_responses: siteSettings.onboarding_responses || null,
+    bookings: parsedBookings.map((b) => ({
+      ...b,
     })),
     inquiries: inquiries.map((r) => ({ id: r.id, created_at: r.created_at, data: pickData(r) })),
     reviews: reviews.map((r) => ({ id: r.id, created_at: r.created_at, data: pickData(r) })),

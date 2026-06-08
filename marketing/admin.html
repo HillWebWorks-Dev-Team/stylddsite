@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/marketing/admin.css?v=1">
+  <link rel="stylesheet" href="/marketing/admin.css?v=2">
 </head>
 <body class="admin-page">
   <div class="admin-shell">
@@ -31,8 +31,8 @@
     </header>
 
     <nav class="admin-nav" aria-label="Admin sections">
-      <button type="button" class="admin-tab is-active" data-tab="overview">Overview</button>
-      <button type="button" class="admin-tab" data-tab="users">Stylists</button>
+      <button type="button" class="admin-tab is-active" data-tab="salons">Salons</button>
+      <button type="button" class="admin-tab" data-tab="overview">Overview</button>
       <button type="button" class="admin-tab" data-tab="bookings">Bookings</button>
       <button type="button" class="admin-tab" data-tab="clients">Clients</button>
       <button type="button" class="admin-tab" data-tab="cancellations">Cancellations</button>
@@ -45,31 +45,21 @@
     <main class="admin-main">
       <p id="admin-status" class="admin-status" role="status"></p>
 
-      <section class="admin-panel" data-panel="overview">
+      <section class="admin-panel" data-panel="overview" hidden>
         <div id="admin-kpi-grid" class="admin-kpi-grid"></div>
         <p id="admin-sub-note" class="admin-muted"></p>
+        <div class="admin-panel-head admin-panel-head--spaced">
+          <h2>Top salons by revenue</h2>
+        </div>
+        <div id="admin-overview-salons" class="admin-salon-grid"></div>
       </section>
 
-      <section class="admin-panel" data-panel="users" hidden>
-        <div class="admin-panel-head"><h2>Stylists</h2></div>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Name / email</th>
-                <th>Subdomain</th>
-                <th>Published</th>
-                <th>Onboarded</th>
-                <th>Bookings</th>
-                <th>Views 30d</th>
-                <th>Stripe</th>
-                <th>Sub</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="admin-users-body"></tbody>
-          </table>
+      <section class="admin-panel" data-panel="salons">
+        <div class="admin-panel-head">
+          <h2>All salons</h2>
+          <p class="admin-muted">Click a salon for the full breakdown.</p>
         </div>
+        <div id="admin-salons-grid" class="admin-salon-grid"></div>
       </section>
 
       <section class="admin-panel" data-panel="bookings" hidden>
@@ -176,7 +166,7 @@
   </div>
 
   <div id="admin-drawer" class="admin-drawer" hidden>
-    <div class="admin-drawer__panel">
+    <div class="admin-drawer__panel admin-drawer__panel--wide">
       <div class="admin-drawer__head">
         <h2 id="admin-drawer-title">Detail</h2>
         <button type="button" class="admin-btn admin-btn--ghost" data-drawer-close>Close</button>
@@ -187,6 +177,6 @@
 
   <script src="/js/marketing-config.js?v=2"></script>
   <script src="/js/marketing-config.local.js?v=2"></script>
-  <script src="/marketing/admin.js?v=2"></script>
+  <script src="/marketing/admin.js?v=3"></script>
 </body>
 </html>
