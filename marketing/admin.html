@@ -8,148 +8,184 @@
   <link rel="icon" href="/assets/styld-icon.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/marketing/admin.css?v=5">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/marketing/admin.css?v=20">
 </head>
 <body class="admin-page">
   <div class="admin-shell">
-    <header class="admin-topbar">
-      <div class="admin-brand">
-        <img src="/assets/styld-icon.png" width="28" height="28" alt="">
-        <div>
-          <span>Styld</span>
-          <small>Internal admin</small>
+    <div class="admin-chrome">
+      <header class="admin-topbar">
+        <div class="admin-brand">
+          <img src="/assets/styld-icon.png" width="32" height="32" alt="">
+          <div>
+            <span>Styld</span>
+            <small>Internal admin</small>
+          </div>
         </div>
-      </div>
-      <div class="admin-toolbar">
-        <input type="search" id="admin-search" class="admin-search" placeholder="Search (Enter)" aria-label="Search current tab">
-        <button type="button" id="admin-refresh" class="admin-btn">Refresh</button>
-        <button type="button" id="admin-export-bookings" class="admin-btn admin-btn--ghost">Export bookings</button>
-        <button type="button" id="admin-export-onboarding" class="admin-btn admin-btn--ghost">Export onboarding</button>
-        <button type="button" id="admin-logout" class="admin-btn admin-btn--accent">Sign out</button>
-      </div>
-    </header>
+        <div class="admin-toolbar">
+          <div class="admin-toolbar__search-wrap">
+            <input type="search" id="admin-search" class="admin-search" placeholder="Search current tab…" aria-label="Search current tab">
+          </div>
+          <div class="admin-display-prefs" aria-label="Number display">
+            <div class="admin-num-format" role="group" aria-label="Number format">
+              <button type="button" class="admin-pref-btn is-active" data-num-format="full">Full</button>
+              <button type="button" class="admin-pref-btn" data-num-format="compact">Compact</button>
+            </div>
+            <button type="button" id="admin-hide-money" class="admin-pref-btn admin-pref-btn--toggle" aria-pressed="false" title="Replace dollar amounts with ***">Hide money</button>
+          </div>
+          <div class="admin-toolbar__actions">
+            <button type="button" id="admin-refresh" class="admin-btn">Refresh</button>
+            <div class="admin-toolbar__secondary">
+              <button type="button" id="admin-export-bookings" class="admin-btn admin-btn--ghost">Export bookings</button>
+              <button type="button" id="admin-export-onboarding" class="admin-btn admin-btn--ghost">Export onboarding</button>
+            </div>
+            <button type="button" id="admin-logout" class="admin-btn admin-btn--accent">Sign out</button>
+          </div>
+        </div>
+      </header>
 
-    <nav class="admin-nav" aria-label="Admin sections">
-      <button type="button" class="admin-tab is-active" data-tab="salons">Salons</button>
-      <button type="button" class="admin-tab" data-tab="bookings">Bookings</button>
-      <button type="button" class="admin-tab" data-tab="clients">Clients</button>
-      <button type="button" class="admin-tab" data-tab="cancellations">Cancellations</button>
-      <button type="button" class="admin-tab" data-tab="inquiries">Inquiries</button>
-      <button type="button" class="admin-tab" data-tab="reviews">Reviews</button>
-      <button type="button" class="admin-tab" data-tab="onboarding">Onboarding</button>
-      <button type="button" class="admin-tab" data-tab="analytics">Analytics</button>
-    </nav>
+      <nav class="admin-nav" aria-label="Admin sections">
+        <div class="admin-nav__track" role="tablist">
+          <button type="button" class="admin-tab is-active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+          <button type="button" class="admin-tab" data-tab="styld_revenue" role="tab" aria-selected="false">Styld Revenue</button>
+          <button type="button" class="admin-tab" data-tab="salons" role="tab" aria-selected="false">Salons</button>
+          <button type="button" class="admin-tab" data-tab="bookings" role="tab" aria-selected="false">Bookings</button>
+          <button type="button" class="admin-tab" data-tab="clients" role="tab" aria-selected="false">Clients</button>
+          <button type="button" class="admin-tab" data-tab="cancellations" role="tab" aria-selected="false">Cancellations</button>
+          <button type="button" class="admin-tab" data-tab="inquiries" role="tab" aria-selected="false">Inquiries</button>
+          <button type="button" class="admin-tab" data-tab="reviews" role="tab" aria-selected="false">Reviews</button>
+          <button type="button" class="admin-tab" data-tab="emails" role="tab" aria-selected="false">Emails</button>
+          <button type="button" class="admin-tab" data-tab="onboarding" role="tab" aria-selected="false">Onboarding</button>
+          <button type="button" class="admin-tab" data-tab="analytics" role="tab" aria-selected="false">Analytics</button>
+        </div>
+      </nav>
+    </div>
 
     <main class="admin-main">
       <p id="admin-status" class="admin-status" role="status"></p>
 
-      <section class="admin-panel" data-panel="salons">
+      <section class="admin-panel" data-panel="overview">
         <div class="admin-panel-head">
-          <h2>All salons</h2>
-          <p class="admin-muted">Click a row for the full dashboard — subscription from RevenueCat.</p>
+          <h2>Overview</h2>
+          <p class="admin-muted">Payments through the app, your platform cut, and Stripe Connect balances across all salons.</p>
+        </div>
+        <div id="admin-overview-panel"></div>
+      </section>
+
+      <section class="admin-panel" data-panel="styld_revenue" hidden>
+        <div class="admin-panel-head admin-panel-head--toolbar">
+          <div>
+            <h2>Styld Revenue</h2>
+            <p class="admin-muted">Subscription health from RevenueCat and your platform cut from booking payments.</p>
+          </div>
+          <div class="admin-revenue-toolbar">
+            <div class="admin-revenue-range" role="group" aria-label="Time range">
+              <button type="button" class="admin-range-btn is-active" data-revenue-range="month">Month</button>
+              <button type="button" class="admin-range-btn" data-revenue-range="year">Year</button>
+              <button type="button" class="admin-range-btn" data-revenue-range="all">All time</button>
+            </div>
+            <select id="admin-revenue-month" class="admin-select" aria-label="Select month"></select>
+            <select id="admin-revenue-year" class="admin-select admin-select--compact" aria-label="Select year" hidden></select>
+          </div>
+        </div>
+        <div id="admin-styld-revenue-panel"></div>
+      </section>
+
+      <section class="admin-panel" data-panel="salons" hidden>
+        <div class="admin-panel-head admin-panel-head--toolbar">
+          <div>
+            <h2>All salons</h2>
+            <p class="admin-muted">Click a row for the full dashboard — subscription from RevenueCat.</p>
+          </div>
+          <div class="admin-salon-toolbar">
+            <label class="admin-sort-label" for="admin-salon-sort">Sort by</label>
+            <select id="admin-salon-sort" class="admin-select" aria-label="Sort salons">
+              <option value="revenue_desc">Top revenue</option>
+              <option value="revenue_asc">Lowest revenue</option>
+              <option value="collected_desc">Top collected</option>
+              <option value="collected_asc">Lowest collected</option>
+              <option value="bookings_desc">Most bookings</option>
+              <option value="bookings_asc">Fewest bookings</option>
+              <option value="reviews_desc">Most reviews</option>
+              <option value="rating_desc">Highest rating</option>
+              <option value="rating_asc">Lowest rating</option>
+              <option value="views_desc">Most views (30d)</option>
+              <option value="views_asc">Least views (30d)</option>
+              <option value="inquiries_desc">Most inquiries</option>
+              <option value="stripe_desc">Highest Stripe balance</option>
+              <option value="newest">Newest salon</option>
+              <option value="oldest">Oldest salon</option>
+              <option value="last_active">Recently active</option>
+              <option value="name_asc">Name A–Z</option>
+              <option value="name_desc">Name Z–A</option>
+            </select>
+            <span id="admin-salon-count" class="admin-salon-count"></span>
+          </div>
         </div>
         <div id="admin-salons-grid" class="admin-salon-list"></div>
       </section>
 
       <section class="admin-panel" data-panel="bookings" hidden>
-        <div class="admin-panel-head"><h2>All bookings</h2></div>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Created</th>
-                <th>ID</th>
-                <th>Client</th>
-                <th>Service</th>
-                <th>Appointment</th>
-                <th>Status</th>
-                <th>Payment</th>
-                <th>Total</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="admin-bookings-body"></tbody>
-          </table>
+        <div class="admin-panel-head">
+          <h2>All bookings</h2>
+          <p class="admin-muted">Every appointment across all salons · click any card for full details.</p>
         </div>
+        <div id="admin-bookings-panel"></div>
       </section>
 
       <section class="admin-panel" data-panel="clients" hidden>
-        <div class="admin-panel-head"><h2>Clients (from bookings)</h2></div>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Stylist</th>
-                <th>Bookings</th>
-                <th>Spend</th>
-                <th>Last booking</th>
-              </tr>
-            </thead>
-            <tbody id="admin-clients-body"></tbody>
-          </table>
+        <div class="admin-panel-head">
+          <h2>Clients</h2>
+          <p class="admin-muted">Unique clients from bookings · click to open their relationship at that salon.</p>
         </div>
+        <div id="admin-clients-panel"></div>
       </section>
 
       <section class="admin-panel" data-panel="cancellations" hidden>
-        <div class="admin-panel-head"><h2>Cancellations &amp; refunds</h2></div>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>Booking</th>
-                <th>By</th>
-                <th>Refund status</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody id="admin-cancellations-body"></tbody>
-          </table>
+        <div class="admin-panel-head">
+          <h2>Cancellations &amp; refunds</h2>
+          <p class="admin-muted">Refund events and who cancelled · click a booking ID to open details.</p>
         </div>
+        <div id="admin-cancellations-panel"></div>
       </section>
 
       <section class="admin-panel" data-panel="inquiries" hidden>
-        <div class="admin-panel-head"><h2>Inquiries</h2></div>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr><th>When</th><th>Stylist</th><th>Message</th></tr>
-            </thead>
-            <tbody id="admin-inquiries-body"></tbody>
-          </table>
+        <div class="admin-panel-head">
+          <h2>Inquiries</h2>
+          <p class="admin-muted">Contact form messages from salon sites.</p>
         </div>
+        <div id="admin-inquiries-panel"></div>
       </section>
 
       <section class="admin-panel" data-panel="reviews" hidden>
-        <div class="admin-panel-head"><h2>Reviews</h2></div>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr><th>When</th><th>Stylist</th><th>Review</th></tr>
-            </thead>
-            <tbody id="admin-reviews-body"></tbody>
-          </table>
+        <div class="admin-panel-head">
+          <h2>Reviews</h2>
+          <p class="admin-muted">Client reviews submitted after appointments.</p>
         </div>
+        <div id="admin-reviews-panel"></div>
+      </section>
+
+      <section class="admin-panel" data-panel="emails" hidden>
+        <div class="admin-panel-head">
+          <h2>Sent emails</h2>
+          <p class="admin-muted">Previews of transactional emails sent to clients from each salon account.</p>
+        </div>
+        <div id="admin-emails-panel"></div>
       </section>
 
       <section class="admin-panel" data-panel="onboarding" hidden>
-        <div class="admin-panel-head"><h2>Onboarding responses</h2></div>
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr><th>When</th><th>Stylist</th><th>Summary</th></tr>
-            </thead>
-            <tbody id="admin-onboarding-body"></tbody>
-          </table>
+        <div class="admin-panel-head">
+          <h2>Onboarding responses</h2>
+          <p class="admin-muted">Survey answers from new salon sign-ups.</p>
         </div>
+        <div id="admin-onboarding-panel"></div>
       </section>
 
       <section class="admin-panel" data-panel="analytics" hidden>
-        <div class="admin-panel-head"><h2>Site analytics</h2></div>
+        <div class="admin-panel-head">
+          <h2>Site analytics</h2>
+          <p class="admin-muted">Aggregate page views across all published salon sites.</p>
+        </div>
         <div id="admin-analytics-panel"></div>
       </section>
     </main>
@@ -164,16 +200,16 @@
       </div>
       <a id="admin-salon-view-link" class="admin-btn admin-btn--ghost" href="#" target="_blank" rel="noopener noreferrer" hidden>Open site</a>
     </header>
-    <nav class="admin-salon-view__tabs" id="admin-salon-tabs" aria-label="Salon sections">
-      <button type="button" class="admin-salon-tab is-active" data-salon-tab="analytics">Analytics</button>
-      <button type="button" class="admin-salon-tab" data-salon-tab="bookings">Bookings</button>
-      <button type="button" class="admin-salon-tab" data-salon-tab="clients">Clients</button>
-      <button type="button" class="admin-salon-tab" data-salon-tab="reviews">Reviews</button>
-      <button type="button" class="admin-salon-tab" data-salon-tab="business">Business</button>
+    <nav class="admin-salon-view__tabs" id="admin-salon-tabs" role="tablist" aria-label="Salon sections">
+      <button type="button" class="admin-salon-tab is-active" data-salon-tab="analytics" role="tab" aria-selected="true">Analytics</button>
+      <button type="button" class="admin-salon-tab" data-salon-tab="bookings" role="tab" aria-selected="false">Bookings</button>
+      <button type="button" class="admin-salon-tab" data-salon-tab="clients" role="tab" aria-selected="false">Clients</button>
+      <button type="button" class="admin-salon-tab" data-salon-tab="reviews" role="tab" aria-selected="false">Reviews</button>
+      <button type="button" class="admin-salon-tab" data-salon-tab="emails" role="tab" aria-selected="false">Emails</button>
+      <button type="button" class="admin-salon-tab" data-salon-tab="business" role="tab" aria-selected="false">Business</button>
     </nav>
     <div id="admin-salon-view-body" class="admin-salon-view__body">
-      <div id="admin-salon-summary"></div>
-      <div id="admin-salon-tab-panel"></div>
+      <div id="admin-salon-tab-panel" class="admin-salon-tab-panel" role="tabpanel" tabindex="-1"></div>
     </div>
   </div>
 
@@ -189,6 +225,6 @@
 
   <script src="/js/marketing-config.js?v=2"></script>
   <script src="/js/marketing-config.local.js?v=2"></script>
-  <script src="/marketing/admin.js?v=6"></script>
+  <script src="/marketing/admin.js?v=21"></script>
 </body>
 </html>

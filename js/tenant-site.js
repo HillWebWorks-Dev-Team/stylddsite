@@ -3,6 +3,9 @@
   var rootDomain = cfg.rootDomain || 'styldd.com';
   var host = (window.location.hostname || '').toLowerCase();
   var subdomain = new URLSearchParams(window.location.search).get('subdomain');
+  var offlineMessage =
+    (window.StyldTenant && window.StyldTenant.SITE_OFFLINE_MESSAGE) ||
+    'This site is temporarily offline. The owner needs an active Styld subscription to keep their booking site live.';
 
   if (!subdomain && host.endsWith('.' + rootDomain) && host !== rootDomain && host !== 'www.' + rootDomain) {
     subdomain = host.slice(0, -(rootDomain.length + 1));
@@ -128,7 +131,7 @@
       var rows = results[0];
       var row = rows && rows[0];
       if (!row || !row.published_at) {
-        throw new Error('This site has not been published yet.');
+        throw new Error(offlineMessage);
       }
       trackPageView(subdomain);
       return rest(

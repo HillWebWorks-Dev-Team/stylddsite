@@ -26,6 +26,10 @@ npx serve .
 
 Note: subdomain routing requires Vercel middleware in production.
 
+## Tenant site AI docs
+
+See [`templatesite/SITE_AI.md`](templatesite/SITE_AI.md) for subscription-gated domain rules (`published_at`, offline copy, Supabase checks).
+
 ## Vercel Analytics
 
 1. In the Vercel project dashboard, open **Analytics** and enable Web Analytics.

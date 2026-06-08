@@ -1,4 +1,7 @@
 (function () {
+  var SITE_OFFLINE_MESSAGE =
+    'This site is temporarily offline. The owner needs an active Styld subscription to keep their booking site live.';
+
   function getSubdomain() {
     var cfg = window.__STYLD_TENANT__ || {};
     var rootDomain = (cfg.rootDomain || 'styldd.com').toLowerCase();
@@ -541,6 +544,7 @@
   }
 
   window.StyldTenant = {
+    SITE_OFFLINE_MESSAGE: SITE_OFFLINE_MESSAGE,
     getSubdomain: getSubdomain,
     applySiteFooter: applySiteFooter,
     applySiteTheme: applySiteTheme,
@@ -567,7 +571,10 @@
       };
 
       function rest(path) {
-        return fetch(cfg.supabaseUrl.replace(/\/$/, '') + '/rest/v1/' + path, { headers: headers }).then(
+        return fetch(cfg.supabaseUrl.replace(/\/$/, '') + '/rest/v1/' + path, {
+          headers: headers,
+          cache: 'no-store',
+        }).then(
           function (res) {
             if (!res.ok) throw new Error('Could not load site data.');
             return res.json();
@@ -581,7 +588,7 @@
         .then(function (rows) {
           var row = rows && rows[0];
           if (!row || !row.published_at) {
-            throw new Error('This site has not been published yet.');
+            throw new Error(SITE_OFFLINE_MESSAGE);
           }
           return rest(
             'styld_site_records?user_id=eq.' +

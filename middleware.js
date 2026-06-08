@@ -2,6 +2,10 @@ import { rewrite } from '@vercel/functions';
 
 const ROOT_DOMAIN = process.env.STYLD_ROOT_DOMAIN || 'styldd.com';
 
+const MARKETING_PAGES = {
+  '/support': '/marketing/support.html',
+};
+
 const TENANT_STATIC_PAGES = {
   '/booking': '/booking.html',
   '/booking-lookup': '/booking-lookup.html',
@@ -48,6 +52,11 @@ export default function middleware(request) {
   if (isRootHost(host)) {
     if (url.pathname.startsWith('/marketing/')) {
       return;
+    }
+    const clean = url.pathname.replace(/\/$/, '').toLowerCase();
+    if (MARKETING_PAGES[clean]) {
+      url.pathname = MARKETING_PAGES[clean];
+      return rewrite(url);
     }
     if (url.pathname === '/' || !url.pathname.includes('.')) {
       url.pathname = '/marketing/index.html';
