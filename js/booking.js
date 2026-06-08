@@ -171,6 +171,17 @@
     return monthStart.minus({ days: monthStart.weekday % 7 });
   }
 
+  function isDepositIncludedInPrice() {
+    var val = paymentSettings.depositIncludedInPrice;
+    if (val == null) val = paymentSettings.deposit_included_in_price;
+    if (val == null) return true;
+    if (typeof val === 'string') {
+      var normalized = val.trim().toLowerCase();
+      return normalized !== 'false' && normalized !== '0' && normalized !== 'no';
+    }
+    return val !== false;
+  }
+
   function computePricing(style) {
     var base = typeof style.base === 'number' ? style.base : 0;
     var duration = durationMinutesForStyle(style);
@@ -192,7 +203,13 @@
 
     var serviceFee = deposit > 0 ? computeServiceFee(deposit) : 0;
     var totalDue = deposit > 0 ? totalChargeWithFee(deposit) : 0;
-    var balanceDue = mode === 'deposit' ? Math.max(0, total - deposit) : 0;
+    var includedInPrice = isDepositIncludedInPrice();
+    var balanceDue =
+      mode === 'deposit'
+        ? includedInPrice
+          ? Math.max(0, total - deposit)
+          : total
+        : 0;
     var depositLabel = mode === 'full' ? 'Full payment' : 'Deposit';
 
     return {
@@ -204,6 +221,7 @@
       totalDue: totalDue,
       balanceDue: balanceDue,
       depositLabel: depositLabel,
+      depositIncludedInPrice: includedInPrice,
       mode: mode,
     };
   }
@@ -261,10 +279,20 @@
     setText('pay-total-due-preview', moneyPrecise(p.totalDue));
 
     var showBalance = isDepositMode && p.balanceDue > 0;
+    var depositNoteText =
+      p.depositIncludedInPrice !== false
+        ? 'Your deposit counts toward the total service price.'
+        : 'Deposit due now is an additional hold on top of the service price. The full service price is still due at your appointment.';
     if (lineBalanceWrap) lineBalanceWrap.hidden = !showBalance;
     if (sideBalanceWrap) sideBalanceWrap.hidden = !showBalance;
-    if (lineSeparateNote) lineSeparateNote.hidden = !showBalance;
-    if (sideSeparateNote) sideSeparateNote.hidden = !showBalance;
+    if (lineSeparateNote) {
+      lineSeparateNote.hidden = !isDepositMode || p.deposit <= 0;
+      if (!lineSeparateNote.hidden) lineSeparateNote.textContent = depositNoteText;
+    }
+    if (sideSeparateNote) {
+      sideSeparateNote.hidden = !isDepositMode || p.deposit <= 0;
+      if (!sideSeparateNote.hidden) sideSeparateNote.textContent = depositNoteText;
+    }
     if (showBalance) {
       setText('line-balance-due', moneyPrecise(p.balanceDue));
       setText('side-balance-due', moneyPrecise(p.balanceDue));
