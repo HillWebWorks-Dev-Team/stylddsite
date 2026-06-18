@@ -341,7 +341,6 @@ h1, h2, h3 {
 }
 
 .app-store-wrap {
-  position: relative;
   display: inline-flex;
   flex-shrink: 0;
 }
@@ -350,97 +349,36 @@ h1, h2, h3 {
   margin: 0 auto 1.75rem;
 }
 
-.header-actions .app-store-wrap {
-  margin-right: 0;
-}
-
-.app-store-badge {
+.app-store-link {
   display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  font-family: inherit;
-  cursor: default;
-  border: none;
-  text-align: left;
-}
-
-.app-store-badge--header {
-  background: var(--white);
-  color: var(--black);
-  padding: 0.45rem 0.9rem 0.45rem 0.7rem;
-  border-radius: 0.65rem;
-  line-height: 1.1;
-}
-
-.app-store-badge--header .apple-icon {
-  width: 1.35rem;
-  height: 1.35rem;
-}
-
-.app-store-badge--header .badge-text strong {
-  font-size: 0.875rem;
-}
-
-.app-store-badge--header .badge-text small {
-  font-size: 0.5rem;
-  letter-spacing: 0.01em;
-}
-
-.app-store-badge--light {
-  background: var(--white);
-  color: var(--black);
-  padding: 0.65rem 1.25rem 0.65rem 1rem;
-  border-radius: 0.75rem;
-}
-
-.app-store-badge--compact {
-  background: var(--black);
-  color: var(--white);
-  padding: 0.45rem 0.9rem 0.45rem 0.75rem;
-  border-radius: 0.65rem;
-  border: 1px solid var(--border);
-}
-
-.apple-icon {
-  width: 1.5rem;
-  height: 1.5rem;
   flex-shrink: 0;
+  line-height: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.badge-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
+.app-store-link:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
 }
 
-.badge-text small {
-  font-size: 0.5625rem;
-  font-weight: 500;
+.app-store-link:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 3px;
+  border-radius: 0.35rem;
 }
 
-.badge-text strong {
-  font-size: 1rem;
-  font-weight: 700;
+.app-store-link img {
+  display: block;
+  width: auto;
+  height: 40px;
 }
 
-.soon-chip {
-  position: absolute;
-  top: 0;
-  right: 0;
-  transform: translate(38%, -58%);
-  font-size: 0.5rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  background: var(--pink);
-  color: var(--white);
-  padding: 0.2rem 0.42rem;
-  border-radius: 999px;
-  border: 1.5px solid var(--black);
-  box-shadow: 0 2px 10px var(--pink-glow);
-  pointer-events: none;
-  z-index: 2;
+.app-store-link--header img {
+  height: 36px;
+}
+
+.app-store-link--footer img {
+  height: 40px;
 }
 
 .hero-copy {
@@ -1776,33 +1714,8 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
     font-size: 1.05rem;
   }
 
-  .app-store-badge--header {
-    padding: 0.42rem 0.85rem 0.42rem 0.65rem;
-    border-radius: 999px;
-  }
-
-  .app-store-badge--header .badge-text small {
-    display: none;
-  }
-
-  .app-store-badge--header .badge-text strong {
-    font-size: 0.8125rem;
-    font-weight: 700;
-  }
-
-  .app-store-badge--header .apple-icon {
-    width: 1.05rem;
-    height: 1.05rem;
-  }
-
-  .header-actions .app-store-wrap {
-    margin-top: 0.15rem;
-  }
-
-  .soon-chip {
-    transform: translate(28%, -52%);
-    font-size: 0.4375rem;
-    padding: 0.16rem 0.36rem;
+  .app-store-link--header img {
+    height: 32px;
   }
 
   :root {
