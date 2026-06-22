@@ -59,6 +59,43 @@
     return hours + ' hrs ' + remainder + ' min';
   }
 
+  function formatPriceAmount(amount) {
+    if (typeof amount !== 'number' || Number.isNaN(amount) || amount <= 0) return null;
+    return '$' + Math.round(amount);
+  }
+
+  function normalizeAddons(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map(function (entry, index) {
+        if (!entry || typeof entry !== 'object') return null;
+        var id = entry.id != null ? String(entry.id).trim() : 'addon-' + index;
+        var name = entry.name != null ? String(entry.name).trim() : '';
+        var price = typeof entry.price === 'number' ? entry.price : Number(entry.price);
+        if (!name || !Number.isFinite(price) || price < 0) return null;
+        return { id: id, name: name, price: Math.round(price) };
+      })
+      .filter(Boolean);
+  }
+
+  function formatStylePriceRange(basePrice, addons) {
+    var base = typeof basePrice === 'number' ? basePrice : Number(basePrice);
+    var normalized = normalizeAddons(addons);
+    if (!Number.isFinite(base) || base <= 0) return 'Price TBD';
+
+    var baseLabel = formatPriceAmount(base);
+    if (!normalized.length) return baseLabel;
+
+    var maxAddon = 0;
+    normalized.forEach(function (addon) {
+      if (addon.price > maxAddon) maxAddon = addon.price;
+    });
+
+    var highLabel = formatPriceAmount(base + maxAddon);
+    if (!highLabel || highLabel === baseLabel) return baseLabel;
+    return baseLabel + '\u2013' + highLabel;
+  }
+
   function buildBookingStyles(meta, prices) {
     var styleIds = {};
     Object.keys(meta || {}).forEach(function (id) {
@@ -79,6 +116,7 @@
           name: name,
           base: base,
           durationMinutes: normalizeDurationMinutes(item.durationMinutes),
+          addons: normalizeAddons(item.addons),
         };
       })
       .sort(function (a, b) {
@@ -105,11 +143,6 @@
 
     var logoFallbackUrl = coverUrl(logoImagePath);
 
-    function formatPrice(amount) {
-      if (typeof amount !== 'number' || Number.isNaN(amount) || amount <= 0) return 'Price TBD';
-      return '$' + Math.round(amount);
-    }
-
     return Object.keys(styleIds).map(function (styleId) {
       var item = meta[styleId] || {};
       var variant = item.sizeLabel || item.variant || sizeLabelFromStyleId(styleId);
@@ -118,7 +151,7 @@
         title: item.title || styleId,
         sizeLabel: variant || '',
         durationLabel: formatStyleDuration(item.durationMinutes),
-        priceLabel: formatPrice(prices[styleId]),
+        priceLabel: formatStylePriceRange(prices[styleId], item.addons),
         imageUrl: coverUrl(covers[styleId]) || logoFallbackUrl,
       };
     });
@@ -622,6 +655,8 @@
     getBookingFormRequirements: getBookingFormRequirements,
     applyBookingFormSettings: applyBookingFormSettings,
     resolveCancellationPolicySummary: resolveCancellationPolicySummary,
+    normalizeAddons: normalizeAddons,
+    formatStylePriceRange: formatStylePriceRange,
 
     loadPublishedSite: function () {
       var cfg = window.__STYLD_TENANT__ || {};

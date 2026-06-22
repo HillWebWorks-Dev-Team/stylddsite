@@ -23,8 +23,11 @@
       var option = document.createElement('option');
       option.value = style.id;
       var label = style.name || style.id;
-      if (typeof style.base === 'number' && style.base > 0) {
-        label += ' — $' + Math.round(style.base);
+      var base = typeof style.base === 'number' ? style.base : 0;
+      if (window.StyldTenant && window.StyldTenant.formatStylePriceRange) {
+        label += ' — ' + window.StyldTenant.formatStylePriceRange(base, style.addons);
+      } else if (base > 0) {
+        label += ' — $' + Math.round(base);
       }
       option.textContent = label;
       select.appendChild(option);
@@ -39,7 +42,7 @@
     availability.src = '/js/booking-availability.js?v=4';
     availability.onload = function () {
       var script = document.createElement('script');
-      script.src = '/js/booking.js?v=59';
+      script.src = '/js/booking.js?v=60';
       script.defer = true;
       document.body.appendChild(script);
     };

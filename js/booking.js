@@ -69,6 +69,7 @@
   var selectedDate = null;
   var selectedSlotStart = null;
   var selectedStyle = null;
+  var selectedAddonId = '';
   var stripeCard = null;
   var stripeElements = null;
 
@@ -146,6 +147,14 @@
     feedbackEl.className = 'booking-feedback' + (isError ? ' booking-feedback--error' : ' booking-feedback--success');
   }
 
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   function styleById(id) {
     return styles.find(function (s) { return s.id === id; }) || null;
   }
@@ -182,10 +191,76 @@
     return val !== false;
   }
 
+  function getSelectedAddon(style) {
+    if (!style || !selectedAddonId) return null;
+    var addons = Array.isArray(style.addons) ? style.addons : [];
+    for (var i = 0; i < addons.length; i++) {
+      if (addons[i].id === selectedAddonId) return addons[i];
+    }
+    return null;
+  }
+
+  function styleDisplayName(style, addon) {
+    if (!style) return '';
+    if (!addon) return style.name || style.id || '';
+    return (style.name || style.id || '') + ' + ' + addon.name;
+  }
+
+  function renderAddonPicker(style) {
+    var field = document.getElementById('booking-addon-field');
+    var container = document.getElementById('booking-addon-options');
+    selectedAddonId = '';
+    if (!field || !container) return;
+
+    var addons = style && Array.isArray(style.addons) ? style.addons : [];
+    if (!style || !addons.length) {
+      field.hidden = true;
+      container.innerHTML = '';
+      return;
+    }
+
+    field.hidden = false;
+    var html =
+      '<label class="booking-addon-option">' +
+      '<input type="radio" name="booking-addon" value="" checked />' +
+      '<span class="booking-addon-option__label">No add-on</span>' +
+      '</label>';
+
+    addons.forEach(function (addon) {
+      html +=
+        '<label class="booking-addon-option">' +
+        '<input type="radio" name="booking-addon" value="' +
+        escapeHtml(addon.id) +
+        '" />' +
+        '<span class="booking-addon-option__label">' +
+        escapeHtml(addon.name) +
+        ' (+' +
+        money(addon.price) +
+        ')</span>' +
+        '</label>';
+    });
+
+    container.innerHTML = html;
+  }
+
+  function setupAddonPicker() {
+    var container = document.getElementById('booking-addon-options');
+    if (!container || container.dataset.bound === '1') return;
+    container.dataset.bound = '1';
+    container.addEventListener('change', function (e) {
+      var input = e.target;
+      if (!input || input.name !== 'booking-addon') return;
+      selectedAddonId = input.value || '';
+      updatePricingDisplay();
+    });
+  }
+
   function computePricing(style) {
     var base = typeof style.base === 'number' ? style.base : 0;
+    var addon = getSelectedAddon(style);
+    var addonPrice = addon && typeof addon.price === 'number' ? addon.price : 0;
     var duration = durationMinutesForStyle(style);
-    var total = base;
+    var total = base + addonPrice;
     var mode = paymentSettings.mode || 'none';
     var deposit = 0;
 
@@ -214,6 +289,8 @@
 
     return {
       base: base,
+      addon: addon,
+      addonPrice: addonPrice,
       total: total,
       duration: duration,
       deposit: deposit,
@@ -353,6 +430,19 @@
     setText('side-subtotal', money(p.base));
     setText('line-total', money(p.total));
     setText('side-total', money(p.total));
+
+    var showAddon = !!(p.addon && p.addonPrice > 0);
+    var lineAddonWrap = document.getElementById('line-addon-wrap');
+    var sideAddonWrap = document.getElementById('side-addon-wrap');
+    if (lineAddonWrap) lineAddonWrap.hidden = !showAddon;
+    if (sideAddonWrap) sideAddonWrap.hidden = !showAddon;
+    if (showAddon) {
+      setText('line-addon-name', p.addon.name);
+      setText('line-addon', money(p.addonPrice));
+      setText('side-addon-label', p.addon.name);
+      setText('side-addon', money(p.addonPrice));
+    }
+
     updateDueBreakdown(p);
 
     if (durationStrip) {
@@ -587,11 +677,13 @@
   function onStyleChange() {
     var styleId = styleSelect ? styleSelect.value : '';
     selectedStyle = styleById(styleId);
+    selectedAddonId = '';
     selectedDate = null;
     selectedSlotStart = null;
     if (startsAtInput) startsAtInput.value = '';
 
     if (!selectedStyle) {
+      renderAddonPicker(null);
       if (styleGate) styleGate.hidden = false;
       if (durationStrip) durationStrip.textContent = 'Estimated duration: TBD';
       if (slotsContainer) slotsContainer.innerHTML = '';
@@ -602,6 +694,7 @@
     }
 
     if (styleGate) styleGate.hidden = true;
+    renderAddonPicker(selectedStyle);
     updatePricingDisplay();
     refreshCalendar().then(function () {
       updateSelectedSummary();
@@ -748,6 +841,7 @@
       throw new Error('Internal error: missing booking id.');
     }
     var pricing = computePricing(selectedStyle);
+    var addon = getSelectedAddon(selectedStyle);
     var name = (document.getElementById('full-name') || {}).value || '';
     var email = (document.getElementById('email') || {}).value || '';
     var phone = (document.getElementById('phone') || {}).value || '';
@@ -760,7 +854,10 @@
       email: email.trim(),
       phone: phone.trim(),
       style_id: selectedStyle.id,
-      style_name: selectedStyle.name,
+      style_name: styleDisplayName(selectedStyle, addon),
+      selected_addon_id: addon ? addon.id : null,
+      selected_addon_name: addon ? addon.name : null,
+      selected_addon_price: addon ? addon.price : null,
       appointment_starts_at: selectedSlotStart.toISO(),
       appointment_date: selectedSlotStart.toISODate(),
       appointment_slot: selectedSlotStart.toFormat('h:mm a'),
@@ -1021,6 +1118,7 @@
   });
 
   initStripeIfNeeded();
+  setupAddonPicker();
   onStyleChange();
 
   var preselected = new URLSearchParams(window.location.search).get('style');

@@ -16,7 +16,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=49" />
+    <link rel="stylesheet" href="/css/styles.css?v=50" />
     <!-- Vercel Web Analytics: enable in Vercel Project Settings > Analytics -->
     <script src="/js/vercel-analytics.bundle.js" defer></script>
   </head>
@@ -64,6 +64,13 @@
               <select id="style-select" name="style" required>
                 <option value="">Choose an option</option>
               </select>
+            </div>
+
+            <div class="field booking-addon-field" id="booking-addon-field" hidden>
+              <fieldset class="booking-addon-picker">
+                <legend class="booking-addon-picker__legend">Optional add-on</legend>
+                <div id="booking-addon-options" class="booking-addon-options" role="radiogroup" aria-label="Optional add-on"></div>
+              </fieldset>
             </div>
 
             <div class="field house-address-block" id="house-address-field-wrap" hidden>
@@ -220,6 +227,9 @@
             <p>
               <strong>Service price:</strong> <span id="line-subtotal">$0.00</span>
             </p>
+            <p id="line-addon-wrap" hidden>
+              <strong>Add-on (<span id="line-addon-name"></span>):</strong> <span id="line-addon">$0.00</span>
+            </p>
             <p id="line-estimated-total-wrap">
               <strong>Estimated total:</strong> <span id="line-total">$0.00</span>
             </p>
@@ -289,6 +299,10 @@
             <span>Service price</span>
             <span id="side-subtotal">$0.00</span>
           </div>
+          <div class="price-line" id="side-addon-wrap" hidden>
+            <span id="side-addon-label">Add-on</span>
+            <span id="side-addon">$0.00</span>
+          </div>
           <div class="price-line total" id="side-estimated-total-wrap">
             <span>Estimated total</span>
             <span id="side-total">$0.00</span>
@@ -353,10 +367,10 @@
     <script src="/js/booking-config.js?v=52"></script>
     <script src="/js/styld-tenant-config.js?v=39"></script>
     <script src="/js/styld-tenant-config.local.js?v=39"></script>
-    <script src="/js/styld-tenant-shared.js?v=65"></script>
+    <script src="/js/styld-tenant-shared.js?v=66"></script>
     <script src="/js/profile-content.js?v=39"></script>
     <script src="/js/tenant-site.js?v=39"></script>
-    <script src="/js/styld-tenant-booking.js?v=67"></script>
+    <script src="/js/styld-tenant-booking.js?v=68"></script>
     <script src="/js/supabase-config.js?v=52"></script>
     <script src="/js/supabase-config.local.js?v=52"></script>
     <script id="booking-fallback-bootstrap">
@@ -382,7 +396,7 @@
           'avail.src = "/js/booking-availability.js?v=4";' +
           'avail.onload = function () {' +
           'const booking = document.createElement("script");' +
-          'booking.src = "/js/booking.js?v=59";' +
+          'booking.src = "/js/booking.js?v=60";' +
           'booking.defer = true;' +
           'document.body.appendChild(booking);' +
           '};' +

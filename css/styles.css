@@ -4142,6 +4142,58 @@ ul.price-menu__policy-list {
   margin-bottom: 1.1rem;
 }
 
+.booking-addon-picker {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.booking-addon-picker__legend {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.65rem;
+  padding: 0;
+}
+
+.booking-addon-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.booking-addon-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  background: var(--cream, #fafafa);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.booking-addon-option:hover {
+  border-color: rgba(219, 39, 119, 0.35);
+}
+
+.booking-addon-option:has(input:checked) {
+  border-color: var(--pink, #db2777);
+  background: rgba(219, 39, 119, 0.06);
+}
+
+.booking-addon-option input {
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+  accent-color: var(--pink, #db2777);
+}
+
+.booking-addon-option__label {
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
 .field label {
   display: block;
   font-weight: 600;

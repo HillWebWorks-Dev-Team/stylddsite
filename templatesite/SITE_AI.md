@@ -93,6 +93,31 @@ On **`/book`** (cover layout): if both hidden, `.profile-book-intro` is hidden a
 
 Other ids: `"menu"`, `"visit"`, `"reviews"` — `[data-site-section="..."]` elements.
 
+## Style add-ons (`style_catalog_meta`)
+
+Optional add-ons per style in `site_setting` → `style_catalog_meta`:
+
+```json
+{
+  "studio-skin-fade": {
+    "title": "Skin Fade",
+    "durationMinutes": 45,
+    "addons": [
+      { "id": "addon-abc", "name": "Beard trim", "price": 15 }
+    ]
+  }
+}
+```
+
+Base price stays in `style_price_overrides`. Menu display in `tenant-site.js` / `styld-tenant-shared.js`:
+
+- No add-ons → `$35`
+- With add-ons → `$35–$55` (base through base + highest add-on price, en-dash)
+
+Helpers: `normalizeAddons(raw)`, `formatStylePriceRange(basePrice, addons)`. `buildBookingStyles` passes `addons` on each style.
+
+**Booking page (`/booking`):** After selecting a service with add-ons, an **Optional add-on** radio group appears. Pricing shows service base, optional add-on line, and total (base + selected add-on). Deposit recalculates from total. Saved on booking: `style_name` (e.g. `Skin Fade + Beard trim`), `selected_addon_id`, `selected_addon_name`, `selected_addon_price`.
+
 ## Subscription-gated domains
 
 Styld sites are **not free hosting**. A stylist must have an **active Styld subscription** (RevenueCat entitlement `pro`, products `styld_monthly` / `styld_yearly`) to keep a live subdomain.

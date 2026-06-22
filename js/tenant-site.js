@@ -62,9 +62,12 @@
     return cfg.supabaseUrl.replace(/\/$/, '') + '/storage/v1/object/public/style-covers/' + String(path).replace(/^\/+/, '');
   }
 
-  function formatPrice(amount) {
-    if (typeof amount !== 'number' || Number.isNaN(amount) || amount <= 0) return 'Price TBD';
-    return '$' + Math.round(amount);
+  function formatStylePriceRange(basePrice, addons) {
+    if (window.StyldTenant && window.StyldTenant.formatStylePriceRange) {
+      return window.StyldTenant.formatStylePriceRange(basePrice, addons);
+    }
+    if (typeof basePrice !== 'number' || Number.isNaN(basePrice) || basePrice <= 0) return 'Price TBD';
+    return '$' + Math.round(basePrice);
   }
 
   function normalizeDurationMinutes(value) {
@@ -225,7 +228,7 @@
             id: styleId,
             title: item.title || styleId,
             description: item.description || '',
-            priceLabel: formatPrice(prices[styleId]),
+            priceLabel: formatStylePriceRange(prices[styleId], item.addons),
             sizeLabel: sizeLabel || undefined,
             durationLabel: formatStyleDuration(item.durationMinutes),
             imageUrl: coverUrl(covers[styleId]) || logoFallbackUrl,
