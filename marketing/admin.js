@@ -694,6 +694,7 @@
     salonTab: 'analytics',
     salonData: null,
     salonSort: 'revenue_desc',
+    salonTypeFilter: 'all',
     revenueRange: 'month',
     revenueMonth: '',
     revenueYear: '',
@@ -1240,6 +1241,48 @@
       .toUpperCase();
   }
 
+  function renderSalonThumb(imageUrl, name, className) {
+    className = className || 'admin-salon-thumb';
+    var initials = esc(salonInitials(name));
+    if (imageUrl) {
+      return (
+        '<div class="' +
+        className +
+        '">' +
+        '<img class="' +
+        className +
+        '__img" src="' +
+        esc(imageUrl) +
+        '" alt="" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false">' +
+        '<span class="' +
+        className +
+        '__fallback" hidden>' +
+        initials +
+        '</span></div>'
+      );
+    }
+    return '<div class="' + className + ' ' + className + '--empty"><span>' + initials + '</span></div>';
+  }
+
+  function businessCategoryPill(category, label) {
+    var tone = category === 'barber' ? 'barber' : 'salon';
+    return (
+      '<span class="admin-biz-type-pill admin-biz-type-pill--' +
+      esc(tone) +
+      '">' +
+      esc(label || (category === 'barber' ? 'Barber' : 'Salon')) +
+      '</span>'
+    );
+  }
+
+  function filterSalonsByType(users, typeFilter) {
+    users = users || [];
+    if (!typeFilter || typeFilter === 'all') return users;
+    return users.filter(function (u) {
+      return (u.business_category || 'salon') === typeFilter;
+    });
+  }
+
   function subscriptionPill(sub) {
     sub = sub || {};
     var label = sub.plan_label || sub.status || 'Unknown';
@@ -1751,13 +1794,20 @@
     if (!catalog.length) return '<p class="admin-empty-note">No services in catalog yet.</p>';
 
     return (
-      '<div class="admin-style-catalog">' +
+      '<div class="admin-style-grid">' +
       catalog
         .map(function (style) {
+          var duration =
+            style.duration_minutes != null ? style.duration_minutes + ' min' : 'No duration set';
+          var metaBits = [duration];
+          if (style.category) metaBits.push(style.category);
+          if (style.addon_count) {
+            metaBits.push(style.addon_count + ' add-on' + (style.addon_count === 1 ? '' : 's'));
+          }
           var addonsHtml = '';
           if (style.addons && style.addons.length) {
             addonsHtml =
-              '<ul class="admin-style-catalog__addons">' +
+              '<ul class="admin-style-grid__addons">' +
               style.addons
                 .map(function (addon) {
                   return (
@@ -1771,30 +1821,45 @@
                 .join('') +
               '</ul>';
           }
+          var coverBadge = style.has_cover
+            ? ''
+            : '<span class="admin-style-grid__cover-note">Logo fallback</span>';
+          var mediaInner = style.image_url
+            ? '<img class="admin-style-grid__img" src="' +
+              esc(style.image_url) +
+              '" alt="" loading="lazy" decoding="async" onerror="this.closest(\'.admin-style-grid__card\').classList.add(\'is-no-image\')">'
+            : '';
           return (
-            '<article class="admin-style-catalog__item">' +
-            '<div class="admin-style-catalog__head">' +
-            '<div><strong>' +
+            '<article class="admin-style-grid__card' +
+            (style.image_url ? '' : ' is-no-image') +
+            '">' +
+            '<div class="admin-style-grid__media">' +
+            mediaInner +
+            '<div class="admin-style-grid__media-fallback" aria-hidden="true"><span>' +
+            esc((style.title || '?').charAt(0).toUpperCase()) +
+            '</span></div>' +
+            '<div class="admin-style-grid__media-overlay">' +
+            '<span class="admin-style-grid__price">' +
+            esc(style.price_label || fmtMoney(style.base_price)) +
+            '</span></div></div>' +
+            '<div class="admin-style-grid__body">' +
+            '<div class="admin-style-grid__head">' +
+            '<strong>' +
             esc(style.title) +
             '</strong>' +
-            '<span class="admin-style-catalog__id admin-mono">' +
-            esc(style.id) +
-            '</span></div>' +
-            '<span class="admin-style-catalog__price">' +
-            esc(style.price_label || fmtMoney(style.base_price)) +
-            '</span></div>' +
-            '<div class="admin-style-catalog__meta">' +
-            (style.duration_minutes ? esc(style.duration_minutes + ' min') : 'No duration set') +
-            (style.category ? ' · ' + esc(style.category) : '') +
-            (style.addon_count
-              ? ' · ' + esc(style.addon_count) + ' add-on' + (style.addon_count === 1 ? '' : 's')
-              : '') +
+            coverBadge +
             '</div>' +
+            '<span class="admin-style-grid__meta">' +
+            esc(metaBits.join(' · ')) +
+            '</span>' +
+            '<span class="admin-style-grid__id admin-mono">' +
+            esc(style.id) +
+            '</span>' +
             (style.description
-              ? '<p class="admin-style-catalog__desc">' + esc(truncate(style.description, 140)) + '</p>'
+              ? '<p class="admin-style-grid__desc">' + esc(truncate(style.description, 120)) + '</p>'
               : '') +
             addonsHtml +
-            '</article>'
+            '</div></article>'
           );
         })
         .join('') +
@@ -2189,9 +2254,7 @@
     var hero =
       '<div class="admin-biz-hero">' +
       '<div class="admin-biz-hero__main">' +
-      '<div class="admin-biz-hero__avatar">' +
-      esc(clientInitials(ownerName)) +
-      '</div>' +
+      renderSalonThumb(data.image_url, data.brand_name || ownerName, 'admin-biz-hero__avatar') +
       '<div><h3>Business</h3><p class="admin-muted">' +
       esc(data.brand_name || 'Salon') +
       (data.tagline ? ' · ' + esc(truncate(data.tagline, 48)) : '') +
@@ -2205,6 +2268,7 @@
         : '<span class="admin-muted">Site not published</span>') +
       '</div></div>' +
       '<div class="admin-biz-hero__badges">' +
+      businessCategoryPill(data.business_category, data.business_category_label) +
       subscriptionPill(sub) +
       statusBadge(!!stripe.charges_enabled, 'Stripe active', 'Stripe inactive') +
       statusBadge(!!data.published_at, 'Live site', 'Draft') +
@@ -2213,9 +2277,8 @@
     var accountCard = infoCard(
       'Account',
       '<div class="admin-account-block">' +
-        '<div class="admin-account-block__avatar">' +
-        esc(clientInitials(ownerName)) +
-        '</div><div>' +
+        renderSalonThumb(data.image_url, data.brand_name || ownerName, 'admin-account-block__avatar') +
+        '<div>' +
         '<strong class="admin-account-block__name">' +
         esc(ownerName) +
         '</strong>' +
@@ -2430,9 +2493,7 @@
 
   function salonRowHtml(u) {
     var name = u.brand_name || u.business_name || u.full_name || 'Salon';
-    var img = u.image_url
-      ? '<img class="admin-salon-row__img" src="' + esc(u.image_url) + '" alt="" loading="lazy" decoding="async">'
-      : '<span class="admin-salon-row__fallback">' + esc(salonInitials(name)) + '</span>';
+    var img = renderSalonThumb(u.image_url, name, 'admin-salon-row__media-inner');
     return (
       '<button type="button" class="admin-salon-row" data-open-user="' +
       esc(u.user_id) +
@@ -2441,9 +2502,12 @@
       img +
       '</div>' +
       '<div class="admin-salon-row__main">' +
+      '<div class="admin-salon-row__title-row">' +
       '<strong class="admin-salon-row__name">' +
       esc(name) +
       '</strong>' +
+      businessCategoryPill(u.business_category, u.business_category_label) +
+      '</div>' +
       '<span class="admin-salon-row__meta">' +
       esc(u.email || '') +
       (u.subdomain ? ' · ' + esc(u.subdomain) + '.styldd.com' : '') +
@@ -2495,11 +2559,40 @@
   }
 
   function renderUsersTable(users) {
-    var sorted = sortSalons(users, state.salonSort);
+    var filtered = filterSalonsByType(users, state.salonTypeFilter);
+    var sorted = sortSalons(filtered, state.salonSort);
     if (els.salonCount) {
-      els.salonCount.textContent = fmtCount(sorted.length) + ' salon' + (sorted.length === 1 ? '' : 's');
+      var total = (users || []).length;
+      var barbers = (users || []).filter(function (u) {
+        return u.business_category === 'barber';
+      }).length;
+      var salons = total - barbers;
+      var countLabel = fmtCount(sorted.length) + ' shown';
+      if (state.salonTypeFilter === 'all') {
+        countLabel =
+          fmtCount(total) +
+          ' total · ' +
+          fmtCount(barbers) +
+          ' barber' +
+          (barbers === 1 ? '' : 's') +
+          ' · ' +
+          fmtCount(salons) +
+          ' salon' +
+          (salons === 1 ? '' : 's');
+      }
+      els.salonCount.textContent = countLabel;
     }
     renderSalonList(sorted, els.salonsGrid);
+  }
+
+  function setSalonTypeFilter(type) {
+    state.salonTypeFilter = type || 'all';
+    document.querySelectorAll('[data-salon-type]').forEach(function (btn) {
+      var active = btn.getAttribute('data-salon-type') === state.salonTypeFilter;
+      btn.classList.toggle('is-active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    renderUsersTable(state.users);
   }
 
   function renderBookingsTable(bookings) {
@@ -3558,6 +3651,12 @@
       });
     }
 
+    document.querySelectorAll('[data-salon-type]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setSalonTypeFilter(btn.getAttribute('data-salon-type'));
+      });
+    });
+
     document.querySelectorAll('.admin-salon-tab').forEach(function (btn) {
       btn.setAttribute('role', 'tab');
       btn.id = 'admin-salon-tab-' + btn.getAttribute('data-salon-tab');
@@ -3617,6 +3716,7 @@
 
     bindEvents();
     setNumberFormatUI(state.numberFormat || 'full');
+    setSalonTypeFilter(state.salonTypeFilter || 'all');
     setHideMoneyUI(state.hideMoney);
     setRevenueRangeUI(state.revenueRange || 'month');
     loadTab('overview');

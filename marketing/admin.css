@@ -823,9 +823,76 @@ body.admin-drawer-open {
   border-radius: 12px;
   overflow: hidden;
   background: var(--admin-surface-2);
+  flex-shrink: 0;
+}
+
+.admin-salon-row__media-inner,
+.admin-salon-thumb {
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: grid;
   place-items: center;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.admin-salon-row__media-inner__img,
+.admin-salon-thumb__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-salon-row__media-inner__fallback,
+.admin-salon-thumb__fallback,
+.admin-salon-thumb--empty span {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--admin-accent);
+  background: linear-gradient(145deg, rgba(255, 45, 138, 0.18), rgba(255, 255, 255, 0.03));
+}
+
+.admin-salon-row__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.admin-biz-type-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
   flex-shrink: 0;
+}
+
+.admin-biz-type-pill--barber {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.28);
+}
+
+.admin-biz-type-pill--salon {
+  color: #f9a8d4;
+  background: rgba(255, 45, 138, 0.12);
+  border-color: rgba(255, 45, 138, 0.28);
+}
+
+.admin-salon-type-filter {
+  margin-right: 0.15rem;
 }
 
 .admin-salon-row__img {
@@ -2794,16 +2861,19 @@ body.admin-salon-open {
 }
 
 .admin-biz-hero__avatar {
-  display: grid;
-  place-items: center;
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  font-weight: 700;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.admin-biz-hero__avatar.admin-salon-thumb--empty span,
+.admin-biz-hero__avatar .admin-salon-thumb__fallback {
+  font-size: 0.95rem;
   color: #fff;
   background: linear-gradient(145deg, rgba(255, 45, 138, 0.9), rgba(160, 25, 90, 0.95));
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  flex-shrink: 0;
 }
 
 .admin-biz-hero__main h3 {
@@ -2834,11 +2904,15 @@ body.admin-salon-open {
 }
 
 .admin-account-block__avatar {
-  display: grid;
-  place-items: center;
   width: 44px;
   height: 44px;
   border-radius: 999px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.admin-account-block__avatar.admin-salon-thumb--empty span,
+.admin-account-block__avatar .admin-salon-thumb__fallback {
   font-size: 0.8rem;
   font-weight: 700;
   color: #fff;
@@ -3026,6 +3100,150 @@ body.admin-salon-open {
 
 .admin-tag-list--muted .admin-client-tag {
   opacity: 0.82;
+}
+
+.admin-styles-salon-panel .admin-style-grid {
+  margin-top: 0.5rem;
+}
+
+.admin-style-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.85rem;
+}
+
+.admin-style-grid__card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+  overflow: hidden;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.admin-style-grid__card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 45, 138, 0.28);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.admin-style-grid__media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.admin-style-grid__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-style-grid__media-fallback {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-items: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: rgba(255, 45, 138, 0.85);
+  background: linear-gradient(145deg, rgba(255, 45, 138, 0.16), rgba(255, 255, 255, 0.02));
+}
+
+.admin-style-grid__card.is-no-image .admin-style-grid__media-fallback {
+  display: grid;
+}
+
+.admin-style-grid__media-overlay {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 1.4rem 0.65rem 0.55rem;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.72));
+  pointer-events: none;
+}
+
+.admin-style-grid__price {
+  display: inline-flex;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.admin-style-grid__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 0.8rem 0.85rem;
+}
+
+.admin-style-grid__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.admin-style-grid__head strong {
+  font-size: 0.92rem;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.admin-style-grid__cover-note {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--admin-muted);
+  white-space: nowrap;
+}
+
+.admin-style-grid__meta {
+  font-size: 0.72rem;
+  color: var(--admin-muted);
+}
+
+.admin-style-grid__id {
+  font-size: 0.64rem;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.admin-style-grid__desc {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.admin-style-grid__addons {
+  list-style: none;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.admin-style-grid__addons li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.72rem;
+}
+
+.admin-style-grid__addons strong {
+  font-size: 0.72rem;
+  color: #86efac;
 }
 
 .admin-styles-salon-panel .admin-style-catalog {

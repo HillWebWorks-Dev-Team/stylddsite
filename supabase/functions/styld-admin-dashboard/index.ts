@@ -69,13 +69,38 @@ function pickData(row: { data?: unknown }) {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 
+function coverStoragePath(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+  if (typeof value === 'object') {
+    const row = value as Record<string, unknown>;
+    const nested = row.storage_path ?? row.storagePath ?? row.path ?? row.url;
+    if (typeof nested === 'string' && nested.trim()) return nested.trim();
+  }
+  return null;
+}
+
 function publicAssetUrl(path: unknown, bucket = 'style-covers') {
-  if (!path || typeof path !== 'string') return null;
-  const p = path.trim();
+  const p = coverStoragePath(path);
   if (!p) return null;
   if (p.startsWith('http://') || p.startsWith('https://')) return p;
   if (!SUPABASE_URL) return null;
   return `${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/public/${bucket}/${p.replace(/^\/+/, '')}`;
+}
+
+function resolveProfileAvatar(avatar: unknown) {
+  const p = coverStoragePath(avatar);
+  if (!p) return null;
+  if (p.startsWith('http://') || p.startsWith('https://')) return p;
+  return (
+    publicAssetUrl(p, 'style-covers') ||
+    publicAssetUrl(p, 'avatars') ||
+    publicAssetUrl(p, 'profile-images') ||
+    null
+  );
 }
 
 async function signedBookingPhotoUrl(
@@ -102,13 +127,52 @@ function salonImageUrl(
 ) {
   const theme = siteTheme || {};
   const content = siteContent || {};
+  const stackPaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
   return (
     publicAssetUrl(theme.logoImagePath) ||
     publicAssetUrl(theme.heroImagePath) ||
-    publicAssetUrl(profile.avatar_url, 'style-covers') ||
-    (typeof profile.avatar_url === 'string' && profile.avatar_url.startsWith('http') ? profile.avatar_url : null) ||
+    (stackPaths.length ? publicAssetUrl(stackPaths[0]) : null) ||
+    publicAssetUrl(content.logoImagePath) ||
+    resolveProfileAvatar(profile.avatar_url) ||
     null
   );
+}
+
+function buildStyleCoverMap(rows: Array<{ record_key?: unknown; data?: unknown }>) {
+  const map = new Map<string, string>();
+  for (const row of rows) {
+    const key = String(row.record_key || '').trim();
+    const path = coverStoragePath(pickData({ data: row.data }));
+    if (key && path) map.set(key, path);
+  }
+  return map;
+}
+
+function parseBusinessCategory(
+  onboarding: unknown,
+  siteContent: Record<string, unknown>,
+  names: string[],
+): 'barber' | 'salon' {
+  const bits: string[] = [];
+  if (onboarding && typeof onboarding === 'object') {
+    const root = onboarding as Record<string, unknown>;
+    const survey = root.survey && typeof root.survey === 'object' ? (root.survey as Record<string, unknown>) : {};
+    const biz = root.business && typeof root.business === 'object' ? (root.business as Record<string, unknown>) : {};
+    for (const key of ['businessType', 'profession', 'role', 'workType', 'providerType', 'type', 'category']) {
+      if (survey[key] != null) bits.push(String(survey[key]));
+      if (biz[key] != null) bits.push(String(biz[key]));
+    }
+    if (Array.isArray(survey.whyStyld)) bits.push(survey.whyStyld.map(String).join(' '));
+  }
+  for (const key of ['businessType', 'professionType', 'profession', 'businessCategory']) {
+    if (siteContent[key] != null) bits.push(String(siteContent[key]));
+  }
+  bits.push(...names.filter(Boolean));
+  const hay = bits.join(' ').toLowerCase();
+  if (/\bbarber(s|shop)?\b|barbershop|\bfades?\b|\btapers?\b|line-?up|men'?s?\s+(cut|hair)|\bclipper/i.test(hay)) {
+    return 'barber';
+  }
+  return 'salon';
 }
 
 function revenueFromBookingData(data: Record<string, unknown> | null) {
@@ -260,6 +324,8 @@ type StyleCatalogItem = {
   addons: StyleAddon[];
   price_label: string;
   description: string | null;
+  image_url: string | null;
+  has_cover: boolean;
 };
 
 function normalizeAddons(raw: unknown): StyleAddon[] {
@@ -286,16 +352,25 @@ function formatStylePriceRange(basePrice: number, addons: StyleAddon[]): string 
   return `$${Math.round(base)}–$${Math.round(high)}`;
 }
 
-function parseStyleCatalog(meta: unknown, prices: unknown): StyleCatalogItem[] {
+function parseStyleCatalog(
+  meta: unknown,
+  prices: unknown,
+  coverPaths?: Map<string, string> | null,
+  logoFallbackPath?: unknown,
+): StyleCatalogItem[] {
   const metaObj = meta && typeof meta === 'object' ? (meta as Record<string, unknown>) : {};
   const priceObj = prices && typeof prices === 'object' ? (prices as Record<string, unknown>) : {};
-  const ids = new Set([...Object.keys(metaObj), ...Object.keys(priceObj)]);
+  const covers = coverPaths || new Map<string, string>();
+  const logoFallbackUrl = publicAssetUrl(logoFallbackPath);
+  const ids = new Set([...Object.keys(metaObj), ...Object.keys(priceObj), ...covers.keys()]);
   return [...ids]
     .map((id) => {
       const item = (metaObj[id] || {}) as Record<string, unknown>;
       const base = Number(priceObj[id]) || 0;
       const addons = normalizeAddons(item.addons);
       const title = String(item.title || id).trim() || id;
+      const coverUrl = publicAssetUrl(covers.get(id));
+      const imageUrl = coverUrl || logoFallbackUrl || null;
       return {
         id,
         title,
@@ -306,6 +381,8 @@ function parseStyleCatalog(meta: unknown, prices: unknown): StyleCatalogItem[] {
         addons,
         price_label: formatStylePriceRange(base, addons),
         description: item.description ? String(item.description) : null,
+        image_url: imageUrl,
+        has_cover: !!coverUrl,
       };
     })
     .sort((a, b) => a.title.localeCompare(b.title));
@@ -1120,6 +1197,11 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
     const revenue = revenueByUser.get(uid) || { gross: 0, collected: 0, pending: 0, count: 0 };
     const brandName =
       String(siteContent.brandName || p.business_name || p.full_name || 'Salon').trim() || 'Salon';
+    const businessCategory = parseBusinessCategory(settings.onboarding_responses, siteContent, [
+      brandName,
+      String(p.business_name || ''),
+      String(p.full_name || ''),
+    ]);
     const ratingStats = ratingsByUser.get(uid);
     const reviewsAvgRating = ratingStats?.count
       ? Math.round((ratingStats.sum / ratingStats.count) * 10) / 10
@@ -1167,6 +1249,8 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
       addon_count: styleCatalog.reduce((sum, style) => sum + style.addon_count, 0),
       payment_mode: String(bookingPayment.mode || 'none'),
       payment_mode_label: paymentModeLabel(bookingPayment.mode),
+      business_category: businessCategory,
+      business_category_label: businessCategory === 'barber' ? 'Barber' : 'Salon',
       subscription: { status: 'pending' as const },
     };
   });
@@ -1576,7 +1660,13 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
   const siteContent = (siteSettings.site_content || {}) as Record<string, unknown>;
   const siteTheme = (siteSettings.site_theme || {}) as Record<string, unknown>;
   const sitePublish = (siteSettings.site_publish || {}) as Record<string, unknown>;
-  const styleCatalog = parseStyleCatalog(siteSettings.style_catalog_meta, siteSettings.style_price_overrides);
+  const styleCoverMap = buildStyleCoverMap(covers);
+  const styleCatalog = parseStyleCatalog(
+    siteSettings.style_catalog_meta,
+    siteSettings.style_price_overrides,
+    styleCoverMap,
+    siteTheme.logoImagePath,
+  );
   const siteThemeSummary = summarizeSiteTheme(siteTheme);
   const siteContentSummary = summarizeSiteContent(siteContent);
   const subdomain = String(
@@ -1621,12 +1711,17 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
   const auth = authUser.data?.user;
   const contact = (siteContent.contact || {}) as Record<string, unknown>;
   const visit = (siteContent.visit || {}) as Record<string, unknown>;
+  const businessCategory = parseBusinessCategory(siteSettings.onboarding_responses, siteContent, [
+    String(siteContent.brandName || profileRow.business_name || profileRow.full_name || ''),
+  ]);
 
   return {
     profile: profile.data,
     brand_name: String(siteContent.brandName || profileRow.business_name || profileRow.full_name || 'Salon'),
     tagline: siteContent.tagline || null,
     image_url: salonImageUrl(profileRow, siteContent, siteTheme),
+    business_category: businessCategory,
+    business_category_label: businessCategory === 'barber' ? 'Barber' : 'Salon',
     public_url: subdomain ? `https://${subdomain}.${ROOT_DOMAIN}` : null,
     subdomain,
     published_at: (userSite.data as Record<string, unknown> | null)?.published_at || sitePublish.publishedAt || null,
