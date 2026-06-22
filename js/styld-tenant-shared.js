@@ -255,6 +255,21 @@
     };
   }
 
+  function resolveEffectiveBookingPayment(bookingPayment, stripeReady) {
+    var settings =
+      bookingPayment && typeof bookingPayment === 'object'
+        ? Object.assign({}, bookingPayment)
+        : {};
+    var mode = String(settings.mode || 'none').trim();
+    if (mode === 'in_person') mode = 'none';
+    if (!stripeReady && (mode === 'deposit' || mode === 'full')) {
+      settings.mode = 'none';
+    } else {
+      settings.mode = mode;
+    }
+    return settings;
+  }
+
   function getBookingFormRequirements(bookingPayment) {
     var settings = bookingPayment && typeof bookingPayment === 'object' ? bookingPayment : {};
     var requireHair = settings.requireCurrentHairPhoto;
@@ -653,6 +668,7 @@
     normalizeBookingHours: normalizeBookingHours,
     normalizeWeekdayHours: normalizeWeekdayHours,
     getBookingFormRequirements: getBookingFormRequirements,
+    resolveEffectiveBookingPayment: resolveEffectiveBookingPayment,
     applyBookingFormSettings: applyBookingFormSettings,
     resolveCancellationPolicySummary: resolveCancellationPolicySummary,
     normalizeAddons: normalizeAddons,

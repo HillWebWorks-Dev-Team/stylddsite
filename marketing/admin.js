@@ -1282,6 +1282,13 @@
     var deposit = Number(b.deposit_amount);
     var hasDeposit = !isNaN(deposit) && deposit > 0;
     var balance = hasDeposit ? Math.max(0, (Number(b.estimated_total) || 0) - deposit) : null;
+    var addonName = b.selected_addon_name ? String(b.selected_addon_name).trim() : '';
+    var addonPrice = Number(b.selected_addon_price);
+    var hasAddon = !!addonName;
+    var serviceBase = Number(b.service_base_price);
+    if (isNaN(serviceBase) && hasAddon && !isNaN(addonPrice)) {
+      serviceBase = Math.max(0, (Number(b.estimated_total) || 0) - addonPrice);
+    }
 
     var photos = '';
     if (b.photo_hair_url || b.photo_ref_url) {
@@ -1433,8 +1440,16 @@
       infoCard(
         'Service',
         infoRows([
-          { label: 'Style', value: b.style_name },
+          { label: 'Booked service', value: service },
+          hasAddon
+            ? { label: 'Add-on', value: addonName + (hasAddon && !isNaN(addonPrice) ? ' (+' + fmtMoney(addonPrice) + ')' : '') }
+            : null,
+          !isNaN(serviceBase) && hasAddon ? { label: 'Service base', value: fmtMoney(serviceBase) } : null,
+          hasAddon ? { label: 'Total with add-on', value: fmtMoney(b.estimated_total) } : null,
           { label: 'Style ID', html: '<span class="admin-mono">' + esc(b.style_id || '—') + '</span>' },
+          b.selected_addon_id
+            ? { label: 'Add-on ID', html: '<span class="admin-mono">' + esc(b.selected_addon_id) + '</span>' }
+            : null,
         ]),
         { tone: 'contact' },
       ) +
@@ -1595,7 +1610,13 @@
     payment = payment && typeof payment === 'object' ? payment : {};
     var mode = String(payment.mode || 'none');
     var modeLabel =
-      mode === 'deposit' ? 'Deposit required' : mode === 'full' ? 'Full payment upfront' : 'No online payment';
+      mode === 'deposit'
+        ? 'Deposit required online'
+        : mode === 'full'
+          ? 'Full payment upfront'
+          : mode === 'in_person'
+            ? 'Pay in person'
+            : 'No online payment';
     var depositKind = payment.depositKind || payment.deposit_kind || 'percent';
     var depositValue = payment.depositValue != null ? payment.depositValue : payment.deposit_value;
     var depositLine = '—';
@@ -1626,6 +1647,158 @@
       '<div class="admin-config-pill"><span>Reference photo</span><strong>' +
       (requireRef ? 'Required' : 'Optional') +
       '</strong></div></div>'
+    );
+  }
+
+  function renderSiteThemeSummary(summary) {
+    summary = summary && typeof summary === 'object' ? summary : {};
+    var stackDetail = '—';
+    if (summary.hero_layout === 'stack') {
+      stackDetail =
+        String(summary.hero_stack_image_count || 0) +
+        ' image' +
+        (summary.hero_stack_image_count === 1 ? '' : 's') +
+        ' · ' +
+        (summary.hero_stack_format === 'tall' ? 'Tall portrait (4:9)' : 'Wide banner (3:1)');
+    }
+
+    return (
+      '<div class="admin-config-grid">' +
+      '<div class="admin-config-pill"><span>Header layout</span><strong>' +
+      esc(summary.hero_layout_label || summary.hero_layout || '—') +
+      '</strong></div>' +
+      (summary.hero_layout === 'stack'
+        ? '<div class="admin-config-pill"><span>Stack images</span><strong>' + esc(stackDetail) + '</strong></div>'
+        : '') +
+      (summary.hero_layout === 'cover'
+        ? '<div class="admin-config-pill"><span>Cover blur</span><strong>' +
+          (summary.hero_cover_blur ? 'On' : 'Off') +
+          '</strong></div>'
+        : '') +
+      '<div class="admin-config-pill"><span>Menu cards</span><strong>' +
+      esc(summary.style_card_layout === 'outlined' ? 'Outlined' : 'Filled card') +
+      '</strong></div>' +
+      '<div class="admin-config-pill"><span>Font</span><strong>' +
+      esc(summary.font_family || '—') +
+      '</strong></div>' +
+      '<div class="admin-config-pill"><span>Book Now</span><strong>' +
+      (summary.hide_book_now_button ? 'Hidden' : 'Visible') +
+      '</strong></div>' +
+      '<div class="admin-config-pill"><span>Custom text colors</span><strong>' +
+      esc(summary.custom_text_colors || 0) +
+      '</strong></div>' +
+      (summary.primary_color
+        ? '<div class="admin-config-pill admin-config-pill--swatch"><span>Primary</span><strong><span class="admin-color-chip" style="background:' +
+          esc(summary.primary_color) +
+          '"></span>' +
+          esc(summary.primary_color) +
+          '</strong></div>'
+        : '') +
+      (summary.secondary_color
+        ? '<div class="admin-config-pill admin-config-pill--swatch"><span>Secondary</span><strong><span class="admin-color-chip" style="background:' +
+          esc(summary.secondary_color) +
+          '"></span>' +
+          esc(summary.secondary_color) +
+          '</strong></div>'
+        : '') +
+      '</div>'
+    );
+  }
+
+  function renderSiteContentSummary(summary) {
+    summary = summary && typeof summary === 'object' ? summary : {};
+    var hidden = Array.isArray(summary.hidden_sections) ? summary.hidden_sections : [];
+    var hiddenLocation = Array.isArray(summary.hidden_location_parts) ? summary.hidden_location_parts : [];
+    var hiddenHtml = '';
+    if (hidden.length) {
+      hiddenHtml =
+        '<div class="admin-tag-list admin-tag-list--muted">' +
+        hidden
+          .map(function (section) {
+            return '<span class="admin-client-tag">Hidden: ' + esc(section) + '</span>';
+          })
+          .join('') +
+        '</div>';
+    }
+    if (hiddenLocation.length) {
+      hiddenHtml +=
+        '<div class="admin-tag-list admin-tag-list--muted">' +
+        hiddenLocation
+          .map(function (part) {
+            return '<span class="admin-client-tag">Location hidden: ' + esc(part) + '</span>';
+          })
+          .join('') +
+        '</div>';
+    }
+
+    return (
+      infoRows([
+        { label: 'Menu title', value: summary.menu_title },
+        { label: 'Tagline', value: summary.tagline_left },
+        { label: 'About on site', value: summary.has_about ? 'Yes' : 'No' },
+        { label: 'Policies on site', value: summary.has_policies ? 'Yes' : 'No' },
+        {
+          label: 'Instagram',
+          value: summary.instagram_handle ? '@' + String(summary.instagram_handle).replace(/^@/, '') : null,
+        },
+      ]) +
+      (hiddenHtml || '<p class="admin-empty-note admin-empty-note--inline">All main sections visible on live site.</p>')
+    );
+  }
+
+  function renderStyleCatalogPanel(catalog) {
+    catalog = catalog || [];
+    if (!catalog.length) return '<p class="admin-empty-note">No services in catalog yet.</p>';
+
+    return (
+      '<div class="admin-style-catalog">' +
+      catalog
+        .map(function (style) {
+          var addonsHtml = '';
+          if (style.addons && style.addons.length) {
+            addonsHtml =
+              '<ul class="admin-style-catalog__addons">' +
+              style.addons
+                .map(function (addon) {
+                  return (
+                    '<li><span>' +
+                    esc(addon.name) +
+                    '</span><strong>+' +
+                    fmtMoney(addon.price) +
+                    '</strong></li>'
+                  );
+                })
+                .join('') +
+              '</ul>';
+          }
+          return (
+            '<article class="admin-style-catalog__item">' +
+            '<div class="admin-style-catalog__head">' +
+            '<div><strong>' +
+            esc(style.title) +
+            '</strong>' +
+            '<span class="admin-style-catalog__id admin-mono">' +
+            esc(style.id) +
+            '</span></div>' +
+            '<span class="admin-style-catalog__price">' +
+            esc(style.price_label || fmtMoney(style.base_price)) +
+            '</span></div>' +
+            '<div class="admin-style-catalog__meta">' +
+            (style.duration_minutes ? esc(style.duration_minutes + ' min') : 'No duration set') +
+            (style.category ? ' · ' + esc(style.category) : '') +
+            (style.addon_count
+              ? ' · ' + esc(style.addon_count) + ' add-on' + (style.addon_count === 1 ? '' : 's')
+              : '') +
+            '</div>' +
+            (style.description
+              ? '<p class="admin-style-catalog__desc">' + esc(truncate(style.description, 140)) + '</p>'
+              : '') +
+            addonsHtml +
+            '</article>'
+          );
+        })
+        .join('') +
+      '</div>'
     );
   }
 
@@ -2089,6 +2262,37 @@
       { wide: true, tone: 'booking' },
     );
 
+    var siteDesignCard = infoCard(
+      'Site design',
+      renderSiteThemeSummary(data.site_theme_summary) +
+        '<div class="admin-section-divider"></div>' +
+        '<h5 class="admin-subsection-title">Live content</h5>' +
+        renderSiteContentSummary(data.site_content_summary),
+      { wide: true, tone: 'site' },
+    );
+
+    var styleCount = Number(data.style_count) || 0;
+    var addonCount = Number(data.addon_count) || 0;
+    var stylesCard = infoCard(
+      'Style menu & add-ons',
+      '<p class="admin-muted admin-style-catalog__intro">' +
+        esc(styleCount) +
+        ' service' +
+        (styleCount === 1 ? '' : 's') +
+        (addonCount ? ' · ' + esc(addonCount) + ' add-on' + (addonCount === 1 ? '' : 's') + ' across menu' : '') +
+        '. Prices show base through highest add-on when add-ons exist.</p>' +
+        renderStyleCatalogPanel(data.style_catalog),
+      {
+        wide: true,
+        tone: 'styles',
+        badge:
+          '<span class="admin-count-badge">' +
+          esc(styleCount) +
+          (addonCount ? '+' + esc(addonCount) : '') +
+          '</span>',
+      },
+    );
+
     var policyCard = infoCard(
       'Cancellation policy',
       renderCancellationSummary(data.cancellation_policy),
@@ -2110,6 +2314,8 @@
       stripeCard +
       onboardingCard +
       bookingCard +
+      siteDesignCard +
+      stylesCard +
       policyCard +
       inquiryCard +
       '</div>'
@@ -2218,6 +2424,9 @@
       '<span class="admin-salon-row__meta">' +
       esc(u.email || '') +
       (u.subdomain ? ' · ' + esc(u.subdomain) + '.styldd.com' : '') +
+      (u.hero_layout_label ? ' · ' + esc(u.hero_layout_label) : '') +
+      (u.style_count ? ' · ' + esc(u.style_count) + ' styles' : '') +
+      (u.addon_count ? ' · ' + esc(u.addon_count) + ' add-ons' : '') +
       '</span>' +
       '</div>' +
       '<div class="admin-salon-row__stat">' +
@@ -2687,6 +2896,12 @@
         { label: 'Collected', value: fmtMoney(rev.collected) },
         { label: 'Bookings', value: rev.booking_count || 0 },
         { label: 'Clients', value: rev.unique_clients || 0 },
+        { label: 'Menu services', value: data.style_count || 0 },
+        { label: 'Add-ons', value: data.addon_count || 0 },
+        {
+          label: 'Site layout',
+          value: (data.site_theme_summary && data.site_theme_summary.hero_layout_label) || '—',
+        },
         { label: 'Views (30d)', value: a.views_30d || 0 },
         { label: 'Subscription', value: sub.plan_label || sub.status || '—', hint: sub.expires_date ? 'Renews ' + fmtDate(sub.expires_date) : '' },
       ]) +
@@ -2776,6 +2991,9 @@
     var service = b.style_name || 'Service';
     var payLabel = paymentStatusLabel(b.payment_status);
     var client = b.full_name || 'Client';
+    var addonName = b.selected_addon_name ? String(b.selected_addon_name).trim() : '';
+    var addonPrice = Number(b.selected_addon_price);
+    var hasAddon = !!addonName;
     var statusMod = String(b.booking_status || '').toLowerCase();
     var deposit = Number(b.deposit_amount);
     var hasDeposit = !isNaN(deposit) && deposit > 0;
@@ -2815,6 +3033,9 @@
       '">' +
       esc(truncate(service, compact ? 36 : 52)) +
       '</span>' +
+      (hasAddon
+        ? '<span class="admin-booking-card__addon">+ ' + esc(truncate(addonName, compact ? 24 : 36)) + '</span>'
+        : '') +
       (options.showSalon ? salonMetaHtml(b) : '') +
       '<span class="admin-booking-card__meta">' +
       (b.email ? esc(truncate(b.email, 32)) : 'No email') +

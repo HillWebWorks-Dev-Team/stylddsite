@@ -248,9 +248,138 @@ function aggregateRevenueByUser(bookingRows: { user_id: string; data: unknown }[
   return map;
 }
 
+type StyleAddon = { id: string; name: string; price: number };
+
+type StyleCatalogItem = {
+  id: string;
+  title: string;
+  duration_minutes: number | null;
+  category: string | null;
+  base_price: number;
+  addon_count: number;
+  addons: StyleAddon[];
+  price_label: string;
+  description: string | null;
+};
+
+function normalizeAddons(raw: unknown): StyleAddon[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item, index) => {
+      if (!item || typeof item !== 'object') return null;
+      const row = item as Record<string, unknown>;
+      const name = String(row.name || '').trim();
+      if (!name) return null;
+      const id = String(row.id || `addon-${index}`).trim();
+      const price = Number(row.price);
+      return { id, name, price: Number.isFinite(price) ? price : 0 };
+    })
+    .filter((item): item is StyleAddon => !!item);
+}
+
+function formatStylePriceRange(basePrice: number, addons: StyleAddon[]): string {
+  const base = Number(basePrice) || 0;
+  if (!addons.length) return base > 0 ? `$${Math.round(base)}` : '—';
+  const maxAddon = addons.reduce((max, addon) => Math.max(max, addon.price || 0), 0);
+  const high = base + maxAddon;
+  if (high <= base) return base > 0 ? `$${Math.round(base)}` : '—';
+  return `$${Math.round(base)}–$${Math.round(high)}`;
+}
+
+function parseStyleCatalog(meta: unknown, prices: unknown): StyleCatalogItem[] {
+  const metaObj = meta && typeof meta === 'object' ? (meta as Record<string, unknown>) : {};
+  const priceObj = prices && typeof prices === 'object' ? (prices as Record<string, unknown>) : {};
+  const ids = new Set([...Object.keys(metaObj), ...Object.keys(priceObj)]);
+  return [...ids]
+    .map((id) => {
+      const item = (metaObj[id] || {}) as Record<string, unknown>;
+      const base = Number(priceObj[id]) || 0;
+      const addons = normalizeAddons(item.addons);
+      const title = String(item.title || id).trim() || id;
+      return {
+        id,
+        title,
+        duration_minutes: item.durationMinutes != null ? Number(item.durationMinutes) : null,
+        category: item.category ? String(item.category) : null,
+        base_price: base,
+        addon_count: addons.length,
+        addons,
+        price_label: formatStylePriceRange(base, addons),
+        description: item.description ? String(item.description) : null,
+      };
+    })
+    .sort((a, b) => a.title.localeCompare(b.title));
+}
+
+function summarizeSiteTheme(theme: unknown) {
+  const t = theme && typeof theme === 'object' ? (theme as Record<string, unknown>) : {};
+  const layoutLabels: Record<string, string> = {
+    split: 'Split photo',
+    stack: 'Stack collage',
+    cover: 'Full screen splash',
+    'image-below': 'Image below headline',
+    minimal: 'Minimal text',
+  };
+  const layout = String(t.heroLayout || 'split');
+  const stackPaths = Array.isArray(t.heroStackImagePaths) ? t.heroStackImagePaths : [];
+  const textColors = t.textColors && typeof t.textColors === 'object' ? (t.textColors as Record<string, unknown>) : {};
+  return {
+    hero_layout: layout,
+    hero_layout_label: layoutLabels[layout] || layout,
+    hero_stack_format:
+      t.heroStackImageFormat === 'tall' ? 'tall' : stackPaths.length ? 'wide' : null,
+    hero_stack_image_count: stackPaths.length,
+    hero_cover_blur: !!t.heroCoverBlur,
+    style_card_layout: String(t.styleCardLayout || 'card'),
+    hide_book_now_button: !!t.hideBookNowButton,
+    font_family: String(t.fontFamily || 'cormorant'),
+    primary_color: t.primaryColor ? String(t.primaryColor) : null,
+    secondary_color: t.secondaryColor ? String(t.secondaryColor) : null,
+    background_color: t.backgroundColor ? String(t.backgroundColor) : null,
+    navbar_color: t.navbarColor ? String(t.navbarColor) : null,
+    custom_text_colors: Object.keys(textColors).length,
+    has_logo: !!t.logoImagePath,
+    has_hero_image: !!t.heroImagePath,
+  };
+}
+
+function summarizeSiteContent(content: unknown) {
+  const c = content && typeof content === 'object' ? (content as Record<string, unknown>) : {};
+  const hidden = Array.isArray(c.hiddenSections) ? c.hiddenSections.map(String) : [];
+  const hiddenLocation = Array.isArray(c.hiddenLocationParts) ? c.hiddenLocationParts.map(String) : [];
+  return {
+    brand_name: c.brandName ? String(c.brandName) : null,
+    tagline_left: c.taglineLeft ? String(c.taglineLeft) : null,
+    tagline_right_line1: c.taglineRightLine1 ? String(c.taglineRightLine1) : null,
+    tagline_right_line2: c.taglineRightLine2 ? String(c.taglineRightLine2) : null,
+    menu_title: c.menuTitle ? String(c.menuTitle) : null,
+    menu_blurb: c.menuBlurb ? String(c.menuBlurb) : null,
+    has_about: !!(c.heroDescription && String(c.heroDescription).trim()),
+    has_policies: !!(c.bookingPolicy && String(c.bookingPolicy).trim()),
+    hidden_sections: hidden,
+    hidden_location_parts: hiddenLocation,
+    instagram_handle: c.instagramHandle ? String(c.instagramHandle) : null,
+    phone_display: c.phoneDisplay ? String(c.phoneDisplay) : null,
+    email: c.email ? String(c.email) : null,
+  };
+}
+
+function paymentModeLabel(mode: unknown) {
+  const value = String(mode || 'none').trim();
+  if (value === 'deposit') return 'Deposit online';
+  if (value === 'full') return 'Full payment online';
+  if (value === 'in_person') return 'Pay in person';
+  return 'No online payment';
+}
+
 function bookingFields(data: Record<string, unknown> | null) {
   if (!data || typeof data !== 'object') return {};
   const d = data as Record<string, unknown>;
+  const addonPrice = Number(d.selected_addon_price);
+  const estimatedTotal = Number(d.estimated_total);
+  const hasAddonPrice = Number.isFinite(addonPrice) && addonPrice > 0;
+  const serviceBasePrice =
+    hasAddonPrice && Number.isFinite(estimatedTotal) ? Math.max(0, estimatedTotal - addonPrice) : estimatedTotal;
   return {
     id: d.id ?? null,
     full_name: d.full_name ?? null,
@@ -258,6 +387,10 @@ function bookingFields(data: Record<string, unknown> | null) {
     phone: d.phone ?? null,
     style_id: d.style_id ?? null,
     style_name: d.style_name ?? null,
+    selected_addon_id: d.selected_addon_id ?? null,
+    selected_addon_name: d.selected_addon_name ?? null,
+    selected_addon_price: d.selected_addon_price ?? null,
+    service_base_price: Number.isFinite(serviceBasePrice) ? serviceBasePrice : null,
     service_address: d.service_address ?? null,
     appointment_date: d.appointment_date ?? null,
     appointment_slot: d.appointment_slot ?? null,
@@ -889,6 +1022,9 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
           'site_publish',
           'site_content',
           'site_theme',
+          'style_catalog_meta',
+          'style_price_overrides',
+          'booking_payment',
         ]),
       ),
       safeTable<{ user_id: string; data: unknown }>(supabase, 'styld_site_records', (q) =>
@@ -974,6 +1110,8 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
     const settings = settingsByUser.get(uid) || {};
     const siteContent = (settings.site_content || {}) as Record<string, unknown>;
     const siteTheme = (settings.site_theme || {}) as Record<string, unknown>;
+    const styleCatalog = parseStyleCatalog(settings.style_catalog_meta, settings.style_price_overrides);
+    const bookingPayment = (settings.booking_payment || {}) as Record<string, unknown>;
     const onboardingState = (settings.onboarding_state || {}) as Record<string, unknown>;
     const sitePublish = (settings.site_publish || {}) as Record<string, unknown>;
     const stripe = stripeByUser.get(uid) || {};
@@ -1023,6 +1161,12 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
       reviews_avg_rating: reviewsAvgRating,
       page_views_7d: viewsBySub7.get(subdomain) || 0,
       page_views_30d: viewsBySub30.get(subdomain) || 0,
+      hero_layout: String(siteTheme.heroLayout || 'split'),
+      hero_layout_label: summarizeSiteTheme(siteTheme).hero_layout_label,
+      style_count: styleCatalog.length,
+      addon_count: styleCatalog.reduce((sum, style) => sum + style.addon_count, 0),
+      payment_mode: String(bookingPayment.mode || 'none'),
+      payment_mode_label: paymentModeLabel(bookingPayment.mode),
       subscription: { status: 'pending' as const },
     };
   });
@@ -1331,6 +1475,9 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
   const siteContent = (siteSettings.site_content || {}) as Record<string, unknown>;
   const siteTheme = (siteSettings.site_theme || {}) as Record<string, unknown>;
   const sitePublish = (siteSettings.site_publish || {}) as Record<string, unknown>;
+  const styleCatalog = parseStyleCatalog(siteSettings.style_catalog_meta, siteSettings.style_price_overrides);
+  const siteThemeSummary = summarizeSiteTheme(siteTheme);
+  const siteContentSummary = summarizeSiteContent(siteContent);
   const subdomain = String(
     sitePublish.subdomain || (userSite.data as Record<string, unknown> | null)?.subdomain || '',
   );
@@ -1404,6 +1551,11 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
     analytics,
     clients,
     site_settings: siteSettings,
+    site_theme_summary: siteThemeSummary,
+    site_content_summary: siteContentSummary,
+    style_catalog: styleCatalog,
+    style_count: styleCatalog.length,
+    addon_count: styleCatalog.reduce((sum, style) => sum + style.addon_count, 0),
     booking_payment: siteSettings.booking_payment || null,
     booking_hours: siteSettings.booking_hours || null,
     cancellation_policy: siteSettings.cancellation_policy || null,

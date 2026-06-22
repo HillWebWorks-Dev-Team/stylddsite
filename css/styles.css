@@ -6527,7 +6527,7 @@ body.page-cover-splash .profile-below-hero {
 }
 
 .profile-nav.profile-nav--cover-splash .profile-brand {
-  color: var(--text-nav, #fff);
+  color: var(--text-splash-brand, #fff);
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
 }
 
@@ -6651,6 +6651,23 @@ body.page-cover-splash .profile-below-hero {
   display: block;
   width: 100%;
 }
+.profile-hero-stack--wide .profile-hero-stack__img {
+  aspect-ratio: 3 / 1;
+  width: 100%;
+  max-width: 100%;
+}
+.profile-hero-stack--tall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+}
+.profile-hero-stack--tall .profile-hero-stack__img {
+  aspect-ratio: 4 / 9;
+  width: min(100%, 400px);
+  max-width: 400px;
+}
 .profile-hero-stack__img {
   display: block;
   width: 100%;
@@ -6658,6 +6675,57 @@ body.page-cover-splash .profile-below-hero {
   aspect-ratio: 3 / 1;
   object-fit: cover;
   object-position: center;
+}
+.profile-hero--minimal .profile-photo {
+  display: none;
+}
+.profile-hero--minimal .profile-hero__grid {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  text-align: center;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+.profile-hero--image-below .profile-hero__grid {
+  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  max-width: 36rem;
+  margin: 0 auto;
+}
+.profile-hero--image-below .profile-photo {
+  width: 100%;
+  max-width: 560px;
+}
+.profile-hero-headline__brand {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted, var(--muted));
+  margin: 0 0 0.75rem;
+}
+.profile-hero-headline__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  line-height: 1.05;
+  margin: 0;
+  color: var(--text-heading, var(--ink));
+}
+.profile-hero-headline__left {
+  display: block;
+  color: var(--text-heading, var(--ink));
+}
+.profile-hero-headline__right {
+  display: block;
+  color: var(--text-accent, var(--pink));
+}
+.profile-hero-headline__right span {
+  display: block;
 }
 .profile-hero--stack .profile-hero__grid {
   grid-template-columns: 1fr;

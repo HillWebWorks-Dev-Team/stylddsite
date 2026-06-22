@@ -2913,6 +2913,121 @@ body.admin-salon-open {
   line-height: 1.35;
 }
 
+.admin-config-pill--swatch strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.admin-color-chip {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+.admin-info-card--site {
+  border-color: rgba(96, 165, 250, 0.22);
+}
+
+.admin-info-card--styles {
+  border-color: rgba(244, 114, 182, 0.22);
+}
+
+.admin-style-catalog {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-style-catalog__intro {
+  margin: 0 0 0.85rem;
+}
+
+.admin-style-catalog__item {
+  padding: 0.85rem 0.95rem;
+  border-radius: 14px;
+  border: 1px solid var(--admin-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-style-catalog__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-style-catalog__head strong {
+  display: block;
+  font-size: 0.92rem;
+}
+
+.admin-style-catalog__id {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  color: var(--admin-muted);
+}
+
+.admin-style-catalog__price {
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-style-catalog__meta {
+  margin-top: 0.35rem;
+  font-size: 0.76rem;
+  color: var(--admin-muted);
+}
+
+.admin-style-catalog__desc {
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem;
+  color: var(--admin-muted);
+  line-height: 1.45;
+}
+
+.admin-style-catalog__addons {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.admin-style-catalog__addons li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.78rem;
+}
+
+.admin-style-catalog__addons strong {
+  font-size: 0.78rem;
+  color: #f9a8d4;
+}
+
+.admin-booking-card__addon {
+  display: block;
+  margin-top: 0.12rem;
+  font-size: 0.72rem;
+  color: #f9a8d4;
+}
+
+.admin-empty-note--inline {
+  margin: 0.35rem 0 0;
+}
+
+.admin-tag-list--muted .admin-client-tag {
+  opacity: 0.82;
+}
+
 .admin-section-divider {
   height: 1px;
   margin: 0.85rem 0;

@@ -72,7 +72,11 @@
   }
 
   function buildProfileServiceCards(styles, theme) {
-    var cardClass = 'profile-service-card';
+    var layout = (theme && theme.styleCardLayout) || 'card';
+    var cardClass =
+      layout === 'outlined'
+        ? 'profile-service-card profile-service-card--outlined'
+        : 'profile-service-card';
     var logoFallback = theme && theme.logoImageUrl ? theme.logoImageUrl : '';
 
     if (!styles || !styles.length) {
@@ -223,6 +227,67 @@
     if (isNaN(fx)) fx = 50;
     if (isNaN(fy)) fy = 50;
     return fx + '% ' + fy + '%';
+  }
+
+  function stackImageObjectPosition(focus) {
+    var fx = 50;
+    var fy = 50;
+    if (focus && typeof focus === 'object' && !Array.isArray(focus)) {
+      if (focus.focusX != null) fx = Number(focus.focusX);
+      else if (focus.x != null) fx = Number(focus.x);
+      if (focus.focusY != null) fy = Number(focus.focusY);
+      else if (focus.y != null) fy = Number(focus.y);
+    } else if (Array.isArray(focus) && focus.length >= 2) {
+      fx = Number(focus[0]);
+      fy = Number(focus[1]);
+    }
+    if (isNaN(fx)) fx = 50;
+    if (isNaN(fy)) fy = 50;
+    return fx + '% ' + fy + '%';
+  }
+
+  function buildHeroHeadlineHtml(content) {
+    var brand = escapeHtml(content.brandName || '');
+    var left = escapeHtml(content.taglineLeft || 'Put your');
+    var r1 = escapeHtml(content.taglineRightLine1 || 'style');
+    var r2 = escapeHtml(content.taglineRightLine2 || 'here');
+    return (
+      '<div class="profile-hero-headline" id="profile-hero-headline">' +
+      '<p class="profile-hero-headline__brand">' +
+      brand +
+      '</p>' +
+      '<h1 class="profile-hero-headline__title">' +
+      '<span class="profile-hero-headline__left">' +
+      left +
+      '</span>' +
+      '<span class="profile-hero-headline__right">' +
+      '<span>' +
+      r1 +
+      '</span><span>' +
+      r2 +
+      '</span>' +
+      '</span></h1></div>'
+    );
+  }
+
+  function resetHeroLayout(heroSection, heroPhoto, photoWrap) {
+    if (heroSection) {
+      heroSection.classList.remove(
+        'profile-hero--stack',
+        'profile-hero--minimal',
+        'profile-hero--image-below',
+      );
+      heroSection.querySelectorAll('.profile-hero-stack').forEach(function (el) {
+        el.remove();
+      });
+    }
+    var headline = document.getElementById('profile-hero-headline');
+    if (headline) headline.remove();
+    if (heroPhoto) {
+      heroPhoto.style.display = '';
+      heroPhoto.style.backgroundImage = '';
+    }
+    if (photoWrap) photoWrap.style.display = '';
   }
 
   function isBookPage() {
@@ -424,6 +489,7 @@
     // Hero layout
     var heroSection = document.querySelector('.profile-hero');
     var heroPhoto = document.getElementById('profile-hero-photo');
+    var photoWrap = document.getElementById('profile-photo-wrap');
     var heroGrid = document.querySelector('.profile-hero__grid');
     var profileInfo = document.getElementById('profile-info-block');
     var siteMain = document.getElementById('site-main-content');
@@ -431,11 +497,11 @@
     var isCoverSplash = isCoverTheme && isSplashPage();
     var isStack = theme.heroLayout === 'stack';
     var isSplit = theme.heroLayout === 'split';
+    var isMinimal = theme.heroLayout === 'minimal';
+    var isImageBelow = theme.heroLayout === 'image-below';
 
     teardownCoverLayout(heroSection, heroPhoto);
-    if (heroSection) {
-      heroSection.classList.remove('profile-hero--stack');
-    }
+    resetHeroLayout(heroSection, heroPhoto, photoWrap);
 
     if (isBookPage()) {
       if (heroSection) heroSection.hidden = true;
@@ -448,33 +514,45 @@
 
     if (isCoverSplash) {
       setupCoverLayout(content, theme, heroSection, heroPhoto);
+    } else if (isMinimal && heroSection && heroGrid) {
+      heroSection.classList.add('profile-hero--minimal');
+      heroGrid.insertAdjacentHTML('beforeend', buildHeroHeadlineHtml(content));
+      if (photoWrap) photoWrap.style.display = 'none';
+    } else if (isImageBelow && heroSection && heroGrid) {
+      heroSection.classList.add('profile-hero--image-below');
+      heroGrid.insertAdjacentHTML('beforeend', buildHeroHeadlineHtml(content));
     } else if (isStack && heroSection) {
       heroSection.classList.add('profile-hero--stack');
       var stackUrls = Array.isArray(theme.heroStackImageUrls) ? theme.heroStackImageUrls : [];
+      var stackFocus = Array.isArray(theme.heroStackImageFocus) ? theme.heroStackImageFocus : [];
+      var stackFormat = theme.heroStackImageFormat === 'tall' ? 'tall' : 'wide';
       if (stackUrls.length > 0) {
         var stackEl = document.createElement('div');
-        stackEl.className = 'profile-hero-stack';
-        stackUrls.forEach(function(url) {
+        stackEl.className = 'profile-hero-stack profile-hero-stack--' + stackFormat;
+        stackUrls.forEach(function (url, index) {
+          if (!url) return;
           var img = document.createElement('img');
           img.src = url;
           img.className = 'profile-hero-stack__img';
           img.alt = '';
           img.loading = 'lazy';
+          img.style.objectPosition = stackImageObjectPosition(stackFocus[index]);
           stackEl.appendChild(img);
         });
-        var heroGrid = heroSection.querySelector('.profile-hero__grid');
-        if (heroGrid) {
-          heroSection.insertBefore(stackEl, heroGrid);
+        var stackGrid = heroSection.querySelector('.profile-hero__grid');
+        if (stackGrid) {
+          heroSection.insertBefore(stackEl, stackGrid);
         } else {
           heroSection.prepend(stackEl);
         }
         if (heroPhoto) heroPhoto.style.display = 'none';
+        if (photoWrap) photoWrap.style.display = 'none';
       }
     }
 
     if (isCoverSplash) {
       /* cover hero image applied in setupCoverLayout */
-    } else if (!isStack && heroPhoto && theme.heroImageUrl) {
+    } else if (!isStack && !isMinimal && heroPhoto && theme.heroImageUrl) {
       heroPhoto.style.backgroundImage = "url('" + String(theme.heroImageUrl).replace(/'/g, '%27') + "')";
       heroPhoto.style.backgroundPosition = heroBackgroundPosition(theme);
       applyHeroCoverBlur(heroPhoto, theme);

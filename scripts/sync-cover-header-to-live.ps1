@@ -10,8 +10,11 @@ $Files = @(
   'js/profile-content.js',
   'js/tenant-site.js',
   'js/styld-tenant-shared.js',
+  'js/styld-tenant-booking.js',
+  'js/booking.js',
   'tenant/profile.html',
   'tenant/book.html',
+  'booking.html',
   'middleware.js'
 )
 
@@ -20,7 +23,11 @@ $Markers = @(
   'page-cover-splash',
   'profile-nav--cover-splash',
   '--hero-cover-blur',
-  '--text-splash-brand'
+  '--text-splash-brand',
+  'profile-hero-stack--wide',
+  'profile-hero-stack--tall',
+  'profile-hero--minimal',
+  'profile-hero--image-below'
 )
 
 Write-Host "Styld cover header sync"

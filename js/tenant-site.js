@@ -187,6 +187,7 @@
 
       window.__STYLD_SITE_CONTENT__ = content;
       var heroStackImagePaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
+      var heroStackImageFocus = Array.isArray(theme.heroStackImageFocus) ? theme.heroStackImageFocus : [];
       window.__STYLD_SITE_THEME__ = {
         heroLayout: theme.heroLayout || 'split',
         heroImagePosition: theme.heroImagePosition || 'center top',
@@ -194,7 +195,9 @@
         heroImageFocusY: theme.heroImageFocusY != null ? theme.heroImageFocusY : null,
         heroImageUrl: coverUrl(theme.heroImagePath),
         logoImageUrl: coverUrl(theme.logoImagePath),
-        heroStackImageUrls: heroStackImagePaths.map(function(p) { return coverUrl(p); }).filter(Boolean),
+        heroStackImageUrls: heroStackImagePaths.map(function(p) { return coverUrl(p); }),
+        heroStackImageFocus: heroStackImageFocus,
+        heroStackImageFormat: theme.heroStackImageFormat === 'tall' ? 'tall' : 'wide',
         primaryColor: theme.primaryColor || null,
         secondaryColor: theme.secondaryColor || null,
         navbarColor: theme.navbarColor || null,
