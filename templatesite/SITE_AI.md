@@ -27,7 +27,11 @@ When `site_theme.heroLayout === 'cover'`:
 | `tenant/profile.html` | Splash page when `heroLayout === 'cover'` |
 | `tenant/book.html` | About + policies + menu + location |
 | `middleware.js` | `'/book': '/tenant/book.html'` |
-| `js/profile-content.js` | Splash vs book page detection (`page-splash` / `page-book`) |
+| `js/profile-content.js` | Splash vs book page detection (`page-splash`, `page-cover-splash`, `profile-nav--cover-splash`) |
+| `scripts/sync-cover-header-to-live.ps1` | Copy + validate cover assets into `templatesite/` mirror |
+| `scripts/enable-cover-header-layout.sql` | Set `heroLayout: cover` in Supabase for a user |
+
+Splash cover also supports `theme.heroCoverBlur` (soft blur on hero bg) and `theme.textColors` (see below). `hideBookNowButton` only hides `.profile-nav .profile-book-btn`, not the splash overlay CTA.
 
 The mobile app exposes **Site editor → Photos → Header style → Full screen**, which persists `heroLayout: 'cover'` in `site_theme` JSON. In-app preview should show splash only for cover mode; **Book Now** opens `/book` on the live site.
 
