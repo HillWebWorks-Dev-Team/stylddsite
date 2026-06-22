@@ -628,6 +628,9 @@
       case 'users':
         if (state.users && state.users.length) renderUsersTable(state.users);
         break;
+      case 'styles':
+        if (state.stylesSalons) renderStylesPanel(state.stylesSalons, state.stylesTotals);
+        break;
       case 'bookings':
         if (state.bookings && state.bookings.length) renderBookingsTable(state.bookings);
         break;
@@ -705,6 +708,8 @@
     onboarding: null,
     analytics: null,
     emails: [],
+    stylesSalons: null,
+    stylesTotals: null,
     numberFormat: readPref(NUM_FMT_KEY, 'full'),
     hideMoney: readPref(HIDE_MONEY_KEY, '0') === '1',
   };
@@ -1800,6 +1805,87 @@
         .join('') +
       '</div>'
     );
+  }
+
+  function renderSalonStylesGroup(salon) {
+    salon = salon || {};
+    var styles = salon.styles || [];
+    var subdomainLabel = salon.subdomain ? salon.subdomain + '.styldd.com' : 'No live site';
+    return (
+      '<section class="admin-salon-styles-group">' +
+      '<header class="admin-salon-styles-group__head">' +
+      '<div class="admin-salon-styles-group__main">' +
+      '<button type="button" class="admin-link-btn admin-salon-styles-group__brand" data-open-user="' +
+      esc(salon.user_id) +
+      '">' +
+      '<strong>' +
+      esc(salon.brand_name || 'Salon') +
+      '</strong></button>' +
+      '<span class="admin-muted admin-salon-styles-group__meta">' +
+      esc(subdomainLabel) +
+      (salon.email ? ' · ' + esc(truncate(salon.email, 36)) : '') +
+      '</span></div>' +
+      '<div class="admin-salon-styles-group__badges">' +
+      '<span class="admin-count-badge">' +
+      esc(styles.length) +
+      ' service' +
+      (styles.length === 1 ? '' : 's') +
+      '</span>' +
+      (salon.addon_count
+        ? '<span class="admin-count-badge admin-count-badge--soft">' +
+          esc(salon.addon_count) +
+          ' add-on' +
+          (salon.addon_count === 1 ? '' : 's') +
+          '</span>'
+        : '') +
+      (salon.public_url
+        ? '<a class="admin-info-link admin-salon-styles-group__site" href="' +
+          esc(salon.public_url) +
+          '" target="_blank" rel="noopener">Open site</a>'
+        : '') +
+      '</div></header>' +
+      renderStyleCatalogPanel(styles) +
+      '</section>'
+    );
+  }
+
+  function renderStylesPanel(salons, totals) {
+    if (!els.stylesPanel) return;
+    salons = salons || [];
+    totals = totals || { salons: 0, salons_with_menu: 0, services: 0, addons: 0 };
+
+    if (!salons.length) {
+      els.stylesPanel.innerHTML =
+        '<p class="admin-empty-note">No salons or styles match your search.</p>';
+      return;
+    }
+
+    var withMenu = salons.filter(function (s) {
+      return (s.styles || []).length > 0;
+    });
+    var emptyCount = salons.length - withMenu.length;
+
+    els.stylesPanel.innerHTML =
+      '<section class="admin-main-panel admin-styles-panel">' +
+      renderMainListHead(
+        'Service menus',
+        totals.services + ' services across ' + totals.salons_with_menu + ' salons with menus',
+        salons.length,
+        emptyCount
+          ? '<span class="admin-bookings-stat admin-bookings-stat--warn">' +
+            esc(emptyCount) +
+            ' with no services yet</span>'
+          : '',
+      ) +
+      statCards([
+        { label: 'Salons listed', value: totals.salons },
+        { label: 'With a menu', value: totals.salons_with_menu },
+        { label: 'Total services', value: totals.services },
+        { label: 'Total add-ons', value: totals.addons },
+      ]) +
+      '<div class="admin-salon-styles-list">' +
+      salons.map(renderSalonStylesGroup).join('') +
+      '</div></section>';
   }
 
   function renderBookingHoursSummary(hours) {
@@ -3275,6 +3361,13 @@
           renderUsersTable(state.users);
         });
         break;
+      case 'styles':
+        promise = api('styles', { search: search }, state.pin).then(function (data) {
+          state.stylesSalons = data.salons || [];
+          state.stylesTotals = data.totals || null;
+          renderStylesPanel(state.stylesSalons, state.stylesTotals);
+        });
+        break;
       case 'bookings':
         promise = api('bookings', { search: search }, state.pin).then(function (data) {
           state.bookings = data.bookings || [];
@@ -3553,6 +3646,7 @@
 
     els = {
       salonsGrid: $('admin-salons-grid'),
+      stylesPanel: $('admin-styles-panel'),
       salonSort: $('admin-salon-sort'),
       salonCount: $('admin-salon-count'),
       salonView: $('admin-salon-view'),

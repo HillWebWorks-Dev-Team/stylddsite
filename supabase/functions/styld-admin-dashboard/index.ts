@@ -1198,6 +1198,107 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
   return { users };
 }
 
+async function actionStyles(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const search = String(filters.search || '')
+    .toLowerCase()
+    .trim();
+
+  const [settingsRows, subdomains, profiles] = await Promise.all([
+    safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+      q
+        .select('user_id,record_key,data')
+        .eq('record_type', 'site_setting')
+        .in('record_key', ['style_catalog_meta', 'style_price_overrides', 'site_content']),
+    ),
+    safeTable<{ user_id: string; subdomain: string }>(supabase, 'styld_site_subdomains', (q) =>
+      q.select('user_id,subdomain'),
+    ),
+    safeTable<Record<string, unknown>>(supabase, 'profiles', (q) =>
+      q.select('id,email,full_name,business_name'),
+    ),
+  ]);
+
+  const settingsByUser = new Map<string, Record<string, unknown>>();
+  for (const row of settingsRows) {
+    const uid = String(row.user_id || '');
+    if (!uid) continue;
+    if (!settingsByUser.has(uid)) settingsByUser.set(uid, {});
+    settingsByUser.get(uid)![String(row.record_key)] = pickData(row);
+  }
+
+  const subMap = new Map(subdomains.map((s) => [String(s.user_id), s.subdomain]));
+  const profileMap = new Map(profiles.map((p) => [String(p.id), p]));
+
+  const userIds = new Set<string>([
+    ...settingsByUser.keys(),
+    ...subMap.keys(),
+    ...profiles.map((p) => String(p.id)),
+  ]);
+
+  let salons = [...userIds].map((uid) => {
+    const settings = settingsByUser.get(uid) || {};
+    const profile = profileMap.get(uid) || {};
+    const content = (settings.site_content || {}) as Record<string, unknown>;
+    const styles = parseStyleCatalog(settings.style_catalog_meta, settings.style_price_overrides);
+    const subdomain = subMap.get(uid) || '';
+    const brandName =
+      String(content.brandName || profile.business_name || profile.full_name || 'Salon').trim() || 'Salon';
+
+    return {
+      user_id: uid,
+      brand_name: brandName,
+      email: profile.email ?? null,
+      subdomain: subdomain || null,
+      public_url: subdomain ? `https://${subdomain}.${ROOT_DOMAIN}` : null,
+      style_count: styles.length,
+      addon_count: styles.reduce((sum, style) => sum + style.addon_count, 0),
+      styles,
+    };
+  });
+
+  salons.sort((a, b) => {
+    if (b.style_count !== a.style_count) return b.style_count - a.style_count;
+    return String(a.brand_name).localeCompare(String(b.brand_name));
+  });
+
+  if (search) {
+    salons = salons.filter((salon) => {
+      const salonHay = [salon.brand_name, salon.email, salon.subdomain, salon.user_id]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      if (salonHay.includes(search)) return true;
+      return salon.styles.some((style) => {
+        const styleHay = [
+          style.id,
+          style.title,
+          style.category,
+          style.description,
+          style.price_label,
+          ...style.addons.map((addon) => `${addon.name} ${addon.id}`),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return styleHay.includes(search);
+      });
+    });
+  }
+
+  const totals = salons.reduce(
+    (acc, salon) => {
+      acc.salons += 1;
+      acc.services += salon.style_count;
+      acc.addons += salon.addon_count;
+      if (salon.style_count > 0) acc.salons_with_menu += 1;
+      return acc;
+    },
+    { salons: 0, salons_with_menu: 0, services: 0, addons: 0 },
+  );
+
+  return { salons, totals };
+}
+
 function clientRecordKey(email: string, phone: string) {
   return `${email.toLowerCase()}::${phone}`;
 }
@@ -2085,6 +2186,8 @@ Deno.serve(async (req) => {
         return json(await actionStyldRevenue(supabase, filters));
       case 'users':
         return json(await actionUsers(supabase, filters));
+      case 'styles':
+        return json(await actionStyles(supabase, filters));
       case 'user_detail':
         return json(await actionUserDetail(supabase, filters));
       case 'bookings':

@@ -3028,6 +3028,73 @@ body.admin-salon-open {
   opacity: 0.82;
 }
 
+.admin-salon-styles-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-salon-styles-group {
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+}
+
+.admin-salon-styles-group__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid var(--admin-border);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.admin-salon-styles-group__main {
+  min-width: 0;
+}
+
+.admin-salon-styles-group__brand {
+  display: block;
+  margin: 0 0 0.2rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-salon-styles-group__brand strong {
+  font-size: 0.98rem;
+}
+
+.admin-salon-styles-group__meta {
+  display: block;
+  font-size: 0.76rem;
+}
+
+.admin-salon-styles-group__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.admin-salon-styles-group__site {
+  font-size: 0.74rem;
+}
+
+.admin-salon-styles-group .admin-style-catalog {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.admin-count-badge--soft {
+  opacity: 0.88;
+}
+
 .admin-section-divider {
   height: 1px;
   margin: 0.85rem 0;
