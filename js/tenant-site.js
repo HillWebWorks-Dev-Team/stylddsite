@@ -201,6 +201,8 @@
         hideBookNowButton: !!theme.hideBookNowButton,
         templateId: templateId,
         textColors: theme.textColors && typeof theme.textColors === 'object' ? theme.textColors : null,
+        textColorSources:
+          theme.textColorSources && typeof theme.textColorSources === 'object' ? theme.textColorSources : null,
         heroCoverBlur: !!theme.heroCoverBlur,
       };
 

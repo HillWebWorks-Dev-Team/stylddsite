@@ -78,6 +78,21 @@ Example:
 
 Profile CSS uses fallbacks, e.g. `color: var(--text-price, var(--ink));` — do **not** hardcode colors on `.profile-*` when a token exists.
 
+`textColorSources[key]` links a token to the palette (`accent`, `text`, `background`, `navbar`) or `custom` (uses `textColors[key]` hex). Linked colors re-resolve when palette changes in `applySiteTheme()`.
+
+## Hide About Me / Policies (`hiddenSections`)
+
+`site_content.hiddenSections` is a string array. If an id is **in** the array, that block is hidden on the live site.
+
+| Toggle off in app | `hiddenSections` includes | Live effect |
+|-------------------|---------------------------|-------------|
+| About Me | `"aboutMe"` | `#profile-about-block` hidden |
+| Policies | `"policies"` | `#profile-policy-block` hidden |
+
+On **`/book`** (cover layout): if both hidden, `.profile-book-intro` is hidden and the page starts at the menu. On **split** home: `.profile-info` beside the hero hides when both are off.
+
+Other ids: `"menu"`, `"visit"`, `"reviews"` — `[data-site-section="..."]` elements.
+
 ## Subscription-gated domains
 
 Styld sites are **not free hosting**. A stylist must have an **active Styld subscription** (RevenueCat entitlement `pro`, products `styld_monthly` / `styld_yearly`) to keep a live subdomain.

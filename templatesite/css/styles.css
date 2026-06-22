@@ -6336,12 +6336,21 @@ ul.price-menu__policy-list {
   object-fit: cover;
   flex-shrink: 0;
 }
+.profile-book-btn:not(.profile-book-btn--cover-splash) {
+  background: var(--text-nav-button-bg, var(--ink));
+  color: var(--text-nav-button, var(--pink));
+}
+
+.profile-book-btn--cover-splash,
+.profile-cover-overlay .profile-book-btn {
+  background: var(--text-splash-button-bg, #fff);
+  color: var(--text-splash-button, var(--ink));
+}
+
 .profile-book-btn {
   display: inline-flex;
   align-items: center;
   padding: 0.6rem 1.35rem;
-  background: var(--text-nav-button-bg, var(--ink));
-  color: var(--text-nav-button, var(--pink));
   border-radius: 999px;
   font-weight: 700;
   font-size: 0.9rem;
@@ -6442,10 +6451,6 @@ body.page-splash .site-footer,
 body.page-splash .profile-below-hero,
 body.page-cover-splash .profile-below-hero {
   display: none;
-}
-
-.page-book .profile-main-intro {
-  padding-top: calc(var(--profile-nav-height, 4.25rem) + 1.5rem);
 }
 
 .profile-nav.profile-nav--cover-splash {
@@ -6574,8 +6579,6 @@ body.page-cover-splash .profile-below-hero {
 .profile-cover-overlay__cta {
   min-width: 11rem;
   justify-content: center;
-  background: var(--text-splash-button-bg, #fff);
-  color: var(--text-splash-button, var(--ink));
 }
 
 .profile-cover-overlay__cta:hover {
@@ -6755,14 +6758,32 @@ body.page-cover-splash .profile-below-hero {
   border-color: transparent;
 }
 
+.page-book .profile-book-intro {
+  padding-top: calc(var(--profile-nav-height, 4.25rem) + 1.5rem);
+}
+
+.page-book .profile-main-intro {
+  padding-top: 0;
+}
+
+.profile-book-intro[hidden] {
+  display: none !important;
+}
+
 .profile-service-card__expand-btn {
   display: flex; align-items: center; justify-content: space-between;
   width: 100%; padding: 0.45rem 0.75rem;
   background: transparent; border: none;
   border-top: 1px solid rgba(0,0,0,0.07);
   cursor: pointer; font-family: var(--font-body);
-  font-size: 0.78rem; font-weight: 600; color: var(--muted);
+  font-size: 0.76rem; font-weight: 400;
+  color: var(--text-muted, var(--muted));
   text-align: left; gap: 0.5rem; transition: color 0.15s;
+}
+.profile-service-card__expand-label {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
 }
 .profile-service-card__expand-btn:hover { color: var(--text-accent, var(--pink)); }
 .profile-service-card__expand-chevron { flex-shrink: 0; transition: transform 0.2s; }

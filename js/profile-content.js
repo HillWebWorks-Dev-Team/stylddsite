@@ -258,7 +258,10 @@
   function layoutProfileInfo(profileInfo, heroGrid, siteMain, isCoverSplash, isSplit) {
     if (!profileInfo || !siteMain) return;
     if (isBookPage()) {
-      var introWrap = siteMain.querySelector('.profile-main-intro') || siteMain;
+      var introWrap = document.getElementById('profile-book-intro') ||
+        siteMain.querySelector('.profile-book-intro') ||
+        siteMain.querySelector('.profile-main-intro') ||
+        siteMain;
       if (profileInfo.parentElement !== introWrap) {
         introWrap.insertBefore(profileInfo, introWrap.firstChild);
       }
@@ -320,7 +323,7 @@
         '<h1 class="profile-cover-overlay__brand">' +
         escapeHtml(content.brandName || '') +
         '</h1>' +
-        '<a class="profile-book-btn profile-cover-overlay__cta" href="/book">Book Now</a>';
+        '<a class="profile-book-btn profile-book-btn--cover-splash profile-cover-overlay__cta" href="/book">Book Now</a>';
     }
 
     if (heroPhoto && theme.heroImageUrl) {
@@ -342,6 +345,53 @@
     if (heroPhoto) heroPhoto.classList.remove('profile-photo__bg--blurred');
     var overlay = document.getElementById('profile-cover-overlay');
     if (overlay) overlay.hidden = true;
+  }
+
+  function applyAboutPolicyVisibility(content, isSplit, isCoverSplash) {
+    var aboutBlock = document.getElementById('profile-about-block');
+    var policyBlock = document.getElementById('profile-policy-block');
+    var policyEl = document.getElementById('profile-policy-body');
+    var bookIntro = document.getElementById('profile-book-intro');
+    var profileInfo = document.getElementById('profile-info-block');
+
+    var policyText = (content.bookingPolicy || '').trim();
+    var bullets = policyText
+      ? policyText.split('\n').map(function (l) { return l.trim(); }).filter(Boolean)
+      : [];
+
+    if (policyEl) {
+      policyEl.innerHTML = '';
+      bullets.forEach(function (bullet) {
+        var li = document.createElement('li');
+        li.textContent = bullet;
+        policyEl.appendChild(li);
+      });
+    }
+
+    var aboutHidden = isSectionHidden(content, 'aboutMe');
+    var policiesHidden = isSectionHidden(content, 'policies') || bullets.length === 0;
+
+    if (aboutBlock) aboutBlock.hidden = aboutHidden;
+    if (policyBlock) policyBlock.hidden = policiesHidden;
+
+    if (isBookPage() && bookIntro) {
+      bookIntro.hidden = aboutHidden && policiesHidden;
+    }
+
+    if (profileInfo && isSplit && !isCoverSplash) {
+      var anyVisible = !aboutHidden || !policiesHidden;
+      profileInfo.hidden = !anyVisible;
+      profileInfo.style.display = anyVisible ? '' : 'none';
+    }
+  }
+
+  function applySectionVisibility(content) {
+    document.querySelectorAll('[data-site-section]').forEach(function (el) {
+      var sectionId = el.getAttribute('data-site-section');
+      if (!sectionId) return;
+      if (sectionId === 'visit' || sectionId === 'aboutMe' || sectionId === 'policies') return;
+      el.hidden = isSectionHidden(content, sectionId);
+    });
   }
 
   window.applyStyldPreviewContent = function applyStyldPreviewContent() {
@@ -433,22 +483,7 @@
     var aboutEl = document.getElementById('profile-about-body');
     if (aboutEl) aboutEl.textContent = content.heroDescription || '';
 
-    var policyEl = document.getElementById('profile-policy-body');
-    var policyBlock = document.getElementById('profile-policy-block');
-    if (policyEl) {
-      var policyText = (content.bookingPolicy || '').trim();
-      var bullets = policyText
-        ? policyText.split('\n').map(function(l){ return l.trim(); }).filter(Boolean)
-        : [];
-      policyEl.innerHTML = '';
-      bullets.forEach(function(bullet) {
-        var li = document.createElement('li');
-        li.textContent = bullet;
-        policyEl.appendChild(li);
-      });
-      var showPolicies = (isSplit || isCoverTheme || isBookPage()) && bullets.length > 0;
-      if (policyBlock) policyBlock.hidden = !showPolicies;
-    }
+    applyAboutPolicyVisibility(content, isSplit, isCoverSplash);
 
     // Menu
     var menuTitleEl = document.getElementById('profile-menu-title');
@@ -494,12 +529,7 @@
       }
     }
 
-    // Section visibility
-    document.querySelectorAll('[data-site-section]').forEach(function (el) {
-      var sectionId = el.getAttribute('data-site-section');
-      if (sectionId === 'visit') return;
-      if (sectionId) el.hidden = isSectionHidden(content, sectionId);
-    });
+    applySectionVisibility(content);
 
     // Footer
     if (window.StyldTenant && window.StyldTenant.applySiteFooter) {

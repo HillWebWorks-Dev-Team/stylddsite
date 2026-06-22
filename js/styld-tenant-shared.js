@@ -473,17 +473,36 @@
       splashButton: '--text-splash-button',
       splashButtonBg: '--text-splash-button-bg',
     };
-    var textColors = theme.textColors;
-    if (textColors && typeof textColors === 'object') {
-      Object.keys(textColorMap).forEach(function (key) {
-        var value = textColors[key];
-        if (isValidHex(value)) {
-          root.style.setProperty(textColorMap[key], value.trim());
-        }
-      });
-      if (isValidHex(textColors.nav)) {
-        root.style.setProperty('--nav-text', textColors.nav.trim());
+
+    function resolveTextColorValue(key) {
+      var sources = theme.textColorSources;
+      var textColors = theme.textColors;
+      var source = sources && typeof sources === 'object' ? sources[key] : null;
+      var paletteBg =
+        bg && isValidHex(bg) ? bg.trim() : cardSurface && isValidHex(cardSurface) ? cardSurface : null;
+      var paletteNav =
+        navBg && isValidHex(navBg) ? navBg.trim() : paletteBg;
+
+      if (source === 'accent') return primary;
+      if (source === 'text') return secondary;
+      if (source === 'background') return paletteBg;
+      if (source === 'navbar') return paletteNav;
+
+      if (textColors && isValidHex(textColors[key])) {
+        return textColors[key].trim();
       }
+      return null;
+    }
+
+    Object.keys(textColorMap).forEach(function (key) {
+      var resolved = resolveTextColorValue(key);
+      if (resolved && isValidHex(resolved)) {
+        root.style.setProperty(textColorMap[key], resolved);
+      }
+    });
+    var resolvedNav = resolveTextColorValue('nav');
+    if (resolvedNav && isValidHex(resolvedNav)) {
+      root.style.setProperty('--nav-text', resolvedNav);
     }
 
     if (theme.heroCoverBlur) {
@@ -525,6 +544,8 @@
       hideBookNowButton: !!theme.hideBookNowButton,
       backgroundColor: theme.backgroundColor || null,
       textColors: theme.textColors && typeof theme.textColors === 'object' ? theme.textColors : null,
+      textColorSources:
+        theme.textColorSources && typeof theme.textColorSources === 'object' ? theme.textColorSources : null,
       heroCoverBlur: !!theme.heroCoverBlur,
     };
 
