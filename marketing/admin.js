@@ -67,6 +67,23 @@
       .replace(/"/g, '&quot;');
   }
 
+  var HIDDEN_SALON_USER_IDS = ['f8e75013-9e0f-4377-9076-8ca1b0d0d529'];
+  var HIDDEN_SALON_EMAILS = ['admin@styld.app'];
+
+  function isHiddenSalonUser(row) {
+    if (!row) return false;
+    var uid = String(row.user_id || row.id || '');
+    if (HIDDEN_SALON_USER_IDS.indexOf(uid) >= 0) return true;
+    var email = String(row.email || '').toLowerCase().trim();
+    return HIDDEN_SALON_EMAILS.indexOf(email) >= 0;
+  }
+
+  function visibleSalonUsers(users) {
+    return (users || []).filter(function (u) {
+      return !isHiddenSalonUser(u);
+    });
+  }
+
   function fmtDate(v) {
     if (!v) return '—';
     var d = new Date(v);
@@ -941,7 +958,7 @@
       state.users && state.users.length
         ? Promise.resolve(state.users)
         : api('users', {}, state.pin).then(function (payload) {
-            state.users = payload.users || [];
+            state.users = visibleSalonUsers(payload.users || []);
             return state.users;
           });
     return usersReady
@@ -971,6 +988,7 @@
       subscribers
         .map(function (raw) {
           var s = enrichSalonRecord(raw);
+          if (isHiddenSalonUser(s)) return '';
           var name = s.brand_name || s.business_name || s.full_name || 'Salon';
           return (
             '<tr class="admin-row-clickable" data-open-user="' +
@@ -2682,6 +2700,7 @@
   }
 
   function renderUsersTable(users) {
+    users = visibleSalonUsers(users);
     var filtered = filterSalonsByType(users, state.salonTypeFilter);
     var sorted = sortSalons(filtered, state.salonSort);
     if (els.salonCount) {
@@ -3515,7 +3534,7 @@
       case 'salons':
       case 'users':
         promise = api('users', { search: search }, state.pin).then(function (data) {
-          state.users = data.users || [];
+          state.users = visibleSalonUsers(data.users || []);
           renderUsersTable(state.users);
         });
         break;

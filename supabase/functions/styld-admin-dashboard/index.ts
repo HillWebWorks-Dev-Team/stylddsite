@@ -7,6 +7,29 @@ const corsHeaders = {
 
 const ROOT_DOMAIN = Deno.env.get('STYLD_ROOT_DOMAIN') || 'styldd.com';
 const ADMIN_PIN = Deno.env.get('ADMIN_PIN') || '0000';
+const HIDDEN_SALON_USER_IDS = new Set([
+  ...(Deno.env.get('HIDDEN_SALON_USER_IDS') || 'f8e75013-9e0f-4377-9076-8ca1b0d0d529')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean),
+]);
+const HIDDEN_SALON_EMAILS = new Set(['admin@styld.app']);
+
+function isHiddenSalonUser(userId: string, email?: unknown) {
+  if (HIDDEN_SALON_USER_IDS.has(userId)) return true;
+  const normalized = String(email || '')
+    .toLowerCase()
+    .trim();
+  return normalized.length > 0 && HIDDEN_SALON_EMAILS.has(normalized);
+}
+
+function filterHiddenSalonProfiles<T extends { id?: unknown; email?: unknown }>(profiles: T[]) {
+  return profiles.filter((p) => !isHiddenSalonUser(String(p.id), p.email));
+}
+
+function filterHiddenSalonRows<T extends { user_id?: unknown; email?: unknown }>(rows: T[]) {
+  return rows.filter((row) => !isHiddenSalonUser(String(row.user_id || ''), row.email));
+}
 
 const wrongPinAttempts = new Map<string, { count: number; resetAt: number }>();
 const MAX_WRONG_PINS = 8;
@@ -1052,7 +1075,8 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
     ),
   ]);
 
-  const userIds = profiles.map((p) => String(p.id));
+  const visibleProfiles = filterHiddenSalonProfiles(profiles);
+  const userIds = visibleProfiles.map((p) => String(p.id));
   const metaByUser = await loadSalonMetaForUsers(supabase, userIds);
 
   const timelineAll = aggregatePlatformFeesTimeline(bookingRows);
@@ -1433,7 +1457,7 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
     if (now - t <= ms30) viewsBySub30.set(sub, (viewsBySub30.get(sub) || 0) + 1);
   }
 
-  let users = profiles.map((p) => {
+  let users = filterHiddenSalonProfiles(profiles).map((p) => {
     const uid = String(p.id);
     const site = siteByUser.get(uid) || subByUser.get(uid) || {};
     const subdomain = String(site.subdomain || '');
@@ -1585,7 +1609,9 @@ async function actionStyles(supabase: ReturnType<typeof adminClient>, filters: R
     ...profiles.map((p) => String(p.id)),
   ]);
 
-  let salons = [...userIds].map((uid) => {
+  let salons = [...userIds]
+    .filter((uid) => !isHiddenSalonUser(uid, profileMap.get(uid)?.email))
+    .map((uid) => {
     const settings = settingsByUser.get(uid) || {};
     const profile = profileMap.get(uid) || {};
     const content = (settings.site_content || {}) as Record<string, unknown>;
