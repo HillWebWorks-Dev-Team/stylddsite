@@ -905,7 +905,7 @@ a:hover {
   font-family: var(--font-display);
   font-size: clamp(2.25rem, 8vw, 3.75rem);
   font-weight: 700;
-  color: #fff;
+  color: var(--text-splash-brand, #fff);
   margin: 0 0 1.25rem;
   line-height: 1.05;
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
@@ -6316,7 +6316,7 @@ ul.price-menu__policy-list {
   font-family: var(--font-display);
   font-size: 1.15rem;
   font-weight: 700;
-  color: var(--nav-text, #fff);
+  color: var(--text-nav, var(--nav-text, #fff));
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -6340,8 +6340,8 @@ ul.price-menu__policy-list {
   display: inline-flex;
   align-items: center;
   padding: 0.6rem 1.35rem;
-  background: var(--ink);
-  color: var(--pink);
+  background: var(--text-nav-button-bg, var(--ink));
+  color: var(--text-nav-button, var(--pink));
   border-radius: 999px;
   font-weight: 700;
   font-size: 0.9rem;
@@ -6390,32 +6390,32 @@ ul.price-menu__policy-list {
 .profile-about-head,
 .profile-policy-head {
   font-family: var(--font-display);
-  color: var(--ink);
+  color: var(--text-heading, var(--ink));
   margin: 0;
   line-height: 1.2;
 }
 .profile-about-head {
   font-size: 1.6rem;
   font-weight: 700;
-  border-bottom: 2px solid var(--pink);
+  border-bottom: 2px solid var(--text-accent, var(--pink));
   display: inline-block;
   padding-bottom: 0.2rem;
 }
 .profile-policy-head {
   font-size: 1.6rem;
   font-weight: 700;
-  border-bottom: 2px solid var(--pink);
+  border-bottom: 2px solid var(--text-accent, var(--pink));
   display: inline-block;
   padding-bottom: 0.2rem;
 }
 .profile-about-body {
-  color: var(--muted);
+  color: var(--text-body, var(--muted));
   font-size: 0.975rem;
   line-height: 1.72;
   margin: 0;
 }
 .profile-policy-body {
-  color: var(--muted);
+  color: var(--text-body, var(--muted));
   font-size: 0.975rem;
   line-height: 1.72;
   margin: 0;
@@ -6540,7 +6540,7 @@ body.page-splash .site-footer {
   font-family: var(--font-display);
   font-size: clamp(2.25rem, 8vw, 3.85rem);
   font-weight: 700;
-  color: #fff;
+  color: var(--text-splash-brand, #fff);
   margin: 0 0 1.25rem;
   line-height: 1.05;
   letter-spacing: -0.02em;
@@ -6550,8 +6550,8 @@ body.page-splash .site-footer {
 .profile-cover-overlay__cta {
   min-width: 11rem;
   justify-content: center;
-  background: #fff;
-  color: var(--ink);
+  background: var(--text-splash-button-bg, #fff);
+  color: var(--text-splash-button, var(--ink));
 }
 
 .profile-cover-overlay__cta:hover {
@@ -6593,14 +6593,14 @@ body.page-splash .site-footer {
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 3vw, 2.2rem);
   font-weight: 700;
-  color: var(--ink);
+  color: var(--text-heading, var(--ink));
   margin: 0 0 0.35rem;
-  border-bottom: 2px solid var(--pink);
+  border-bottom: 2px solid var(--text-accent, var(--pink));
   display: inline-block;
   padding-bottom: 0.2rem;
 }
 .profile-menu-blurb {
-  color: var(--muted);
+  color: var(--text-muted, var(--muted));
   font-size: 0.9rem;
   margin: 0;
 }
@@ -6619,17 +6619,17 @@ body.page-splash .site-footer {
   font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--text-muted, var(--muted));
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
 .profile-menu-filter:hover {
-  color: var(--pink);
+  color: var(--text-accent, var(--pink));
 }
 .profile-menu-filter--active {
-  color: var(--ink);
-  border-bottom-color: var(--pink);
+  color: var(--text-heading, var(--ink));
+  border-bottom-color: var(--text-accent, var(--pink));
 }
 .profile-service-grid {
   display: grid;
@@ -6688,7 +6688,7 @@ body.page-splash .site-footer {
 .profile-service-card__name {
   font-weight: 700;
   font-size: 0.9rem;
-  color: var(--ink);
+  color: var(--text-service-name, var(--ink));
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
@@ -6697,10 +6697,10 @@ body.page-splash .site-footer {
 .profile-service-card__price {
   font-size: 0.84rem;
   font-weight: 700;
-  color: var(--pink);
+  color: var(--text-price, var(--ink));
   margin-top: 0.15rem;
 }
-.profile-service-card__duration { font-size: 0.76rem; color: var(--muted); }
+.profile-service-card__duration { font-size: 0.76rem; color: var(--text-muted, var(--muted)); }
 
 .profile-service-card-wrap {
   display: flex;
@@ -6740,13 +6740,13 @@ body.page-splash .site-footer {
   font-size: 0.78rem; font-weight: 600; color: var(--muted);
   text-align: left; gap: 0.5rem; transition: color 0.15s;
 }
-.profile-service-card__expand-btn:hover { color: var(--pink); }
+.profile-service-card__expand-btn:hover { color: var(--text-accent, var(--pink)); }
 .profile-service-card__expand-chevron { flex-shrink: 0; transition: transform 0.2s; }
 .profile-service-card__expand-btn.is-open .profile-service-card__expand-chevron { transform: rotate(180deg); }
 
 .profile-service-card__desc {
   padding: 0.65rem 0.75rem 0.75rem;
-  font-size: 0.85rem; line-height: 1.6; color: var(--muted);
+  font-size: 0.85rem; line-height: 1.6; color: var(--text-body, var(--muted));
   border-top: 1px solid rgba(0,0,0,0.06);
   background: rgba(0,0,0,0.02);
   border-radius: 0 0 14px 14px;
@@ -6763,9 +6763,9 @@ body.page-splash .site-footer {
   font-family: var(--font-display);
   font-size: clamp(1.4rem, 2.5vw, 2rem);
   font-weight: 700;
-  color: var(--ink);
+  color: var(--text-heading, var(--ink));
   margin: 0;
-  border-bottom: 2px solid var(--pink);
+  border-bottom: 2px solid var(--text-accent, var(--pink));
   display: inline-block;
   padding-bottom: 0.2rem;
 }
@@ -6788,14 +6788,14 @@ body.page-splash .site-footer {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--muted);
+  color: var(--text-muted, var(--muted));
   margin: 0 0 0.4rem;
 }
-.profile-location-col p { margin: 0.2rem 0; color: var(--ink); font-size: 0.9rem; }
-.profile-location-col a { color: var(--pink); text-decoration: none; }
+.profile-location-col p { margin: 0.2rem 0; color: var(--text-body, var(--ink)); font-size: 0.9rem; }
+.profile-location-col a { color: var(--text-link, var(--pink)); text-decoration: none; }
 .profile-location-col a:hover { text-decoration: underline; }
 .profile-ig-link a { display: inline-flex; align-items: center; gap: 0.35rem; }
-.profile-ig-icon { width: 15px; height: 15px; flex-shrink: 0; vertical-align: middle; color: var(--pink); }
+.profile-ig-icon { width: 15px; height: 15px; flex-shrink: 0; vertical-align: middle; color: var(--text-link, var(--pink)); }
 .profile-location-map {
   width: 100%;
   height: 260px;
@@ -6842,7 +6842,7 @@ body.page-splash .site-footer {
   font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 600;
   margin: 0;
-  color: var(--ink);
+  color: var(--text-heading, var(--ink));
 }
 
 .site-reviews-marquee {

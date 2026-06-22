@@ -307,6 +307,10 @@
     var primary = theme.primaryColor || '#db2777';
     var secondary = theme.secondaryColor || '#0a0a0a';
 
+    function isValidHex(hex) {
+      return typeof hex === 'string' && /^#[0-9a-fA-F]{6}$/.test(hex.trim());
+    }
+
     function hexToRgb(hex) {
       var clean = String(hex || '').replace('#', '');
       if (clean.length !== 6) return null;
@@ -448,6 +452,40 @@
     root.style.setProperty('--font-display', fontDisplayMap[fontId] || fontDisplayMap.cormorant);
     root.style.setProperty('--font-body', fontBodyMap[fontId] || fontBodyMap.cormorant);
 
+    var validPositions = ['center top', 'center center', 'center bottom'];
+    var heroPos = (theme.heroImagePosition || '').trim();
+    if (validPositions.indexOf(heroPos) !== -1) {
+      root.style.setProperty('--hero-img-position', heroPos);
+    }
+
+    var textColorMap = {
+      heading: '--text-heading',
+      body: '--text-body',
+      muted: '--text-muted',
+      serviceName: '--text-service-name',
+      price: '--text-price',
+      accent: '--text-accent',
+      link: '--text-link',
+      nav: '--text-nav',
+      navButton: '--text-nav-button',
+      navButtonBg: '--text-nav-button-bg',
+      splashBrand: '--text-splash-brand',
+      splashButton: '--text-splash-button',
+      splashButtonBg: '--text-splash-button-bg',
+    };
+    var textColors = theme.textColors;
+    if (textColors && typeof textColors === 'object') {
+      Object.keys(textColorMap).forEach(function (key) {
+        var value = textColors[key];
+        if (isValidHex(value)) {
+          root.style.setProperty(textColorMap[key], value.trim());
+        }
+      });
+      if (isValidHex(textColors.nav)) {
+        root.style.setProperty('--nav-text', textColors.nav.trim());
+      }
+    }
+
     return { isDarkSurface: isDarkSurface };
   }
 
@@ -478,6 +516,7 @@
       fontFamily: theme.fontFamily || 'cormorant',
       hideBookNowButton: !!theme.hideBookNowButton,
       backgroundColor: theme.backgroundColor || null,
+      textColors: theme.textColors && typeof theme.textColors === 'object' ? theme.textColors : null,
     };
 
     applySiteTheme(theme);

@@ -31,6 +31,49 @@ When `site_theme.heroLayout === 'cover'`:
 
 The mobile app exposes **Site editor → Photos → Header style → Full screen**, which persists `heroLayout: 'cover'` in `site_theme` JSON. In-app preview should show splash only for cover mode; **Book Now** opens `/book` on the live site.
 
+## Granular text colors (`textColors`)
+
+The app stores optional hex overrides in `site_theme.textColors`. `applySiteTheme()` in `js/styld-tenant-shared.js` maps each key to a CSS variable on `:root`. Omit any key to keep the default (heading/price/serviceName → `--ink`, body/muted → `--muted`, accent/link → `--pink`).
+
+| Key | CSS variable | Used for |
+|-----|--------------|----------|
+| `heading` | `--text-heading` | Section titles (Menu, About Me, Policies, Location, Reviews) |
+| `body` | `--text-body` | Bio paragraphs, policy bullets, service descriptions |
+| `muted` | `--text-muted` | Menu blurbs, durations, small labels |
+| `serviceName` | `--text-service-name` | Menu card titles |
+| `price` | `--text-price` | Menu card prices |
+| `accent` | `--text-accent` | Title underlines, active category tabs |
+| `link` | `--text-link` | Address, email, Instagram links |
+| `nav` | `--text-nav` (+ `--nav-text`) | Nav bar brand name |
+| `navButton` | `--text-nav-button` | Top-right Book Now label |
+| `navButtonBg` | `--text-nav-button-bg` | Top-right Book Now background |
+| `splashBrand` | `--text-splash-brand` | Full-screen splash business name |
+| `splashButton` | `--text-splash-button` | Splash centered Book Now text |
+| `splashButtonBg` | `--text-splash-button-bg` | Splash centered Book Now background |
+
+Example:
+
+```json
+{
+  "primaryColor": "#2563eb",
+  "secondaryColor": "#0a0a0a",
+  "textColors": {
+    "heading": "#111827",
+    "body": "#4b5563",
+    "muted": "#9ca3af",
+    "price": "#111827",
+    "serviceName": "#111827",
+    "accent": "#2563eb",
+    "link": "#2563eb",
+    "splashBrand": "#ffffff",
+    "splashButton": "#111827",
+    "splashButtonBg": "#ffffff"
+  }
+}
+```
+
+Profile CSS uses fallbacks, e.g. `color: var(--text-price, var(--ink));` — do **not** hardcode colors on `.profile-*` when a token exists.
+
 ## Subscription-gated domains
 
 Styld sites are **not free hosting**. A stylist must have an **active Styld subscription** (RevenueCat entitlement `pro`, products `styld_monthly` / `styld_yearly`) to keep a live subdomain.
