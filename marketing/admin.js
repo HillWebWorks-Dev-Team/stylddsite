@@ -628,9 +628,6 @@
       case 'users':
         if (state.users && state.users.length) renderUsersTable(state.users);
         break;
-      case 'styles':
-        if (state.stylesSalons) renderStylesPanel(state.stylesSalons, state.stylesTotals);
-        break;
       case 'bookings':
         if (state.bookings && state.bookings.length) renderBookingsTable(state.bookings);
         break;
@@ -708,8 +705,6 @@
     onboarding: null,
     analytics: null,
     emails: [],
-    stylesSalons: null,
-    stylesTotals: null,
     numberFormat: readPref(NUM_FMT_KEY, 'full'),
     hideMoney: readPref(HIDE_MONEY_KEY, '0') === '1',
   };
@@ -1807,85 +1802,50 @@
     );
   }
 
-  function renderSalonStylesGroup(salon) {
-    salon = salon || {};
-    var styles = salon.styles || [];
-    var subdomainLabel = salon.subdomain ? salon.subdomain + '.styldd.com' : 'No live site';
-    return (
-      '<section class="admin-salon-styles-group">' +
-      '<header class="admin-salon-styles-group__head">' +
-      '<div class="admin-salon-styles-group__main">' +
-      '<button type="button" class="admin-link-btn admin-salon-styles-group__brand" data-open-user="' +
-      esc(salon.user_id) +
-      '">' +
-      '<strong>' +
-      esc(salon.brand_name || 'Salon') +
-      '</strong></button>' +
-      '<span class="admin-muted admin-salon-styles-group__meta">' +
-      esc(subdomainLabel) +
-      (salon.email ? ' · ' + esc(truncate(salon.email, 36)) : '') +
-      '</span></div>' +
-      '<div class="admin-salon-styles-group__badges">' +
-      '<span class="admin-count-badge">' +
-      esc(styles.length) +
-      ' service' +
-      (styles.length === 1 ? '' : 's') +
-      '</span>' +
-      (salon.addon_count
-        ? '<span class="admin-count-badge admin-count-badge--soft">' +
-          esc(salon.addon_count) +
+  function renderSalonStylesTab(data) {
+    data = data || {};
+    var styleCount = Number(data.style_count) || 0;
+    var addonCount = Number(data.addon_count) || 0;
+    var catalog = data.style_catalog || [];
+    var theme = data.site_theme_summary || {};
+
+    var statsHtml =
+      addonCount > 0
+        ? '<span class="admin-bookings-stat admin-bookings-stat--good">' +
+          esc(addonCount) +
           ' add-on' +
-          (salon.addon_count === 1 ? '' : 's') +
+          (addonCount === 1 ? '' : 's') +
           '</span>'
-        : '') +
-      (salon.public_url
-        ? '<a class="admin-info-link admin-salon-styles-group__site" href="' +
-          esc(salon.public_url) +
-          '" target="_blank" rel="noopener">Open site</a>'
-        : '') +
-      '</div></header>' +
-      renderStyleCatalogPanel(styles) +
-      '</section>'
-    );
-  }
+        : '';
 
-  function renderStylesPanel(salons, totals) {
-    if (!els.stylesPanel) return;
-    salons = salons || [];
-    totals = totals || { salons: 0, salons_with_menu: 0, services: 0, addons: 0 };
-
-    if (!salons.length) {
-      els.stylesPanel.innerHTML =
-        '<p class="admin-empty-note">No salons or styles match your search.</p>';
-      return;
-    }
-
-    var withMenu = salons.filter(function (s) {
-      return (s.styles || []).length > 0;
-    });
-    var emptyCount = salons.length - withMenu.length;
-
-    els.stylesPanel.innerHTML =
-      '<section class="admin-main-panel admin-styles-panel">' +
+    return (
+      '<div class="admin-salon-section" data-salon-section="styles">' +
+      '<section class="admin-main-panel admin-styles-salon-panel">' +
       renderMainListHead(
-        'Service menus',
-        totals.services + ' services across ' + totals.salons_with_menu + ' salons with menus',
-        salons.length,
-        emptyCount
-          ? '<span class="admin-bookings-stat admin-bookings-stat--warn">' +
-            esc(emptyCount) +
-            ' with no services yet</span>'
-          : '',
+        'Service menu',
+        'Live services and add-ons from this salon’s catalog · prices show base through highest add-on',
+        styleCount,
+        statsHtml,
       ) +
       statCards([
-        { label: 'Salons listed', value: totals.salons },
-        { label: 'With a menu', value: totals.salons_with_menu },
-        { label: 'Total services', value: totals.services },
-        { label: 'Total add-ons', value: totals.addons },
+        { label: 'Services', value: styleCount },
+        { label: 'Add-ons', value: addonCount },
+        { label: 'Header layout', value: theme.hero_layout_label || theme.hero_layout || '—' },
+        {
+          label: 'Menu cards',
+          value: theme.style_card_layout === 'outlined' ? 'Outlined' : 'Filled card',
+        },
       ]) +
-      '<div class="admin-salon-styles-list">' +
-      salons.map(renderSalonStylesGroup).join('') +
-      '</div></section>';
+      (data.public_url
+        ? '<p class="admin-muted admin-style-catalog__intro"><a class="admin-info-link" href="' +
+          esc(data.public_url) +
+          '" target="_blank" rel="noopener">View live menu on ' +
+          esc(data.subdomain ? data.subdomain + '.styldd.com' : 'site') +
+          '</a></p>'
+        : '') +
+      renderStyleCatalogPanel(catalog) +
+      '</section></div>'
+    );
   }
 
   function renderBookingHoursSummary(hours) {
@@ -2357,28 +2317,6 @@
       { wide: true, tone: 'site' },
     );
 
-    var styleCount = Number(data.style_count) || 0;
-    var addonCount = Number(data.addon_count) || 0;
-    var stylesCard = infoCard(
-      'Style menu & add-ons',
-      '<p class="admin-muted admin-style-catalog__intro">' +
-        esc(styleCount) +
-        ' service' +
-        (styleCount === 1 ? '' : 's') +
-        (addonCount ? ' · ' + esc(addonCount) + ' add-on' + (addonCount === 1 ? '' : 's') + ' across menu' : '') +
-        '. Prices show base through highest add-on when add-ons exist.</p>' +
-        renderStyleCatalogPanel(data.style_catalog),
-      {
-        wide: true,
-        tone: 'styles',
-        badge:
-          '<span class="admin-count-badge">' +
-          esc(styleCount) +
-          (addonCount ? '+' + esc(addonCount) : '') +
-          '</span>',
-      },
-    );
-
     var policyCard = infoCard(
       'Cancellation policy',
       renderCancellationSummary(data.cancellation_policy),
@@ -2401,7 +2339,6 @@
       onboardingCard +
       bookingCard +
       siteDesignCard +
-      stylesCard +
       policyCard +
       inquiryCard +
       '</div>'
@@ -3030,6 +2967,10 @@
       );
     }
 
+    if (tab === 'styles') {
+      return renderSalonStylesTab(data);
+    }
+
     if (tab === 'reviews') {
       var a = data.analytics || {};
       return (
@@ -3239,7 +3180,7 @@
   }
 
   function setSalonTab(tab) {
-    var valid = ['analytics', 'bookings', 'clients', 'reviews', 'emails', 'business'];
+    var valid = ['analytics', 'bookings', 'styles', 'clients', 'reviews', 'emails', 'business'];
     if (valid.indexOf(tab) === -1) tab = 'analytics';
     state.salonTab = tab;
 
@@ -3264,9 +3205,9 @@
     setSalonTab(state.salonTab || 'analytics');
   }
 
-  function openSalonDashboard(data) {
+  function openSalonDashboard(data, initialTab) {
     state.salonData = data;
-    state.salonTab = 'analytics';
+    state.salonTab = initialTab || 'analytics';
     var name = data.brand_name || 'Salon';
     if (els.salonViewTitle) els.salonViewTitle.textContent = name;
     if (els.salonViewSub) {
@@ -3299,13 +3240,13 @@
     }
   }
 
-  function openUserDrawer(userId) {
+  function openUserDrawer(userId, salonTab) {
     setStatus('Loading salon dashboard…');
     api('user_detail', { user_id: userId }, state.pin)
       .then(function (data) {
         setStatus('');
         if (data.error) throw new Error(data.error);
-        openSalonDashboard(data);
+        openSalonDashboard(data, salonTab || 'analytics');
       })
       .catch(function (err) {
         setStatus(err.message, true);
@@ -3359,13 +3300,6 @@
         promise = api('users', { search: search }, state.pin).then(function (data) {
           state.users = data.users || [];
           renderUsersTable(state.users);
-        });
-        break;
-      case 'styles':
-        promise = api('styles', { search: search }, state.pin).then(function (data) {
-          state.stylesSalons = data.salons || [];
-          state.stylesTotals = data.totals || null;
-          renderStylesPanel(state.stylesSalons, state.stylesTotals);
         });
         break;
       case 'bookings':
@@ -3531,7 +3465,8 @@
       var userBtn = e.target.closest('[data-open-user]');
       if (userBtn) {
         closeDrawer();
-        openUserDrawer(userBtn.getAttribute('data-open-user'));
+        var salonTab = userBtn.getAttribute('data-salon-tab') || '';
+        openUserDrawer(userBtn.getAttribute('data-open-user'), salonTab || undefined);
         return;
       }
       var bookingEl = e.target.closest('[data-open-booking]');
@@ -3646,7 +3581,6 @@
 
     els = {
       salonsGrid: $('admin-salons-grid'),
-      stylesPanel: $('admin-styles-panel'),
       salonSort: $('admin-salon-sort'),
       salonCount: $('admin-salon-count'),
       salonView: $('admin-salon-view'),

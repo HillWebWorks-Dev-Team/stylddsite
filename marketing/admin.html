@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/marketing/admin.css?v=23">
+  <link rel="stylesheet" href="/marketing/admin.css?v=24">
 </head>
 <body class="admin-page">
   <div class="admin-shell">
@@ -49,7 +49,6 @@
           <button type="button" class="admin-tab is-active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
           <button type="button" class="admin-tab" data-tab="styld_revenue" role="tab" aria-selected="false">Styld Revenue</button>
           <button type="button" class="admin-tab" data-tab="salons" role="tab" aria-selected="false">Salons</button>
-          <button type="button" class="admin-tab" data-tab="styles" role="tab" aria-selected="false">Styles</button>
           <button type="button" class="admin-tab" data-tab="bookings" role="tab" aria-selected="false">Bookings</button>
           <button type="button" class="admin-tab" data-tab="clients" role="tab" aria-selected="false">Clients</button>
           <button type="button" class="admin-tab" data-tab="cancellations" role="tab" aria-selected="false">Cancellations</button>
@@ -124,14 +123,6 @@
           </div>
         </div>
         <div id="admin-salons-grid" class="admin-salon-list"></div>
-      </section>
-
-      <section class="admin-panel" data-panel="styles" hidden>
-        <div class="admin-panel-head">
-          <h2>All salon styles</h2>
-          <p class="admin-muted">Every service and add-on across all businesses · search by salon, service, or add-on name · press Enter to search.</p>
-        </div>
-        <div id="admin-styles-panel"></div>
       </section>
 
       <section class="admin-panel" data-panel="bookings" hidden>
@@ -212,6 +203,7 @@
     <nav class="admin-salon-view__tabs" id="admin-salon-tabs" role="tablist" aria-label="Salon sections">
       <button type="button" class="admin-salon-tab is-active" data-salon-tab="analytics" role="tab" aria-selected="true">Analytics</button>
       <button type="button" class="admin-salon-tab" data-salon-tab="bookings" role="tab" aria-selected="false">Bookings</button>
+      <button type="button" class="admin-salon-tab" data-salon-tab="styles" role="tab" aria-selected="false">Styles</button>
       <button type="button" class="admin-salon-tab" data-salon-tab="clients" role="tab" aria-selected="false">Clients</button>
       <button type="button" class="admin-salon-tab" data-salon-tab="reviews" role="tab" aria-selected="false">Reviews</button>
       <button type="button" class="admin-salon-tab" data-salon-tab="emails" role="tab" aria-selected="false">Emails</button>
@@ -234,6 +226,6 @@
 
   <script src="/js/marketing-config.js?v=2"></script>
   <script src="/js/marketing-config.local.js?v=2"></script>
-  <script src="/marketing/admin.js?v=24"></script>
+  <script src="/marketing/admin.js?v=25"></script>
 </body>
 </html>
