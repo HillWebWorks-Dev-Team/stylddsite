@@ -498,6 +498,92 @@ body.admin-drawer-open {
   font-size: 0.85rem;
 }
 
+.admin-revenue-plans-section {
+  margin-bottom: 1.25rem;
+}
+
+.admin-revenue-plans {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.admin-revenue-plan-card {
+  appearance: none;
+  text-align: left;
+  width: 100%;
+  padding: 1.2rem 1.25rem;
+  border-radius: var(--admin-radius-lg);
+  border: 1px solid var(--admin-border);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
+  color: var(--admin-text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-revenue-plan-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--admin-border-strong);
+}
+
+.admin-revenue-plan-card.is-active {
+  border-color: rgba(255, 45, 138, 0.45);
+  box-shadow: var(--admin-shadow-glow), inset 0 1px 0 rgba(255, 45, 138, 0.12);
+  background: linear-gradient(160deg, rgba(255, 45, 138, 0.14), rgba(255, 255, 255, 0.02));
+}
+
+.admin-revenue-plan-card--yearly.is-active {
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow: 0 0 24px rgba(37, 99, 235, 0.18), inset 0 1px 0 rgba(96, 165, 250, 0.12);
+  background: linear-gradient(160deg, rgba(37, 99, 235, 0.16), rgba(255, 255, 255, 0.02));
+}
+
+.admin-revenue-plan-card__label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--admin-muted);
+  margin-bottom: 0.45rem;
+}
+
+.admin-revenue-plan-card__value {
+  display: block;
+  font-family: var(--admin-font-display);
+  font-size: clamp(1.35rem, 2vw, 1.85rem);
+  letter-spacing: -0.03em;
+  margin-bottom: 0.35rem;
+}
+
+.admin-revenue-plan-card__value small {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: var(--admin-muted);
+  margin-left: 0.15rem;
+}
+
+.admin-revenue-plan-card__meta {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--admin-muted);
+}
+
+.admin-revenue-rc-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.78rem;
+}
+
+.admin-revenue-plan-detail .admin-bookings-panel__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
 .admin-sort-label {
   font-size: 0.72rem;
   font-weight: 600;
@@ -3245,6 +3331,10 @@ body.admin-salon-open {
   }
 
   .admin-overview-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-revenue-plans {
     grid-template-columns: 1fr;
   }
 }

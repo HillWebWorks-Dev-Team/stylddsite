@@ -466,6 +466,10 @@
     );
     window.__STYLD_SITE_THEME__ = {
       heroLayout: theme.heroLayout || 'split',
+      heroImageUrl: coverUrl(theme.heroImagePath, cfg.supabaseUrl),
+      heroImagePosition: theme.heroImagePosition || null,
+      heroImageFocusX: theme.heroImageFocusX != null ? theme.heroImageFocusX : null,
+      heroImageFocusY: theme.heroImageFocusY != null ? theme.heroImageFocusY : null,
       logoImageUrl: logoImageUrl,
       primaryColor: theme.primaryColor || null,
       secondaryColor: theme.secondaryColor || null,

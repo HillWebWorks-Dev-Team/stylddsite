@@ -537,6 +537,65 @@ function estimateMrrFromCounts(monthly: number, yearly: number) {
   return roundMoney(monthly * STYLD_SUB_MONTHLY_PRICE() + yearly * (STYLD_SUB_YEARLY_PRICE() / 12));
 }
 
+function buildSubscriptionPlans(
+  subscriptionRows: Array<Record<string, unknown>>,
+  monthlyPrice: number,
+  yearlyPrice: number,
+) {
+  type PlanKey = 'monthly' | 'yearly' | 'other';
+  const buckets: Record<PlanKey, Array<Record<string, unknown>>> = {
+    monthly: [],
+    yearly: [],
+    other: [],
+  };
+
+  for (const row of subscriptionRows) {
+    if (row.status !== 'active') continue;
+    const product = String(row.product || '');
+    if (product === 'styld_monthly') buckets.monthly.push(row);
+    else if (product === 'styld_yearly') buckets.yearly.push(row);
+    else buckets.other.push(row);
+  }
+
+  for (const key of Object.keys(buckets) as PlanKey[]) {
+    buckets[key].sort((a, b) => String(a.brand_name).localeCompare(String(b.brand_name)));
+  }
+
+  const monthlyCount = buckets.monthly.length;
+  const yearlyCount = buckets.yearly.length;
+  const monthlyMrr = roundMoney(monthlyCount * monthlyPrice);
+  const yearlyMrr = roundMoney(yearlyCount * (yearlyPrice / 12));
+
+  return {
+    monthly: {
+      product: 'styld_monthly',
+      label: 'Pro Monthly',
+      price: monthlyPrice,
+      count: monthlyCount,
+      gross_per_month: monthlyMrr,
+      mrr: monthlyMrr,
+      subscribers: buckets.monthly,
+    },
+    yearly: {
+      product: 'styld_yearly',
+      label: 'Pro Yearly',
+      price: yearlyPrice,
+      count: yearlyCount,
+      gross_per_year: roundMoney(yearlyCount * yearlyPrice),
+      mrr: yearlyMrr,
+      subscribers: buckets.yearly,
+    },
+    other: {
+      label: 'Other Pro',
+      count: buckets.other.length,
+      mrr: 0,
+      gross_per_month: 0,
+      subscribers: buckets.other,
+    },
+    total_mrr: roundMoney(monthlyMrr + yearlyMrr),
+  };
+}
+
 async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
   const period = resolveRevenuePeriod(filters);
 
@@ -627,6 +686,9 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
   }
 
   const estimatedMrr = estimateMrrFromCounts(activeMonthly, activeYearly);
+  const monthlyPrice = STYLD_SUB_MONTHLY_PRICE();
+  const yearlyPrice = STYLD_SUB_YEARLY_PRICE();
+  const plans = buildSubscriptionPlans(subscriptionRows, monthlyPrice, yearlyPrice);
 
   const projectId = await getRevenueCatProjectId();
   let revenueCatOverview = null;
@@ -658,20 +720,23 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
       errors: errorTotal,
       new_in_period: newInPeriod,
       estimated_mrr: estimatedMrr,
-      monthly_price: STYLD_SUB_MONTHLY_PRICE(),
-      yearly_price: STYLD_SUB_YEARLY_PRICE(),
+      monthly_price: monthlyPrice,
+      yearly_price: yearlyPrice,
+      plans,
       revenuecat_overview: revenueCatOverview,
       subscribers: activeSubscribers,
     },
     combined: {
       platform_cut: platformTotalsRounded.platform_fees,
-      estimated_subscription_mrr: estimatedMrr,
+      estimated_subscription_mrr: plans.total_mrr || estimatedMrr,
+      estimated_subscription_monthly_gross: plans.monthly.gross_per_month,
+      estimated_subscription_yearly_gross: plans.yearly.gross_per_year,
       note:
-        'Platform cut is estimated 1% on collected booking payments in the selected period. Subscription MRR is estimated from active Pro plans.',
+        'Platform cut is estimated 1% on collected booking payments in the selected period. Subscription revenue is estimated from active Pro plans at configured monthly/yearly prices (RevenueCat per-subscriber data).',
     },
     available_months: availableMonths,
     available_years: availableYears,
-    pricing_note: `Assumed Pro Monthly $${STYLD_SUB_MONTHLY_PRICE()}, Pro Yearly $${STYLD_SUB_YEARLY_PRICE()} — override with STYLD_SUB_MONTHLY_PRICE / STYLD_SUB_YEARLY_PRICE secrets.`,
+    pricing_note: `Assumed Pro Monthly $${monthlyPrice}, Pro Yearly $${yearlyPrice} — override with STYLD_SUB_MONTHLY_PRICE / STYLD_SUB_YEARLY_PRICE secrets. RevenueCat overview MRR used when available.`,
   };
 }
 

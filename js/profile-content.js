@@ -215,6 +215,94 @@
     }
   }
 
+  function bindCoverScrollLink(link) {
+    if (!link || link.dataset.coverBound === '1') return;
+    link.dataset.coverBound = '1';
+    link.addEventListener('click', function (e) {
+      var target = document.getElementById('site-main-content');
+      if (!target) return;
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  function heroBackgroundPosition(theme) {
+    var pos = (theme.heroImagePosition || '').trim();
+    if (pos) return pos;
+    var fx = theme.heroImageFocusX != null ? Number(theme.heroImageFocusX) : 50;
+    var fy = theme.heroImageFocusY != null ? Number(theme.heroImageFocusY) : 50;
+    if (isNaN(fx)) fx = 50;
+    if (isNaN(fy)) fy = 50;
+    return fx + '% ' + fy + '%';
+  }
+
+  function layoutProfileInfo(profileInfo, heroGrid, siteMain, isCover, isSplit) {
+    if (!profileInfo || !heroGrid || !siteMain) return;
+    var introWrap = siteMain.querySelector('.profile-main-intro') || siteMain;
+    if (isCover) {
+      if (profileInfo.parentElement !== introWrap) {
+        introWrap.insertBefore(profileInfo, introWrap.firstChild);
+      }
+      profileInfo.hidden = false;
+      profileInfo.style.display = '';
+      return;
+    }
+    if (isSplit) {
+      if (profileInfo.parentElement !== heroGrid) {
+        heroGrid.appendChild(profileInfo);
+      }
+      profileInfo.hidden = false;
+      profileInfo.style.display = '';
+      return;
+    }
+    if (profileInfo.parentElement !== heroGrid) {
+      heroGrid.appendChild(profileInfo);
+    }
+    profileInfo.hidden = true;
+    profileInfo.style.display = 'none';
+  }
+
+  function setupCoverLayout(content, theme, heroSection, heroPhoto) {
+    if (!heroSection) return;
+    heroSection.classList.add('profile-hero--cover');
+    document.body.classList.add('page-home--cover');
+
+    var overlay = document.getElementById('profile-cover-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'profile-cover-overlay';
+      overlay.id = 'profile-cover-overlay';
+      overlay.innerHTML =
+        '<div class="profile-cover-overlay__scrim" aria-hidden="true"></div>' +
+        '<div class="profile-cover-overlay__inner"></div>';
+      heroSection.appendChild(overlay);
+    }
+    overlay.hidden = false;
+
+    var inner = overlay.querySelector('.profile-cover-overlay__inner');
+    if (inner) {
+      inner.innerHTML =
+        '<h1 class="profile-cover-overlay__brand">' +
+        escapeHtml(content.brandName || '') +
+        '</h1>' +
+        '<a class="profile-book-btn profile-cover-overlay__cta" href="#site-main-content">Book Now</a>';
+      bindCoverScrollLink(inner.querySelector('.profile-cover-overlay__cta'));
+    }
+
+    if (heroPhoto && theme.heroImageUrl) {
+      heroPhoto.style.backgroundImage =
+        "url('" + String(theme.heroImageUrl).replace(/'/g, '%27') + "')";
+      heroPhoto.style.backgroundPosition = heroBackgroundPosition(theme);
+    }
+  }
+
+  function teardownCoverLayout(heroSection) {
+    if (heroSection) heroSection.classList.remove('profile-hero--cover');
+    document.body.classList.remove('page-home--cover');
+    var overlay = document.getElementById('profile-cover-overlay');
+    if (overlay) overlay.hidden = true;
+  }
+
   window.applyStyldPreviewContent = function applyStyldPreviewContent() {
     var content = window.__STYLD_SITE_CONTENT__;
     if (!content || typeof content !== 'object') return;
@@ -245,10 +333,23 @@
     // Hero layout
     var heroSection = document.querySelector('.profile-hero');
     var heroPhoto = document.getElementById('profile-hero-photo');
+    var heroGrid = document.querySelector('.profile-hero__grid');
+    var profileInfo = document.getElementById('profile-info-block');
+    var siteMain = document.getElementById('site-main-content');
+    var isCover = theme.heroLayout === 'cover';
     var isStack = theme.heroLayout === 'stack';
     var isSplit = theme.heroLayout === 'split';
 
-    if (isStack && heroSection) {
+    teardownCoverLayout(heroSection);
+    if (heroSection) {
+      heroSection.classList.remove('profile-hero--stack');
+    }
+
+    layoutProfileInfo(profileInfo, heroGrid, siteMain, isCover, isSplit);
+
+    if (isCover) {
+      setupCoverLayout(content, theme, heroSection, heroPhoto);
+    } else if (isStack && heroSection) {
       heroSection.classList.add('profile-hero--stack');
       var stackUrls = Array.isArray(theme.heroStackImageUrls) ? theme.heroStackImageUrls : [];
       if (stackUrls.length > 0) {
@@ -272,13 +373,12 @@
       }
     }
 
-    if (!isStack && heroPhoto && theme.heroImageUrl) {
+    if (isCover) {
+      /* cover hero image applied in setupCoverLayout */
+    } else if (!isStack && heroPhoto && theme.heroImageUrl) {
       heroPhoto.style.backgroundImage = "url('" + String(theme.heroImageUrl).replace(/'/g, '%27') + "')";
+      heroPhoto.style.backgroundPosition = heroBackgroundPosition(theme);
     }
-
-    // About & policy — only visible for "split" layout
-    var profileInfo = document.querySelector('.profile-info');
-    if (profileInfo) profileInfo.style.display = isSplit ? '' : 'none';
 
     var aboutEl = document.getElementById('profile-about-body');
     if (aboutEl) aboutEl.textContent = content.heroDescription || '';
@@ -296,7 +396,8 @@
         li.textContent = bullet;
         policyEl.appendChild(li);
       });
-      if (policyBlock) policyBlock.hidden = !isSplit || bullets.length === 0;
+      var showPolicies = (isSplit || isCover) && bullets.length > 0;
+      if (policyBlock) policyBlock.hidden = !showPolicies;
     }
 
     // Menu

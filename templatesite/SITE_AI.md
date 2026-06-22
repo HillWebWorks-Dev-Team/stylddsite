@@ -10,7 +10,19 @@ Use this when editing tenant sites on Vercel (`*.styldd.com`).
 | Published-site gate + shared loader | `js/styld-tenant-shared.js` (`loadPublishedSite`) |
 | Profile / home tenant bootstrap | `js/tenant-site.js` |
 | Booking flow | `js/styld-tenant-booking.js`, `js/booking.js` |
-| Tenant HTML shells | `tenant/`, `booking.html`, etc. |
+| Profile layout + cover hero | `js/profile-content.js`, `css/styles.css`, `tenant/profile.html` |
+| Legacy index preview hero | `js/preview-content.js`, `tenant/index.html` |
+
+## Hero layout: `cover` (Full screen splash)
+
+When `site_theme.heroLayout === 'cover'`:
+
+1. **Landing screen** — full-viewport hero photo, dark gradient overlay, centered `brandName` + **Book Now** CTA.
+2. **Book Now on overlay** — smooth-scrolls to `#site-main-content` (same page). Does **not** go to `/booking`.
+3. **Nav Book Now** — still links to `/booking` (unchanged).
+4. **Below the fold** — `#site-main-content` shows About Me, Policies, then services menu.
+
+Implemented in this repo (live `*.styldd.com` sites). The mobile app exposes **Site editor → Photos → Header style → Full screen**, which persists `heroLayout: 'cover'` in `site_theme` JSON.
 
 ## Subscription-gated domains
 

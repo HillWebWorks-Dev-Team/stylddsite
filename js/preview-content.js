@@ -92,6 +92,42 @@
     var placeholderImg =
       '<img class="hero-scale-visual__img" src="/assets/placeholders/hero.svg" alt="" width="560" height="840" decoding="async" />';
 
+    if (layout === 'cover') {
+      var focusStyle = heroImageStyle(heroUrl);
+      if (theme.heroImageFocusX != null || theme.heroImageFocusY != null) {
+        var fx = theme.heroImageFocusX != null ? Number(theme.heroImageFocusX) : 50;
+        var fy = theme.heroImageFocusY != null ? Number(theme.heroImageFocusY) : 50;
+        focusStyle =
+          heroUrl
+            ? " style=\"background-image:url('" +
+              String(heroUrl).replace(/'/g, '%27') +
+              "');background-size:cover;background-position:" +
+              (isNaN(fx) ? 50 : fx) +
+              '% ' +
+              (isNaN(fy) ? 50 : fy) +
+              '%;\"'
+            : '';
+      }
+      return (
+        '<div class="hero-scale-layout hero-layout--cover">' +
+        '<div class="hero-cover-visual' +
+        photoClass +
+        '"' +
+        focusStyle +
+        '>' +
+        (heroUrl ? '' : placeholderImg) +
+        '</div>' +
+        '<div class="hero-cover-overlay">' +
+        '<div class="hero-cover-overlay__scrim" aria-hidden="true"></div>' +
+        '<div class="hero-cover-overlay__inner">' +
+        '<h1 class="hero-cover-overlay__brand" id="preview-kicker">' +
+        brand +
+        '</h1>' +
+        '<a class="hero-btn hero-btn--gold hero-btn--lg hero-cover-overlay__cta" href="#preview-main-content">Book Now</a>' +
+        '</div></div></div>'
+      );
+    }
+
     if (layout === 'minimal') {
       return (
         '<div class="hero-scale-layout hero-layout--minimal">' +
@@ -382,6 +418,21 @@
         heroInner.innerHTML = window.__STYLD_HERO_HTML__;
       } else {
         heroInner.innerHTML = buildHeroInnerHtml(content, theme);
+      }
+      if (theme.heroLayout === 'cover') {
+        document.body.classList.add('page-home--cover-preview');
+        var coverCta = heroInner.querySelector('.hero-cover-overlay__cta');
+        if (coverCta && coverCta.dataset.coverBound !== '1') {
+          coverCta.dataset.coverBound = '1';
+          coverCta.addEventListener('click', function (e) {
+            var target = document.getElementById('preview-main-content');
+            if (!target) return;
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        }
+      } else {
+        document.body.classList.remove('page-home--cover-preview');
       }
     }
 

@@ -697,6 +697,7 @@
     revenueRange: 'month',
     revenueMonth: '',
     revenueYear: '',
+    revenueSubPlan: null,
     styldRevenue: null,
     cancellations: null,
     inquiries: null,
@@ -944,12 +945,49 @@
       });
   }
 
+  function renderRevenueSubscriberTable(subscribers, emptyMsg) {
+    if (!subscribers || !subscribers.length) {
+      return '<p class="admin-empty-note">' + esc(emptyMsg || 'No salons on this plan.') + '</p>';
+    }
+    return (
+      '<div class="admin-table-wrap"><table class="admin-table admin-table--clickable"><thead><tr><th>Salon</th><th>Plan</th><th>Product</th><th>Started</th><th>Renews</th><th>Store</th></tr></thead><tbody>' +
+      subscribers
+        .map(function (s) {
+          return (
+            '<tr class="admin-row-clickable" data-open-user="' +
+            esc(s.user_id) +
+            '" role="button" tabindex="0"><td><strong>' +
+            esc(s.brand_name || 'Salon') +
+            '</strong><br><span class="admin-muted">' +
+            esc(s.email || '') +
+            '</span></td><td>' +
+            subscriptionPill(s) +
+            '</td><td>' +
+            esc(s.product || '—') +
+            '</td><td>' +
+            fmtDate(s.purchase_date) +
+            '</td><td>' +
+            fmtDate(s.expires_date) +
+            '</td><td>' +
+            esc(s.store || '—') +
+            '</td></tr>'
+          );
+        })
+        .join('') +
+      '</tbody></table></div>'
+    );
+  }
+
   function renderStyldRevenue(data) {
     if (!els.styldRevenuePanel || !data) return;
     var period = data.period || {};
     var platform = data.platform || {};
     var subs = data.subscriptions || {};
+    var plans = subs.plans || {};
+    var monthlyPlan = plans.monthly || {};
+    var yearlyPlan = plans.yearly || {};
     var rc = subs.revenuecat_overview || {};
+    var selectedPlan = state.revenueSubPlan;
     var timeline = data.platform_timeline_filtered || data.platform_timeline || [];
     var chartTimeline = (data.platform_timeline || []).map(function (row) {
       var parts = String(row.month || '').split('-');
@@ -1000,13 +1038,15 @@
       fmtCount(subs.free || 0) +
       ' free</p></article>' +
       '<article class="admin-overview-hero__card admin-overview-hero__card--primary">' +
-      '<span class="admin-overview-hero__label">Est. subscription MRR</span>' +
+      '<span class="admin-overview-hero__label">Subscription MRR</span>' +
       '<strong class="admin-overview-hero__value">' +
-      fmtMoney(rc.mrr != null ? rc.mrr : subs.estimated_mrr) +
+      fmtMoney(rc.mrr != null ? rc.mrr : plans.total_mrr || subs.estimated_mrr) +
       '</strong>' +
       '<p class="admin-overview-hero__hint">' +
-      (rc.mrr != null ? 'From RevenueCat overview' : 'Estimated from active Pro plans') +
-      '</p></article>' +
+      fmtMoney(monthlyPlan.mrr || 0) +
+      ' monthly plan · ' +
+      fmtMoney(yearlyPlan.mrr || 0) +
+      ' yearly plan (MRR)</p></article>' +
       '<article class="admin-overview-hero__card">' +
       '<span class="admin-overview-hero__label">New subs in period</span>' +
       '<strong class="admin-overview-hero__value">' +
@@ -1037,58 +1077,112 @@
       { tone: 'stripe', wide: true },
     );
 
+    var planCards =
+      '<section class="admin-overview-section admin-revenue-plans-section"><div class="admin-bookings-panel__head"><div class="admin-bookings-panel__intro"><h3>Subscription revenue by plan</h3><p class="admin-muted">From RevenueCat active subscribers · click a plan to list those salons</p></div></div>' +
+      '<div class="admin-revenue-plans">' +
+      '<button type="button" class="admin-revenue-plan-card' +
+      (selectedPlan === 'monthly' ? ' is-active' : '') +
+      '" data-revenue-plan="monthly" aria-pressed="' +
+      (selectedPlan === 'monthly' ? 'true' : 'false') +
+      '">' +
+      '<span class="admin-revenue-plan-card__label">Pro Monthly</span>' +
+      '<strong class="admin-revenue-plan-card__value">' +
+      fmtMoney(monthlyPlan.gross_per_month || 0) +
+      '<small>/mo</small></strong>' +
+      '<p class="admin-revenue-plan-card__meta">' +
+      fmtCount(monthlyPlan.count || 0) +
+      ' salons · ' +
+      fmtMoney(monthlyPlan.price || subs.monthly_price || 9.99) +
+      ' each · MRR ' +
+      fmtMoney(monthlyPlan.mrr || 0) +
+      '</p></button>' +
+      '<button type="button" class="admin-revenue-plan-card admin-revenue-plan-card--yearly' +
+      (selectedPlan === 'yearly' ? ' is-active' : '') +
+      '" data-revenue-plan="yearly" aria-pressed="' +
+      (selectedPlan === 'yearly' ? 'true' : 'false') +
+      '">' +
+      '<span class="admin-revenue-plan-card__label">Pro Yearly</span>' +
+      '<strong class="admin-revenue-plan-card__value">' +
+      fmtMoney(yearlyPlan.gross_per_year || 0) +
+      '<small>/yr</small></strong>' +
+      '<p class="admin-revenue-plan-card__meta">' +
+      fmtCount(yearlyPlan.count || 0) +
+      ' salons · ' +
+      fmtMoney(yearlyPlan.price || subs.yearly_price || 99.99) +
+      ' each · MRR ' +
+      fmtMoney(yearlyPlan.mrr || 0) +
+      '</p></button>' +
+      (plans.other && plans.other.count
+        ? '<button type="button" class="admin-revenue-plan-card admin-revenue-plan-card--other' +
+          (selectedPlan === 'other' ? ' is-active' : '') +
+          '" data-revenue-plan="other" aria-pressed="' +
+          (selectedPlan === 'other' ? 'true' : 'false') +
+          '">' +
+          '<span class="admin-revenue-plan-card__label">Other Pro</span>' +
+          '<strong class="admin-revenue-plan-card__value">' +
+          fmtCount(plans.other.count) +
+          '</strong>' +
+          '<p class="admin-revenue-plan-card__meta">Non-standard product IDs in RevenueCat</p></button>'
+        : '') +
+      '</div>' +
+      (rc.mrr != null
+        ? '<p class="admin-muted admin-revenue-rc-note">RevenueCat overview MRR: ' +
+          fmtMoney(rc.mrr) +
+          (rc.active_subscriptions != null ? ' · ' + fmtCount(rc.active_subscriptions) + ' active subs' : '') +
+          '</p>'
+        : '') +
+      '</section>';
+
+    var selectedPlanData =
+      selectedPlan === 'monthly'
+        ? monthlyPlan
+        : selectedPlan === 'yearly'
+          ? yearlyPlan
+          : selectedPlan === 'other'
+            ? plans.other
+            : null;
+
+    var planDetailSection = selectedPlanData
+      ? '<section class="admin-overview-section admin-revenue-plan-detail" id="admin-revenue-plan-detail">' +
+        '<div class="admin-bookings-panel__head"><div class="admin-bookings-panel__intro"><h3>' +
+        esc(selectedPlanData.label || selectedPlan) +
+        ' subscribers</h3><p class="admin-muted">' +
+        fmtCount(selectedPlanData.count || (selectedPlanData.subscribers && selectedPlanData.subscribers.length) || 0) +
+        ' salons · click a row to open the salon dashboard</p></div>' +
+        '<button type="button" class="admin-btn admin-btn--ghost" data-revenue-plan-clear>Clear filter</button></div>' +
+        renderRevenueSubscriberTable(
+          selectedPlanData.subscribers || [],
+          'No active salons on this plan.',
+        ) +
+        '</section>'
+      : '';
+
     var subCard = infoCard(
-      'Subscriptions (RevenueCat)',
+      'All active subscriptions',
       statCards([
         {
-          label: 'MRR',
-          value: fmtMoney(rc.mrr != null ? rc.mrr : subs.estimated_mrr),
-          hint: rc.mrr != null ? 'RevenueCat' : 'Estimated',
+          label: 'Total MRR',
+          value: fmtMoney(rc.mrr != null ? rc.mrr : plans.total_mrr || subs.estimated_mrr),
+          hint: rc.mrr != null ? 'RevenueCat overview' : 'Estimated',
         },
-        { label: 'Active Pro', value: subs.active || 0 },
-        { label: 'Pro Monthly', value: subs.active_monthly || 0 },
-        { label: 'Pro Yearly', value: subs.active_yearly || 0 },
+        { label: 'Monthly plan MRR', value: fmtMoney(monthlyPlan.mrr || 0) },
+        { label: 'Yearly plan MRR', value: fmtMoney(yearlyPlan.mrr || 0) },
+        { label: 'Monthly gross / mo', value: fmtMoney(monthlyPlan.gross_per_month || 0) },
+        { label: 'Yearly gross / yr', value: fmtMoney(yearlyPlan.gross_per_year || 0) },
         { label: 'Free / none', value: subs.free || 0 },
-        { label: 'Expired', value: subs.expired || 0 },
-      ]) +
-        (rc.active_subscriptions != null
-          ? '<p class="admin-muted">RevenueCat active subs: ' + fmtCount(rc.active_subscriptions) + '</p>'
-          : ''),
+      ]),
       { tone: 'subscription', wide: true },
     );
 
-    var subscriberRows = (subs.subscribers || [])
-      .map(function (s) {
-        return (
-          '<tr class="admin-row-clickable" data-open-user="' +
-          esc(s.user_id) +
-          '" role="button" tabindex="0"><td><strong>' +
-          esc(s.brand_name || 'Salon') +
-          '</strong><br><span class="admin-muted">' +
-          esc(s.email || '') +
-          '</span></td><td>' +
-          subscriptionPill(s) +
-          '</td><td>' +
-          esc(s.product || '—') +
-          '</td><td>' +
-          fmtDate(s.purchase_date) +
-          '</td><td>' +
-          fmtDate(s.expires_date) +
-          '</td><td>' +
-          esc(s.store || '—') +
-          '</td></tr>'
-        );
-      })
-      .join('');
-
-    var subscriberTable =
-      '<section class="admin-overview-section"><h3>Active Pro subscribers</h3>' +
-      (subscriberRows
-        ? '<div class="admin-table-wrap"><table class="admin-table admin-table--clickable"><thead><tr><th>Salon</th><th>Plan</th><th>Product</th><th>Started</th><th>Renews</th><th>Store</th></tr></thead><tbody>' +
-          subscriberRows +
-          '</tbody></table></div>'
-        : '<p class="admin-empty-note">No active Pro subscriptions right now.</p>') +
-      '</section>';
+    var allSubscriberTable =
+      !selectedPlan
+        ? '<section class="admin-overview-section"><h3>All active Pro subscribers</h3>' +
+          renderRevenueSubscriberTable(
+            subs.subscribers || [],
+            'No active Pro subscriptions right now.',
+          ) +
+          '</section>'
+        : '';
 
     var monthTable =
       timeline.length && period.range !== 'all'
@@ -1117,12 +1211,14 @@
 
     els.styldRevenuePanel.innerHTML =
       hero +
+      planCards +
       '<div class="admin-overview-grid">' +
       platformCard +
       subCard +
       '</div>' +
+      planDetailSection +
       monthTable +
-      subscriberTable +
+      allSubscriberTable +
       (data.combined && data.combined.note
         ? '<p class="admin-overview-note">' + esc(data.combined.note) + '</p>'
         : '');
@@ -3132,6 +3228,23 @@
       var clientEl = e.target.closest('[data-open-client-key]');
       if (clientEl) {
         openClientDrawer(clientEl.getAttribute('data-open-client-key'));
+        return;
+      }
+      var planClear = e.target.closest('[data-revenue-plan-clear]');
+      if (planClear) {
+        state.revenueSubPlan = null;
+        if (state.styldRevenue) renderStyldRevenue(state.styldRevenue);
+        return;
+      }
+      var planBtn = e.target.closest('[data-revenue-plan]');
+      if (planBtn && state.tab === 'styld_revenue') {
+        var plan = planBtn.getAttribute('data-revenue-plan');
+        state.revenueSubPlan = state.revenueSubPlan === plan ? null : plan;
+        if (state.styldRevenue) renderStyldRevenue(state.styldRevenue);
+        if (state.revenueSubPlan) {
+          var detail = document.getElementById('admin-revenue-plan-detail');
+          if (detail) detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
         return;
       }
       var globalClientEl = e.target.closest('[data-open-global-client]');

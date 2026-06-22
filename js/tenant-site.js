@@ -187,6 +187,8 @@
       window.__STYLD_SITE_THEME__ = {
         heroLayout: theme.heroLayout || 'split',
         heroImagePosition: theme.heroImagePosition || 'center top',
+        heroImageFocusX: theme.heroImageFocusX != null ? theme.heroImageFocusX : null,
+        heroImageFocusY: theme.heroImageFocusY != null ? theme.heroImageFocusY : null,
         heroImageUrl: coverUrl(theme.heroImagePath),
         logoImageUrl: coverUrl(theme.logoImagePath),
         heroStackImageUrls: heroStackImagePaths.map(function(p) { return coverUrl(p); }).filter(Boolean),
