@@ -2317,11 +2317,17 @@ body.page-home--cover-preview .hero-landing {
   text-decoration: none;
 }
 
-/* Homepage footer: flat dark bar + magenta links (promo strip above copyright) */
+/* Homepage / tenant footer: always dark bar + Built with Styld */
 .site-footer.site-footer--home-promo {
-  background: var(--site-footer-bg, #121212);
+  background: linear-gradient(180deg, #161616 0%, #0a0a0a 100%);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: 2.75rem;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.site-footer.site-footer--home-promo .footer-bottom,
+.site-footer.site-footer--home-promo #preview-footer-brand {
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .tpl-profile.page-review,
@@ -2342,7 +2348,7 @@ body.page-home--cover-preview .hero-landing {
 
 .tpl-profile.page-review .site-footer.site-footer--home-promo,
 .tpl-profile.page-manage-booking .site-footer.site-footer--home-promo {
-  background: var(--site-footer-bg, var(--cream, #121212));
+  background: linear-gradient(180deg, #161616 0%, #0a0a0a 100%);
   margin-top: auto;
 }
 

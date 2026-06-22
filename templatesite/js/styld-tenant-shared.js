@@ -421,7 +421,7 @@
       document.body.style.backgroundColor = '';
     }
 
-    root.style.setProperty('--site-footer-bg', bg && /^#[0-9a-fA-F]{6}$/.test(bg) ? bg : cardSurface);
+    root.style.setProperty('--site-footer-bg', '#0a0a0a');
 
     var cardOutline = (theme.cardOutlineColor || theme.secondaryColor || secondary || '').trim();
     if (cardOutline && /^#[0-9a-fA-F]{6}$/.test(cardOutline)) {
@@ -574,11 +574,6 @@
     });
 
     document.body.classList.add('tenant-branded');
-
-    var footer = document.querySelector('.site-footer.site-footer--home-promo');
-    if (footer && theme.backgroundColor) {
-      footer.style.background = theme.backgroundColor;
-    }
 
     var tenantStatusEl = document.getElementById('tenant-status');
     if (tenantStatusEl) {
