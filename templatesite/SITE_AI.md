@@ -10,19 +10,26 @@ Use this when editing tenant sites on Vercel (`*.styldd.com`).
 | Published-site gate + shared loader | `js/styld-tenant-shared.js` (`loadPublishedSite`) |
 | Profile / home tenant bootstrap | `js/tenant-site.js` |
 | Booking flow | `js/styld-tenant-booking.js`, `js/booking.js` |
-| Profile layout + cover hero | `js/profile-content.js`, `css/styles.css`, `tenant/profile.html` |
+| Profile layout + cover hero | `js/profile-content.js`, `css/styles.css`, `tenant/profile.html`, `tenant/book.html` |
 | Legacy index preview hero | `js/preview-content.js`, `tenant/index.html` |
 
 ## Hero layout: `cover` (Full screen splash)
 
 When `site_theme.heroLayout === 'cover'`:
 
-1. **Landing screen** — full-viewport hero photo, dark gradient overlay, centered `brandName` + **Book Now** CTA.
-2. **Book Now on overlay** — smooth-scrolls to `#site-main-content` (same page). Does **not** go to `/booking`.
-3. **Nav Book Now** — still links to `/booking` (unchanged).
-4. **Below the fold** — `#site-main-content` shows About Me, Policies, then services menu.
+1. **Screen 1 — `/` (splash only)** — full-viewport hero photo, centered `brandName` + **Book Now** below the name. No About, policies, menu, or location. `overflow: hidden` on `html`/`body`; no scroll.
+2. **Splash Book Now** — navigates to **`/book`** (real page load). Does **not** scroll on the same page and does **not** go to `/booking` (checkout).
+3. **Nav Book Now on splash** — also links to **`/book`**. Nav **Book Now on `/book`** links to **`/booking`** (checkout).
+4. **Screen 2 — `/book`** — About Me, Policies, services menu, location (same blocks as split layout’s main content). Nav brand links back to `/`.
 
-Implemented in this repo (live `*.styldd.com` sites). The mobile app exposes **Site editor → Photos → Header style → Full screen**, which persists `heroLayout: 'cover'` in `site_theme` JSON.
+| File | Role |
+|------|------|
+| `tenant/profile.html` | Splash page when `heroLayout === 'cover'` |
+| `tenant/book.html` | About + policies + menu + location |
+| `middleware.js` | `'/book': '/tenant/book.html'` |
+| `js/profile-content.js` | Splash vs book page detection (`page-splash` / `page-book`) |
+
+The mobile app exposes **Site editor → Photos → Header style → Full screen**, which persists `heroLayout: 'cover'` in `site_theme` JSON. In-app preview should show splash only for cover mode; **Book Now** opens `/book` on the live site.
 
 ## Subscription-gated domains
 

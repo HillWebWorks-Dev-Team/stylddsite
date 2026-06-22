@@ -879,7 +879,7 @@ a:hover {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   padding: clamp(2rem, 8vh, 5rem) 1.5rem calc(2.5rem + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
@@ -894,6 +894,9 @@ a:hover {
 .hero-cover-overlay__inner {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   pointer-events: auto;
 }
@@ -910,6 +913,22 @@ a:hover {
 
 #preview-main-content {
   scroll-margin-top: 5rem;
+}
+
+html.page-home--cover-preview,
+body.page-home--cover-preview {
+  overflow: hidden;
+  height: 100%;
+}
+
+body.page-home--cover-preview #preview-main-content,
+body.page-home--cover-preview .site-footer {
+  display: none;
+}
+
+body.page-home--cover-preview .hero-landing {
+  min-height: 100dvh;
+  min-height: 100vh;
 }
 
 @media (max-width: 767px) {
@@ -6410,8 +6429,19 @@ ul.price-menu__policy-list {
   scroll-margin-top: calc(var(--profile-nav-height, 4.25rem) + 0.5rem);
 }
 
-.profile-main-intro {
-  padding-top: 0.5rem;
+html.page-splash,
+body.page-splash {
+  overflow: hidden;
+  height: 100%;
+}
+
+body.page-splash #site-main-content,
+body.page-splash .site-footer {
+  display: none;
+}
+
+.page-book .profile-main-intro {
+  padding-top: calc(var(--profile-nav-height, 4.25rem) + 1.5rem);
 }
 
 .page-home--cover .profile-nav {
@@ -6426,6 +6456,10 @@ ul.price-menu__policy-list {
 
 .page-home--cover .profile-main-intro {
   padding-top: 2.5rem;
+}
+
+.profile-main-intro {
+  padding-top: 0.5rem;
 }
 
 .profile-hero--cover {
@@ -6472,7 +6506,7 @@ ul.price-menu__policy-list {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   padding: clamp(2rem, 8vh, 5rem) 1.5rem calc(2.75rem + env(safe-area-inset-bottom, 0px));
   z-index: 2;
@@ -6494,6 +6528,9 @@ ul.price-menu__policy-list {
 .profile-cover-overlay__inner {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: min(100%, 30rem);
   text-align: center;
   pointer-events: auto;

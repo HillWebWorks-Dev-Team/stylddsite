@@ -26,32 +26,23 @@
       }
       #tenant-status[hidden] { display: none; }
       body.tenant-error .profile-nav,
-      body.tenant-error .profile-hero,
       body.tenant-error .profile-menu-section,
       body.tenant-error .profile-location-section,
       body.tenant-error .site-footer { opacity: 0.2; pointer-events: none; }
     </style>
   </head>
-  <body class="tpl-profile page-home">
+  <body class="tpl-profile page-book">
     <div id="tenant-status">Loading your site…</div>
 
     <nav class="profile-nav" id="profile-nav">
       <div class="container profile-nav__inner">
-        <a class="profile-brand" href="./">
+        <a class="profile-brand" href="/">
           <div class="profile-brand__logo" id="profile-logo-placeholder" aria-hidden="true"></div>
           <span id="profile-brand-name">Your Brand</span>
         </a>
         <a class="profile-book-btn" href="/booking">Book Now</a>
       </div>
     </nav>
-
-    <section class="profile-hero">
-      <div class="container profile-hero__grid">
-        <div class="profile-photo" id="profile-photo-wrap">
-          <div class="profile-photo__bg" id="profile-hero-photo"></div>
-        </div>
-      </div>
-    </section>
 
     <div id="site-main-content">
       <div class="container profile-main-intro">
@@ -67,51 +58,51 @@
         </div>
       </div>
 
-    <main>
-      <section class="profile-reviews-section" id="profile-reviews-section" hidden>
-        <div class="container">
-          <div class="profile-reviews-head">
-            <h2>Client reviews</h2>
-          </div>
-          <div class="site-reviews-marquee" aria-label="Client reviews">
-            <div class="site-reviews-marquee__fade site-reviews-marquee__fade--left" aria-hidden="true"></div>
-            <div class="site-reviews-marquee__viewport">
-              <div class="site-reviews-marquee__track" id="site-reviews-track"></div>
+      <main>
+        <section class="profile-reviews-section" id="profile-reviews-section" hidden>
+          <div class="container">
+            <div class="profile-reviews-head">
+              <h2>Client reviews</h2>
             </div>
-            <div class="site-reviews-marquee__fade site-reviews-marquee__fade--right" aria-hidden="true"></div>
+            <div class="site-reviews-marquee" aria-label="Client reviews">
+              <div class="site-reviews-marquee__fade site-reviews-marquee__fade--left" aria-hidden="true"></div>
+              <div class="site-reviews-marquee__viewport">
+                <div class="site-reviews-marquee__track" id="site-reviews-track"></div>
+              </div>
+              <div class="site-reviews-marquee__fade site-reviews-marquee__fade--right" aria-hidden="true"></div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="profile-menu-section" id="profile-menu-section" data-site-section="menu">
-        <div class="container">
-          <div class="profile-menu-head">
-            <h2 id="profile-menu-title">Menu</h2>
-            <p class="profile-menu-blurb" id="profile-menu-blurb"></p>
+        <section class="profile-menu-section" id="profile-menu-section" data-site-section="menu">
+          <div class="container">
+            <div class="profile-menu-head">
+              <h2 id="profile-menu-title">Menu</h2>
+              <p class="profile-menu-blurb" id="profile-menu-blurb"></p>
+            </div>
+            <div id="profile-menu-filters" class="profile-menu-filters" hidden></div>
+            <div id="profile-service-grid" class="profile-service-grid"></div>
           </div>
-          <div id="profile-menu-filters" class="profile-menu-filters" hidden></div>
-          <div id="profile-service-grid" class="profile-service-grid"></div>
-        </div>
-      </section>
+        </section>
 
-      <section class="profile-location-section" id="profile-location-section" data-site-section="visit">
-        <div class="container">
-          <div class="profile-location-head">
-            <h2 id="profile-visit-title">Location</h2>
+        <section class="profile-location-section" id="profile-location-section" data-site-section="visit">
+          <div class="container">
+            <div class="profile-location-head">
+              <h2 id="profile-visit-title">Location</h2>
+            </div>
+            <div class="profile-location-card">
+              <div class="profile-location-info" id="profile-location-info"></div>
+              <iframe
+                class="profile-location-map"
+                id="profile-map"
+                title="Location map"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+              ></iframe>
+            </div>
           </div>
-          <div class="profile-location-card">
-            <div class="profile-location-info" id="profile-location-info"></div>
-            <iframe
-              class="profile-location-map"
-              id="profile-map"
-              title="Location map"
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-            ></iframe>
-          </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
     </div>
 
     <footer class="site-footer site-footer--home-promo">

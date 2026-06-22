@@ -123,7 +123,7 @@
         '<h1 class="hero-cover-overlay__brand" id="preview-kicker">' +
         brand +
         '</h1>' +
-        '<a class="hero-btn hero-btn--gold hero-btn--lg hero-cover-overlay__cta" href="#preview-main-content">Book Now</a>' +
+        '<a class="hero-btn hero-btn--gold hero-btn--lg hero-cover-overlay__cta" href="/book">Book Now</a>' +
         '</div></div></div>'
       );
     }
@@ -421,18 +421,16 @@
       }
       if (theme.heroLayout === 'cover') {
         document.body.classList.add('page-home--cover-preview');
-        var coverCta = heroInner.querySelector('.hero-cover-overlay__cta');
-        if (coverCta && coverCta.dataset.coverBound !== '1') {
-          coverCta.dataset.coverBound = '1';
-          coverCta.addEventListener('click', function (e) {
-            var target = document.getElementById('preview-main-content');
-            if (!target) return;
-            e.preventDefault();
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          });
-        }
+        document.documentElement.classList.add('page-home--cover-preview');
+        document.querySelectorAll('.hero-nav__actions .hero-btn--nav, .hero-cover-overlay__cta').forEach(function (link) {
+          link.setAttribute('href', '/book');
+        });
       } else {
         document.body.classList.remove('page-home--cover-preview');
+        document.documentElement.classList.remove('page-home--cover-preview');
+        document.querySelectorAll('.hero-nav__actions .hero-btn--nav').forEach(function (link) {
+          link.setAttribute('href', '/booking');
+        });
       }
     }
 

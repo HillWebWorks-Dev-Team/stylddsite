@@ -9,6 +9,7 @@ const MARKETING_PAGES = {
 };
 
 const TENANT_STATIC_PAGES = {
+  '/book': '/tenant/book.html',
   '/booking': '/booking.html',
   '/booking-lookup': '/booking-lookup.html',
   '/booking-success': '/booking-success.html',
