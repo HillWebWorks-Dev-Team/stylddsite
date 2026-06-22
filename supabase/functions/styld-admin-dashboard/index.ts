@@ -120,6 +120,159 @@ async function signedBookingPhotoUrl(
   return publicAssetUrl(cleaned, 'booking-photos');
 }
 
+function normalizeStorageObjectPath(path: string, bucket: string) {
+  let p = path.replace(/^\/+/, '');
+  const prefix = `${bucket}/`;
+  if (p.startsWith(prefix)) p = p.slice(prefix.length);
+  return p;
+}
+
+async function signedCoverUrl(
+  supabase: ReturnType<typeof adminClient>,
+  path: unknown,
+  bucket = 'style-covers',
+): Promise<string | null> {
+  const raw = coverStoragePath(path);
+  if (!raw) return null;
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+
+  const objectPath = normalizeStorageObjectPath(raw, bucket);
+  if (!objectPath) return null;
+
+  try {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(objectPath, 3600);
+    if (!error && data?.signedUrl) return data.signedUrl;
+  } catch {
+    /* fall through to public URL */
+  }
+
+  return publicAssetUrl(objectPath, bucket);
+}
+
+function resolveBrandName(
+  siteContent: Record<string, unknown> | null | undefined,
+  profile: Record<string, unknown>,
+) {
+  const content = siteContent || {};
+  return (
+    String(content.brandName || profile.business_name || profile.full_name || 'Salon').trim() || 'Salon'
+  );
+}
+
+async function resolveSalonImageUrl(
+  supabase: ReturnType<typeof adminClient>,
+  profile: Record<string, unknown>,
+  siteContent: Record<string, unknown> | null | undefined,
+  siteTheme: Record<string, unknown> | null | undefined,
+  styleCoverPath?: string | null,
+) {
+  const theme = siteTheme || {};
+  const content = siteContent || {};
+  const stackPaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
+  const candidates: unknown[] = [
+    theme.logoImagePath,
+    theme.heroImagePath,
+    stackPaths[0],
+    content.logoImagePath,
+    styleCoverPath,
+    profile.avatar_url,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate == null) continue;
+    const url = await signedCoverUrl(supabase, candidate, 'style-covers');
+    if (url) return url;
+    if (candidate === profile.avatar_url) {
+      for (const bucket of ['avatars', 'profile-images']) {
+        const avatarUrl = await signedCoverUrl(supabase, candidate, bucket);
+        if (avatarUrl) return avatarUrl;
+      }
+    }
+  }
+
+  return null;
+}
+
+type SalonMeta = {
+  brand_name: string;
+  email: string | null;
+  subdomain: string | null;
+  image_url: string | null;
+};
+
+async function loadSalonMetaForUsers(
+  supabase: ReturnType<typeof adminClient>,
+  userIds: string[],
+): Promise<Map<string, SalonMeta>> {
+  const uniqueIds = [...new Set(userIds.filter(Boolean))];
+  if (!uniqueIds.length) return new Map();
+
+  const [profiles, subdomains, settingsRows, coverRows] = await Promise.all([
+    safeTable<Record<string, unknown>>(supabase, 'profiles', (q) =>
+      q.select('id,email,full_name,business_name,avatar_url').in('id', uniqueIds),
+    ),
+    safeTable<{ user_id: string; subdomain: string }>(supabase, 'styld_site_subdomains', (q) =>
+      q.select('user_id,subdomain').in('user_id', uniqueIds),
+    ),
+    safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+      q
+        .select('user_id,record_key,data')
+        .eq('record_type', 'site_setting')
+        .in('record_key', ['site_content', 'site_theme'])
+        .in('user_id', uniqueIds),
+    ),
+    safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+      q.select('user_id,data,created_at').eq('record_type', 'style_cover_image').in('user_id', uniqueIds),
+    ),
+  ]);
+
+  const profileMap = new Map(profiles.map((p) => [String(p.id), p]));
+  const subMap = new Map(subdomains.map((s) => [String(s.user_id), s.subdomain]));
+  const settingsByUser = new Map<string, Record<string, unknown>>();
+  for (const row of settingsRows) {
+    const uid = String(row.user_id);
+    if (!settingsByUser.has(uid)) settingsByUser.set(uid, {});
+    settingsByUser.get(uid)![String(row.record_key)] = pickData(row);
+  }
+
+  const firstCoverByUser = new Map<string, string>();
+  const sortedCovers = [...coverRows].sort((a, b) =>
+    String(a.created_at || '').localeCompare(String(b.created_at || '')),
+  );
+  for (const row of sortedCovers) {
+    const uid = String(row.user_id);
+    if (firstCoverByUser.has(uid)) continue;
+    const path = coverStoragePath(pickData({ data: row.data }));
+    if (path) firstCoverByUser.set(uid, path);
+  }
+
+  const entries = await Promise.all(
+    uniqueIds.map(async (uid) => {
+      const profile = profileMap.get(uid) || {};
+      const settings = settingsByUser.get(uid) || {};
+      const siteContent = (settings.site_content || {}) as Record<string, unknown>;
+      const siteTheme = (settings.site_theme || {}) as Record<string, unknown>;
+      return [
+        uid,
+        {
+          brand_name: resolveBrandName(siteContent, profile),
+          email: (profile.email as string | null | undefined) ?? null,
+          subdomain: subMap.get(uid) || null,
+          image_url: await resolveSalonImageUrl(
+            supabase,
+            profile,
+            siteContent,
+            siteTheme,
+            firstCoverByUser.get(uid) || null,
+          ),
+        },
+      ] as const;
+    }),
+  );
+
+  return new Map(entries);
+}
+
 function salonImageUrl(
   profile: Record<string, unknown>,
   siteContent: Record<string, unknown> | null,
@@ -507,6 +660,50 @@ async function safeTable<T>(
   }
 }
 
+type SubscriptionAccess = {
+  access_type: 'paid' | 'promotional' | 'trial' | 'intro' | 'sandbox' | 'none';
+  is_granted: boolean;
+  counts_toward_mrr: boolean;
+  access_label: string;
+};
+
+function classifyRevenueCatAccess(
+  pro: Record<string, unknown> | null | undefined,
+  subRow: Record<string, unknown> | null | undefined,
+  productId: string | null,
+): SubscriptionAccess {
+  if (!pro) {
+    return { access_type: 'none', is_granted: false, counts_toward_mrr: false, access_label: 'None' };
+  }
+
+  const store = String(pro.store ?? subRow?.store ?? '').toLowerCase();
+  const periodType = String(subRow?.period_type ?? pro.period_type ?? '').toLowerCase();
+  const product = String(productId || '');
+  const isSandbox = !!(subRow?.is_sandbox ?? pro.is_sandbox);
+
+  if (store === 'promotional' || periodType === 'promotional' || product.startsWith('rc_promo_')) {
+    return { access_type: 'promotional', is_granted: true, counts_toward_mrr: false, access_label: 'Granted' };
+  }
+  if (isSandbox) {
+    return { access_type: 'sandbox', is_granted: false, counts_toward_mrr: false, access_label: 'Sandbox' };
+  }
+  if (periodType === 'trial') {
+    return { access_type: 'trial', is_granted: false, counts_toward_mrr: false, access_label: 'Trial' };
+  }
+  if (periodType === 'intro') {
+    return { access_type: 'intro', is_granted: false, counts_toward_mrr: true, access_label: 'Intro price' };
+  }
+  return { access_type: 'paid', is_granted: false, counts_toward_mrr: true, access_label: 'Paid' };
+}
+
+function planLabelForAccess(baseLabel: string, access: SubscriptionAccess) {
+  if (access.access_type === 'promotional') return 'Pro (Granted)';
+  if (access.access_type === 'trial') return 'Pro Trial';
+  if (access.access_type === 'sandbox') return 'Pro (Sandbox)';
+  if (access.access_type === 'intro') return `${baseLabel} (Intro)`;
+  return baseLabel;
+}
+
 async function fetchRevenueCatStatus(userId: string) {
   const key = Deno.env.get('REVENUECAT_SECRET_API_KEY');
   if (!key) {
@@ -566,7 +763,9 @@ async function fetchRevenueCatStatus(userId: string) {
       storeRaw === 'app_store' ? 'App Store' : storeRaw === 'play_store' ? 'Google Play' : storeRaw || null;
 
     const active = !expiresDate || new Date(expiresDate) > new Date();
-    const planLabel =
+    const subRow = productId ? subscriptions[productId] : null;
+    const access = classifyRevenueCatAccess(pro, subRow, productId);
+    const basePlanLabel =
       productId === 'styld_yearly'
         ? 'Pro Yearly'
         : productId === 'styld_monthly'
@@ -574,8 +773,7 @@ async function fetchRevenueCatStatus(userId: string) {
           : productId
             ? productId
             : 'Pro';
-
-    const subRow = productId ? subscriptions[productId] : null;
+    const planLabel = planLabelForAccess(basePlanLabel, access);
     const unsubscribeAt = subRow?.unsubscribe_detected_at ?? null;
     const billingIssues = !!subRow?.billing_issues_detected_at;
 
@@ -587,11 +785,15 @@ async function fetchRevenueCatStatus(userId: string) {
       expires_date: expiresDate,
       purchase_date: purchaseDate,
       store,
-      period_type: subRow?.period_type ?? null,
-      will_renew: active && !unsubscribeAt,
+      period_type: subRow?.period_type ?? pro.period_type ?? null,
+      will_renew: active && !unsubscribeAt && access.counts_toward_mrr,
       unsubscribe_detected_at: unsubscribeAt,
       billing_issues: billingIssues,
       is_sandbox: subRow?.is_sandbox ?? null,
+      access_type: access.access_type,
+      is_granted: access.is_granted,
+      counts_toward_mrr: access.counts_toward_mrr,
+      access_label: access.access_label,
     };
   } catch (e) {
     return { status: 'error', message: String(e), plan_label: 'Error' };
@@ -752,15 +954,25 @@ function buildSubscriptionPlans(
   monthlyPrice: number,
   yearlyPrice: number,
 ) {
-  type PlanKey = 'monthly' | 'yearly' | 'other';
+  type PlanKey = 'monthly' | 'yearly' | 'other' | 'granted' | 'trial' | 'sandbox';
   const buckets: Record<PlanKey, Array<Record<string, unknown>>> = {
     monthly: [],
     yearly: [],
     other: [],
+    granted: [],
+    trial: [],
+    sandbox: [],
   };
 
   for (const row of subscriptionRows) {
     if (row.status !== 'active') continue;
+    const accessType = String(row.access_type || 'paid');
+    if (!row.counts_toward_mrr) {
+      if (row.is_granted || accessType === 'promotional') buckets.granted.push(row);
+      else if (accessType === 'trial') buckets.trial.push(row);
+      else if (accessType === 'sandbox') buckets.sandbox.push(row);
+      continue;
+    }
     const product = String(row.product || '');
     if (product === 'styld_monthly') buckets.monthly.push(row);
     else if (product === 'styld_yearly') buckets.yearly.push(row);
@@ -796,36 +1008,52 @@ function buildSubscriptionPlans(
       subscribers: buckets.yearly,
     },
     other: {
-      label: 'Other Pro',
+      label: 'Other paid Pro',
       count: buckets.other.length,
       mrr: 0,
       gross_per_month: 0,
       subscribers: buckets.other,
     },
+    granted: {
+      label: 'Granted / comp',
+      count: buckets.granted.length,
+      mrr: 0,
+      gross_per_month: 0,
+      subscribers: buckets.granted,
+    },
+    trial: {
+      label: 'Trial',
+      count: buckets.trial.length,
+      mrr: 0,
+      gross_per_month: 0,
+      subscribers: buckets.trial,
+    },
+    sandbox: {
+      label: 'Sandbox',
+      count: buckets.sandbox.length,
+      mrr: 0,
+      gross_per_month: 0,
+      subscribers: buckets.sandbox,
+    },
     total_mrr: roundMoney(monthlyMrr + yearlyMrr),
+    total_paying: monthlyCount + yearlyCount + buckets.other.length,
   };
 }
 
 async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
   const period = resolveRevenuePeriod(filters);
 
-  const [profiles, settingsRows, bookingRows] = await Promise.all([
+  const [profiles, bookingRows] = await Promise.all([
     safeTable<Record<string, unknown>>(supabase, 'profiles', (q) =>
-      q.select('id,email,full_name,business_name,created_at'),
-    ),
-    safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
-      q.select('user_id,data').eq('record_type', 'site_setting').eq('record_key', 'site_content'),
+      q.select('id,email,full_name,business_name,avatar_url,created_at'),
     ),
     safeTable<{ created_at: string; data: unknown }>(supabase, 'styld_site_records', (q) =>
       q.select('created_at,data').eq('record_type', 'booking'),
     ),
   ]);
 
-  const brandByUser = new Map<string, string>();
-  for (const row of settingsRows) {
-    const content = pickData(row) as Record<string, unknown> | null;
-    brandByUser.set(String(row.user_id), String(content?.brandName || ''));
-  }
+  const userIds = profiles.map((p) => String(p.id));
+  const metaByUser = await loadSalonMetaForUsers(supabase, userIds);
 
   const timelineAll = aggregatePlatformFeesTimeline(bookingRows);
   const timelineFiltered = filterTimelineByPeriod(timelineAll, period);
@@ -838,7 +1066,6 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
     paid_bookings: platformTotals.paid_bookings,
   };
 
-  const userIds = profiles.map((p) => String(p.id));
   const concurrency = 8;
   const subscriptionRows: Array<Record<string, unknown>> = [];
 
@@ -846,15 +1073,20 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
     const batch = userIds.slice(i, i + concurrency);
     const batchResults = await Promise.all(
       batch.map(async (uid) => {
-        const profile = profiles.find((p) => String(p.id) === uid) || {};
+        const meta = metaByUser.get(uid) || {
+          brand_name: 'Salon',
+          email: null,
+          subdomain: null,
+          image_url: null,
+        };
         const sub = await fetchRevenueCatStatus(uid);
         return {
           user_id: uid,
-          brand_name:
-            brandByUser.get(uid) ||
-            String(profile.business_name || profile.full_name || 'Salon'),
-          email: profile.email ?? null,
           ...sub,
+          brand_name: meta.brand_name,
+          email: meta.email,
+          subdomain: meta.subdomain,
+          image_url: meta.image_url,
         };
       }),
     );
@@ -864,7 +1096,11 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
   let activeMonthly = 0;
   let activeYearly = 0;
   let activeOther = 0;
-  let activeTotal = 0;
+  let activeWithAccess = 0;
+  let activePaying = 0;
+  let activeGranted = 0;
+  let activeTrial = 0;
+  let activeSandbox = 0;
   let freeTotal = 0;
   let expiredTotal = 0;
   let errorTotal = 0;
@@ -874,12 +1110,23 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
     const status = String(row.status || '');
     const product = String(row.product || '');
     const purchaseDate = String(row.purchase_date || '');
+    const countsTowardMrr = !!row.counts_toward_mrr;
+    const accessType = String(row.access_type || '');
 
     if (status === 'active') {
-      activeTotal += 1;
-      if (product === 'styld_monthly') activeMonthly += 1;
-      else if (product === 'styld_yearly') activeYearly += 1;
-      else if (product) activeOther += 1;
+      activeWithAccess += 1;
+      if (countsTowardMrr) {
+        activePaying += 1;
+        if (product === 'styld_monthly') activeMonthly += 1;
+        else if (product === 'styld_yearly') activeYearly += 1;
+        else if (product) activeOther += 1;
+      } else if (row.is_granted || accessType === 'promotional') {
+        activeGranted += 1;
+      } else if (accessType === 'trial') {
+        activeTrial += 1;
+      } else if (accessType === 'sandbox') {
+        activeSandbox += 1;
+      }
     } else if (status === 'none') {
       freeTotal += 1;
     } else if (status === 'expired') {
@@ -888,9 +1135,12 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
       errorTotal += 1;
     }
 
-    if (period.range === 'month' && period.month && purchaseDate.startsWith(period.month)) {
-      newInPeriod += 1;
-    } else if (period.range === 'year' && period.year && purchaseDate.startsWith(`${period.year}-`)) {
+    if (
+      countsTowardMrr &&
+      status === 'active' &&
+      ((period.range === 'month' && period.month && purchaseDate.startsWith(period.month)) ||
+        (period.range === 'year' && period.year && purchaseDate.startsWith(`${period.year}-`)))
+    ) {
       newInPeriod += 1;
     }
   }
@@ -910,6 +1160,8 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
   const activeSubscribers = subscriptionRows
     .filter((r) => r.status === 'active')
     .sort((a, b) => String(a.brand_name).localeCompare(String(b.brand_name)));
+  const payingSubscribers = activeSubscribers.filter((r) => r.counts_toward_mrr);
+  const grantedSubscribers = activeSubscribers.filter((r) => r.is_granted || r.access_type === 'promotional');
 
   const availableMonths = timelineAll.map((t) => t.month);
   const availableYears = [...new Set(availableMonths.map((m) => m.slice(0, 4)))].sort();
@@ -921,7 +1173,11 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
     platform_timeline_filtered: timelineFiltered,
     subscriptions: {
       total_salons: subscriptionRows.length,
-      active: activeTotal,
+      active: activeWithAccess,
+      active_paying: activePaying,
+      active_granted: activeGranted,
+      active_trial: activeTrial,
+      active_sandbox: activeSandbox,
       active_monthly: activeMonthly,
       active_yearly: activeYearly,
       active_other: activeOther,
@@ -930,11 +1186,14 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
       errors: errorTotal,
       new_in_period: newInPeriod,
       estimated_mrr: estimatedMrr,
+      paying_mrr: plans.total_mrr || estimatedMrr,
       monthly_price: monthlyPrice,
       yearly_price: yearlyPrice,
       plans,
       revenuecat_overview: revenueCatOverview,
       subscribers: activeSubscribers,
+      paying_subscribers: payingSubscribers,
+      granted_subscribers: grantedSubscribers,
     },
     combined: {
       platform_cut: platformTotalsRounded.platform_fees,
@@ -942,11 +1201,11 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
       estimated_subscription_monthly_gross: plans.monthly.gross_per_month,
       estimated_subscription_yearly_gross: plans.yearly.gross_per_year,
       note:
-        'Platform cut is estimated 1% on collected booking payments in the selected period. Subscription revenue is estimated from active Pro plans at configured monthly/yearly prices (RevenueCat per-subscriber data).',
+        'Platform cut is estimated 1% on collected booking payments in the selected period. Paying MRR counts only store-billed Pro plans — granted, trial, and sandbox access are excluded.',
     },
     available_months: availableMonths,
     available_years: availableYears,
-    pricing_note: `Assumed Pro Monthly $${monthlyPrice}, Pro Yearly $${yearlyPrice} — override with STYLD_SUB_MONTHLY_PRICE / STYLD_SUB_YEARLY_PRICE secrets. RevenueCat overview MRR used when available.`,
+    pricing_note: `Paying MRR assumes Pro Monthly $${monthlyPrice}, Pro Yearly $${yearlyPrice}. Granted/comp, trial, and sandbox subs are excluded. Override prices with STYLD_SUB_MONTHLY_PRICE / STYLD_SUB_YEARLY_PRICE.`,
   };
 }
 
@@ -984,7 +1243,6 @@ async function actionOverview(supabase: ReturnType<typeof adminClient>) {
     inquiries,
     reviews,
     stripeAccounts,
-    settingsRows,
   ] = await Promise.all([
     safeTable<{ id: string; full_name: string | null; business_name: string | null }>(supabase, 'profiles', (q) =>
       q.select('id,full_name,business_name'),
@@ -1001,42 +1259,37 @@ async function actionOverview(supabase: ReturnType<typeof adminClient>) {
     safeTable(supabase, 'styld_site_records', (q) => q.select('id').eq('record_type', 'inquiry')),
     safeTable(supabase, 'styld_site_records', (q) => q.select('id').eq('record_type', 'review')),
     safeTable<Record<string, unknown>>(supabase, 'styld_stripe_accounts', (q) => q.select('*')),
-    safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
-      q.select('user_id,data').eq('record_type', 'site_setting').eq('record_key', 'site_content'),
-    ),
   ]);
 
   const publishedSites = userSites.filter((s) => s.published_at).length;
   const stripeConnect = aggregateStripeConnect(stripeAccounts);
   const payments = aggregatePaymentMetrics(bookings);
 
-  const profileMap = new Map(profiles.map((p) => [String(p.id), p]));
   const subMap = new Map(subdomains.map((s) => [String(s.user_id), s.subdomain]));
-  const brandByUser = new Map<string, string>();
-  for (const row of settingsRows) {
-    const content = pickData(row) as Record<string, unknown> | null;
-    brandByUser.set(String(row.user_id), String(content?.brandName || ''));
-  }
 
-  const topSalons = [...payments.revenue_by_user.entries()]
-    .map(([userId, rev]) => {
-      const profile = profileMap.get(userId) || {};
-      const brand =
-        brandByUser.get(userId) ||
-        profile.business_name ||
-        profile.full_name ||
-        'Salon';
-      return {
-        user_id: userId,
-        brand_name: brand,
-        subdomain: subMap.get(userId) || null,
-        gross: roundMoney(rev.gross),
-        collected: roundMoney(rev.collected),
-        pending: roundMoney(rev.pending),
-      };
-    })
+  const topSalonRows = [...payments.revenue_by_user.entries()]
+    .map(([userId, rev]) => ({
+      user_id: userId,
+      gross: roundMoney(rev.gross),
+      collected: roundMoney(rev.collected),
+      pending: roundMoney(rev.pending),
+    }))
     .sort((a, b) => b.collected - a.collected)
     .slice(0, 10);
+
+  const topSalonMeta = await loadSalonMetaForUsers(
+    supabase,
+    topSalonRows.map((row) => String(row.user_id)),
+  );
+  const topSalons = topSalonRows.map((row) => {
+    const meta = topSalonMeta.get(String(row.user_id));
+    return {
+      ...row,
+      brand_name: meta?.brand_name || 'Salon',
+      subdomain: meta?.subdomain || subMap.get(String(row.user_id)) || null,
+      image_url: meta?.image_url || null,
+    };
+  });
 
   const clientKeys = new Set<string>();
   const globalClients = new Set<string>();
@@ -1195,8 +1448,7 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
     const auth = authMap.get(uid) || {};
     const counts = countsByUser.get(uid) || { bookings: 0, inquiries: 0, reviews: 0 };
     const revenue = revenueByUser.get(uid) || { gross: 0, collected: 0, pending: 0, count: 0 };
-    const brandName =
-      String(siteContent.brandName || p.business_name || p.full_name || 'Salon').trim() || 'Salon';
+    const brandName = resolveBrandName(siteContent, p);
     const businessCategory = parseBusinessCategory(settings.onboarding_responses, siteContent, [
       brandName,
       String(p.business_name || ''),
@@ -1252,6 +1504,20 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
       business_category: businessCategory,
       business_category_label: businessCategory === 'barber' ? 'Barber' : 'Salon',
       subscription: { status: 'pending' as const },
+    };
+  });
+
+  const metaByUser = await loadSalonMetaForUsers(
+    supabase,
+    users.map((u) => String(u.user_id)),
+  );
+  users = users.map((u) => {
+    const meta = metaByUser.get(String(u.user_id));
+    if (!meta) return u;
+    return {
+      ...u,
+      brand_name: meta.brand_name || u.brand_name,
+      image_url: meta.image_url,
     };
   });
 
@@ -1714,12 +1980,20 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
   const businessCategory = parseBusinessCategory(siteSettings.onboarding_responses, siteContent, [
     String(siteContent.brandName || profileRow.business_name || profileRow.full_name || ''),
   ]);
+  const firstStyleCover = styleCoverMap.size ? styleCoverMap.values().next().value : null;
+  const imageUrl = await resolveSalonImageUrl(
+    supabase,
+    profileRow,
+    siteContent,
+    siteTheme,
+    firstStyleCover || null,
+  );
 
   return {
     profile: profile.data,
-    brand_name: String(siteContent.brandName || profileRow.business_name || profileRow.full_name || 'Salon'),
+    brand_name: resolveBrandName(siteContent, profileRow),
     tagline: siteContent.tagline || null,
-    image_url: salonImageUrl(profileRow, siteContent, siteTheme),
+    image_url: imageUrl,
     business_category: businessCategory,
     business_category_label: businessCategory === 'barber' ? 'Barber' : 'Salon',
     public_url: subdomain ? `https://${subdomain}.${ROOT_DOMAIN}` : null,
@@ -1811,43 +2085,22 @@ async function fetchEmailsForUser(
 async function enrichRowsWithSalonMeta<T extends Record<string, unknown>>(
   supabase: ReturnType<typeof adminClient>,
   rows: T[],
-): Promise<(T & { brand_name: string | null; subdomain: string | null })[]> {
+): Promise<(T & { brand_name: string | null; subdomain: string | null; image_url: string | null })[]> {
   const userIds = [...new Set(rows.map((r) => String(r.user_id || '')).filter(Boolean))];
   if (!userIds.length) {
-    return rows.map((r) => ({ ...r, brand_name: null, subdomain: null }));
+    return rows.map((r) => ({ ...r, brand_name: null, subdomain: null, image_url: null }));
   }
 
-  const [profiles, subdomains, settingsRows] = await Promise.all([
-    safeTable<Record<string, unknown>>(supabase, 'profiles', (q) =>
-      q.select('id,full_name,business_name').in('id', userIds),
-    ),
-    safeTable<{ user_id: string; subdomain: string }>(supabase, 'styld_site_subdomains', (q) =>
-      q.select('user_id,subdomain').in('user_id', userIds),
-    ),
-    safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
-      q.select('user_id,data').eq('record_type', 'site_setting').eq('record_key', 'site_content').in('user_id', userIds),
-    ),
-  ]);
-
-  const profileMap = new Map(profiles.map((p) => [String(p.id), p]));
-  const subMap = new Map(subdomains.map((s) => [String(s.user_id), s.subdomain]));
-  const brandByUser = new Map<string, string>();
-  for (const row of settingsRows) {
-    const content = pickData(row) as Record<string, unknown> | null;
-    brandByUser.set(String(row.user_id), String(content?.brandName || ''));
-  }
+  const metaByUser = await loadSalonMetaForUsers(supabase, userIds);
 
   return rows.map((row) => {
     const uid = String(row.user_id || '');
-    const profile = profileMap.get(uid) || {};
-    const brand =
-      brandByUser.get(uid) ||
-      String(profile.business_name || profile.full_name || '') ||
-      null;
+    const meta = metaByUser.get(uid);
     return {
       ...row,
-      brand_name: brand,
-      subdomain: subMap.get(uid) || null,
+      brand_name: meta?.brand_name || null,
+      subdomain: meta?.subdomain || null,
+      image_url: meta?.image_url || null,
     };
   });
 }

@@ -504,7 +504,7 @@ body.admin-drawer-open {
 
 .admin-revenue-plans {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 0.85rem;
 }
 
@@ -537,6 +537,19 @@ body.admin-drawer-open {
   border-color: rgba(96, 165, 250, 0.45);
   box-shadow: 0 0 24px rgba(37, 99, 235, 0.18), inset 0 1px 0 rgba(96, 165, 250, 0.12);
   background: linear-gradient(160deg, rgba(37, 99, 235, 0.16), rgba(255, 255, 255, 0.02));
+}
+
+.admin-revenue-plan-card--granted.is-active {
+  border-color: rgba(59, 130, 246, 0.45);
+  box-shadow: 0 0 24px rgba(37, 99, 235, 0.16), inset 0 1px 0 rgba(96, 165, 250, 0.1);
+  background: linear-gradient(160deg, rgba(37, 99, 235, 0.12), rgba(255, 255, 255, 0.02));
+}
+
+.admin-revenue-plan-card--trial.is-active,
+.admin-revenue-plan-card--sandbox.is-active {
+  border-color: rgba(234, 179, 8, 0.38);
+  box-shadow: 0 0 24px rgba(234, 179, 8, 0.12), inset 0 1px 0 rgba(234, 179, 8, 0.1);
+  background: linear-gradient(160deg, rgba(234, 179, 8, 0.1), rgba(255, 255, 255, 0.02));
 }
 
 .admin-revenue-plan-card__label {
@@ -1096,6 +1109,11 @@ body.admin-drawer-open {
   background: var(--admin-surface-2);
 }
 
+.admin-salon-hero__media-inner {
+  width: 100%;
+  height: 100%;
+}
+
 .admin-salon-hero__img {
   width: 100%;
   height: 100%;
@@ -1469,6 +1487,45 @@ body.admin-salon-open {
   background: rgba(7, 7, 8, 0.92);
   backdrop-filter: blur(18px);
   box-shadow: var(--admin-shadow-sm);
+}
+
+.admin-salon-view__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.admin-salon-view__thumb-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-2);
+}
+
+.admin-salon-view__thumb {
+  width: 100%;
+  height: 100%;
+}
+
+.admin-table-salon {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.admin-table-salon__thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--admin-surface-2);
 }
 
 .admin-salon-view__title-wrap h2 {
@@ -2677,6 +2734,16 @@ body.admin-salon-open {
   color: var(--admin-muted);
   background: rgba(255, 255, 255, 0.06);
   border-color: var(--admin-border);
+}
+
+.admin-pill--grant {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.32);
+}
+
+.admin-text-good {
+  color: #86efac;
 }
 
 .admin-pill--soft {

@@ -831,15 +831,18 @@
       '</section>';
 
     var topSalonsHtml = topSalons.length
-      ? '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Salon</th><th>Subdomain</th><th>Collected</th><th>Gross</th><th>Pending</th></tr></thead><tbody>' +
+      ? '<div class="admin-table-wrap"><table class="admin-table admin-table--clickable"><thead><tr><th>Salon</th><th>Subdomain</th><th>Collected</th><th>Gross</th><th>Pending</th></tr></thead><tbody>' +
         topSalons
           .map(function (row) {
+            var name = row.brand_name || 'Salon';
             return (
               '<tr class="admin-row-clickable" data-open-user="' +
               esc(row.user_id) +
-              '" role="button" tabindex="0"><td><strong>' +
-              esc(row.brand_name) +
-              '</strong></td><td>' +
+              '" role="button" tabindex="0"><td><div class="admin-table-salon">' +
+              renderSalonThumb(row.image_url, name, 'admin-table-salon__thumb') +
+              '<strong>' +
+              esc(name) +
+              '</strong></div></td><td>' +
               esc(row.subdomain || '—') +
               '</td><td>' +
               fmtMoney(row.collected) +
@@ -934,7 +937,20 @@
       filters.year = (els.revenueYear && els.revenueYear.value) || state.revenueYear || String(new Date().getFullYear());
     }
     setStatus('Loading Styld revenue…');
-    return api('styld_revenue', filters, state.pin)
+    var usersReady =
+      state.users && state.users.length
+        ? Promise.resolve(state.users)
+        : api('users', {}, state.pin).then(function (payload) {
+            state.users = payload.users || [];
+            return state.users;
+          });
+    return usersReady
+      .catch(function () {
+        return [];
+      })
+      .then(function () {
+        return api('styld_revenue', filters, state.pin);
+      })
       .then(function (data) {
         setStatus('');
         if (data.error) throw new Error(data.error);
@@ -951,18 +967,26 @@
       return '<p class="admin-empty-note">' + esc(emptyMsg || 'No salons on this plan.') + '</p>';
     }
     return (
-      '<div class="admin-table-wrap"><table class="admin-table admin-table--clickable"><thead><tr><th>Salon</th><th>Plan</th><th>Product</th><th>Started</th><th>Renews</th><th>Store</th></tr></thead><tbody>' +
+      '<div class="admin-table-wrap"><table class="admin-table admin-table--clickable admin-table--salon-subscribers"><thead><tr><th>Salon</th><th>Status</th><th>Access</th><th>Product</th><th>Started</th><th>Renews</th><th>Store</th></tr></thead><tbody>' +
       subscribers
-        .map(function (s) {
+        .map(function (raw) {
+          var s = enrichSalonRecord(raw);
+          var name = s.brand_name || s.business_name || s.full_name || 'Salon';
           return (
             '<tr class="admin-row-clickable" data-open-user="' +
             esc(s.user_id) +
-            '" role="button" tabindex="0"><td><strong>' +
-            esc(s.brand_name || 'Salon') +
+            '" role="button" tabindex="0"><td><div class="admin-table-salon">' +
+            renderSalonThumb(s.image_url, name, 'admin-table-salon__thumb') +
+            '<div><strong>' +
+            esc(name) +
             '</strong><br><span class="admin-muted">' +
             esc(s.email || '') +
-            '</span></td><td>' +
+            (s.subdomain ? '<br>' + esc(s.subdomain) + '.styldd.com' : '') +
+            '</span></div></div></td><td>' +
             subscriptionPill(s) +
+            '</td><td>' +
+            esc(subscriptionAccessLabel(s)) +
+            (s.counts_toward_mrr ? '' : ' <span class="admin-muted">· no MRR</span>') +
             '</td><td>' +
             esc(s.product || '—') +
             '</td><td>' +
@@ -1027,33 +1051,38 @@
       fmtCount(platform.paid_bookings || 0) +
       ' paid bookings</p></article>' +
       '<article class="admin-overview-hero__card">' +
-      '<span class="admin-overview-hero__label">Active subscriptions</span>' +
+      '<span class="admin-overview-hero__label">Paying subscribers</span>' +
       '<strong class="admin-overview-hero__value">' +
-      fmtCount(subs.active || 0) +
+      fmtCount(subs.active_paying != null ? subs.active_paying : subs.active || 0) +
       '</strong>' +
       '<p class="admin-overview-hero__hint">' +
       fmtCount(subs.active_monthly || 0) +
       ' monthly · ' +
       fmtCount(subs.active_yearly || 0) +
-      ' yearly · ' +
-      fmtCount(subs.free || 0) +
-      ' free</p></article>' +
+      ' yearly' +
+      (subs.active_granted ? ' · ' + fmtCount(subs.active_granted) + ' granted' : '') +
+      (subs.active_trial ? ' · ' + fmtCount(subs.active_trial) + ' trial' : '') +
+      '</p></article>' +
       '<article class="admin-overview-hero__card admin-overview-hero__card--primary">' +
-      '<span class="admin-overview-hero__label">Subscription MRR</span>' +
+      '<span class="admin-overview-hero__label">Paying MRR</span>' +
       '<strong class="admin-overview-hero__value">' +
-      fmtMoney(rc.mrr != null ? rc.mrr : plans.total_mrr || subs.estimated_mrr) +
+      fmtMoney(subs.paying_mrr != null ? subs.paying_mrr : plans.total_mrr || subs.estimated_mrr) +
       '</strong>' +
       '<p class="admin-overview-hero__hint">' +
       fmtMoney(monthlyPlan.mrr || 0) +
       ' monthly plan · ' +
       fmtMoney(yearlyPlan.mrr || 0) +
-      ' yearly plan (MRR)</p></article>' +
+      ' yearly plan (excludes comp/trial/sandbox)</p></article>' +
       '<article class="admin-overview-hero__card">' +
-      '<span class="admin-overview-hero__label">New subs in period</span>' +
+      '<span class="admin-overview-hero__label">Pro access (all)</span>' +
       '<strong class="admin-overview-hero__value">' +
-      fmtCount(subs.new_in_period || 0) +
+      fmtCount(subs.active || 0) +
       '</strong>' +
-      '<p class="admin-overview-hero__hint">Salons who started Pro in this period</p></article></div>';
+      '<p class="admin-overview-hero__hint">' +
+      fmtCount(subs.free || 0) +
+      ' free · ' +
+      fmtCount(subs.new_in_period || 0) +
+      ' new paying in period</p></article></div>';
 
     var platformCard = infoCard(
       'Booking platform fees · ' + periodLabel,
@@ -1078,8 +1107,12 @@
       { tone: 'stripe', wide: true },
     );
 
+    var grantedPlan = plans.granted || {};
+    var trialPlan = plans.trial || {};
+    var sandboxPlan = plans.sandbox || {};
+
     var planCards =
-      '<section class="admin-overview-section admin-revenue-plans-section"><div class="admin-bookings-panel__head"><div class="admin-bookings-panel__intro"><h3>Subscription revenue by plan</h3><p class="admin-muted">From RevenueCat active subscribers · click a plan to list those salons</p></div></div>' +
+      '<section class="admin-overview-section admin-revenue-plans-section"><div class="admin-bookings-panel__head"><div class="admin-bookings-panel__intro"><h3>Subscription revenue by plan</h3><p class="admin-muted">Paying plans only · granted/comp access is listed separately and excluded from MRR</p></div></div>' +
       '<div class="admin-revenue-plans">' +
       '<button type="button" class="admin-revenue-plan-card' +
       (selectedPlan === 'monthly' ? ' is-active' : '') +
@@ -1092,7 +1125,7 @@
       '<small>/mo</small></strong>' +
       '<p class="admin-revenue-plan-card__meta">' +
       fmtCount(monthlyPlan.count || 0) +
-      ' salons · ' +
+      ' paying · ' +
       fmtMoney(monthlyPlan.price || subs.monthly_price || 9.99) +
       ' each · MRR ' +
       fmtMoney(monthlyPlan.mrr || 0) +
@@ -1108,7 +1141,7 @@
       '<small>/yr</small></strong>' +
       '<p class="admin-revenue-plan-card__meta">' +
       fmtCount(yearlyPlan.count || 0) +
-      ' salons · ' +
+      ' paying · ' +
       fmtMoney(yearlyPlan.price || subs.yearly_price || 99.99) +
       ' each · MRR ' +
       fmtMoney(yearlyPlan.mrr || 0) +
@@ -1119,16 +1152,53 @@
           '" data-revenue-plan="other" aria-pressed="' +
           (selectedPlan === 'other' ? 'true' : 'false') +
           '">' +
-          '<span class="admin-revenue-plan-card__label">Other Pro</span>' +
+          '<span class="admin-revenue-plan-card__label">Other paid Pro</span>' +
           '<strong class="admin-revenue-plan-card__value">' +
           fmtCount(plans.other.count) +
           '</strong>' +
-          '<p class="admin-revenue-plan-card__meta">Non-standard product IDs in RevenueCat</p></button>'
+          '<p class="admin-revenue-plan-card__meta">Non-standard product IDs · still counts as paying if store-billed</p></button>'
+        : '') +
+      (grantedPlan.count
+        ? '<button type="button" class="admin-revenue-plan-card admin-revenue-plan-card--granted' +
+          (selectedPlan === 'granted' ? ' is-active' : '') +
+          '" data-revenue-plan="granted" aria-pressed="' +
+          (selectedPlan === 'granted' ? 'true' : 'false') +
+          '">' +
+          '<span class="admin-revenue-plan-card__label">Granted / comp</span>' +
+          '<strong class="admin-revenue-plan-card__value">' +
+          fmtCount(grantedPlan.count) +
+          '</strong>' +
+          '<p class="admin-revenue-plan-card__meta">RevenueCat promotional entitlements · $0 MRR</p></button>'
+        : '') +
+      (trialPlan.count
+        ? '<button type="button" class="admin-revenue-plan-card admin-revenue-plan-card--trial' +
+          (selectedPlan === 'trial' ? ' is-active' : '') +
+          '" data-revenue-plan="trial" aria-pressed="' +
+          (selectedPlan === 'trial' ? 'true' : 'false') +
+          '">' +
+          '<span class="admin-revenue-plan-card__label">Trial</span>' +
+          '<strong class="admin-revenue-plan-card__value">' +
+          fmtCount(trialPlan.count) +
+          '</strong>' +
+          '<p class="admin-revenue-plan-card__meta">Free trials · excluded from MRR</p></button>'
+        : '') +
+      (sandboxPlan.count
+        ? '<button type="button" class="admin-revenue-plan-card admin-revenue-plan-card--sandbox' +
+          (selectedPlan === 'sandbox' ? ' is-active' : '') +
+          '" data-revenue-plan="sandbox" aria-pressed="' +
+          (selectedPlan === 'sandbox' ? 'true' : 'false') +
+          '">' +
+          '<span class="admin-revenue-plan-card__label">Sandbox</span>' +
+          '<strong class="admin-revenue-plan-card__value">' +
+          fmtCount(sandboxPlan.count) +
+          '</strong>' +
+          '<p class="admin-revenue-plan-card__meta">TestFlight / sandbox · excluded from MRR</p></button>'
         : '') +
       '</div>' +
       (rc.mrr != null
-        ? '<p class="admin-muted admin-revenue-rc-note">RevenueCat overview MRR: ' +
+        ? '<p class="admin-muted admin-revenue-rc-note">RevenueCat dashboard MRR: ' +
           fmtMoney(rc.mrr) +
+          ' (may differ — RC includes their own billing rules)' +
           (rc.active_subscriptions != null ? ' · ' + fmtCount(rc.active_subscriptions) + ' active subs' : '') +
           '</p>'
         : '') +
@@ -1141,7 +1211,13 @@
           ? yearlyPlan
           : selectedPlan === 'other'
             ? plans.other
-            : null;
+            : selectedPlan === 'granted'
+              ? grantedPlan
+              : selectedPlan === 'trial'
+                ? trialPlan
+                : selectedPlan === 'sandbox'
+                  ? sandboxPlan
+                  : null;
 
     var planDetailSection = selectedPlanData
       ? '<section class="admin-overview-section admin-revenue-plan-detail" id="admin-revenue-plan-detail">' +
@@ -1159,17 +1235,19 @@
       : '';
 
     var subCard = infoCard(
-      'All active subscriptions',
+      'Subscription breakdown',
       statCards([
         {
-          label: 'Total MRR',
-          value: fmtMoney(rc.mrr != null ? rc.mrr : plans.total_mrr || subs.estimated_mrr),
-          hint: rc.mrr != null ? 'RevenueCat overview' : 'Estimated',
+          label: 'Paying MRR',
+          value: fmtMoney(subs.paying_mrr != null ? subs.paying_mrr : plans.total_mrr || subs.estimated_mrr),
+          hint: 'Excludes granted, trial, sandbox',
         },
+        { label: 'Paying subs', value: subs.active_paying != null ? subs.active_paying : subs.active || 0 },
+        { label: 'Granted / comp', value: subs.active_granted || grantedPlan.count || 0 },
+        { label: 'Trial', value: subs.active_trial || trialPlan.count || 0 },
+        { label: 'Sandbox', value: subs.active_sandbox || sandboxPlan.count || 0 },
         { label: 'Monthly plan MRR', value: fmtMoney(monthlyPlan.mrr || 0) },
         { label: 'Yearly plan MRR', value: fmtMoney(yearlyPlan.mrr || 0) },
-        { label: 'Monthly gross / mo', value: fmtMoney(monthlyPlan.gross_per_month || 0) },
-        { label: 'Yearly gross / yr', value: fmtMoney(yearlyPlan.gross_per_year || 0) },
         { label: 'Free / none', value: subs.free || 0 },
       ]),
       { tone: 'subscription', wide: true },
@@ -1177,10 +1255,10 @@
 
     var allSubscriberTable =
       !selectedPlan
-        ? '<section class="admin-overview-section"><h3>All active Pro subscribers</h3>' +
+        ? '<section class="admin-overview-section"><h3>All active Pro access</h3><p class="admin-muted admin-overview-note">Includes paying, granted, trial, and sandbox · MRR column reflects RevenueCat access type</p>' +
           renderRevenueSubscriberTable(
             subs.subscribers || [],
-            'No active Pro subscriptions right now.',
+            'No active Pro access right now.',
           ) +
           '</section>'
         : '';
@@ -1241,6 +1319,23 @@
       .toUpperCase();
   }
 
+  function enrichSalonRecord(row) {
+    if (!row) return row;
+    var uid = String(row.user_id || '');
+    if (!uid || !state.users || !state.users.length) return row;
+    var user = state.users.find(function (u) {
+      return String(u.user_id) === uid;
+    });
+    if (!user) return row;
+    return Object.assign({}, row, {
+      brand_name:
+        row.brand_name && row.brand_name !== 'Salon' ? row.brand_name : user.brand_name || row.brand_name,
+      image_url: row.image_url || user.image_url || null,
+      email: row.email || user.email || null,
+      subdomain: row.subdomain || user.subdomain || null,
+    });
+  }
+
   function renderSalonThumb(imageUrl, name, className) {
     className = className || 'admin-salon-thumb';
     var initials = esc(salonInitials(name));
@@ -1285,8 +1380,17 @@
 
   function subscriptionPill(sub) {
     sub = sub || {};
-    var label = sub.plan_label || sub.status || 'Unknown';
     if (sub.status === 'active') {
+      if (sub.is_granted || sub.access_type === 'promotional') {
+        return '<span class="admin-pill admin-pill--grant" title="RevenueCat promotional entitlement">Granted</span>';
+      }
+      if (sub.access_type === 'trial') {
+        return '<span class="admin-pill admin-pill--warn">Trial</span>';
+      }
+      if (sub.access_type === 'sandbox') {
+        return '<span class="admin-pill admin-pill--neutral" title="Sandbox / TestFlight">Sandbox</span>';
+      }
+      var label = sub.plan_label || sub.product || 'Pro';
       return '<span class="admin-pill admin-pill--good">' + esc(label) + '</span>';
     }
     if (sub.status === 'none') {
@@ -1301,7 +1405,17 @@
     if (sub.status === 'error') {
       return '<span class="admin-pill admin-pill--bad">RC Error</span>';
     }
-    return '<span class="admin-pill admin-pill--neutral">' + esc(label) + '</span>';
+    return '<span class="admin-pill admin-pill--neutral">' + esc(sub.plan_label || sub.status || 'Unknown') + '</span>';
+  }
+
+  function subscriptionAccessLabel(sub) {
+    sub = sub || {};
+    if (sub.access_label) return sub.access_label;
+    if (sub.is_granted || sub.access_type === 'promotional') return 'Granted';
+    if (sub.access_type === 'trial') return 'Trial';
+    if (sub.access_type === 'sandbox') return 'Sandbox';
+    if (sub.counts_toward_mrr) return 'Paid';
+    return '—';
   }
 
   function bookingKey(b) {
@@ -1573,8 +1687,17 @@
       '</div>' +
       infoRows([
         { label: 'Plan', value: sub.plan_label || sub.product },
+        { label: 'Access', value: subscriptionAccessLabel(sub) },
+        {
+          label: 'Counts toward MRR',
+          html: sub.counts_toward_mrr
+            ? '<span class="admin-text-good">Yes</span>'
+            : '<span class="admin-muted">No</span>',
+        },
         { label: 'Entitlement', value: sub.entitlement },
         { label: 'Store', value: sub.store },
+        sub.period_type ? { label: 'Period type', value: sub.period_type } : null,
+        sub.is_sandbox ? { label: 'Environment', value: 'Sandbox' } : null,
         { label: 'Expires', value: sub.expires_date ? fmtDate(sub.expires_date) : null },
         { label: 'Purchased', value: sub.purchase_date ? fmtDate(sub.purchase_date) : null },
         sub.billing_issues ? { label: 'Billing', html: '<span class="admin-text-warn">Issue detected</span>' } : null,
@@ -2984,9 +3107,7 @@
     var a = data.analytics || {};
     var sub = data.subscription || {};
     var name = data.brand_name || 'Salon';
-    var img = data.image_url
-      ? '<img class="admin-salon-hero__img" src="' + esc(data.image_url) + '" alt="">'
-      : '<span class="admin-salon-hero__fallback">' + esc(salonInitials(name)) + '</span>';
+    var img = renderSalonThumb(data.image_url, name, 'admin-salon-hero__media-inner');
 
     return (
       '<div class="admin-salon-hero admin-salon-hero--dash">' +
@@ -3303,6 +3424,9 @@
     state.salonTab = initialTab || 'analytics';
     var name = data.brand_name || 'Salon';
     if (els.salonViewTitle) els.salonViewTitle.textContent = name;
+    if (els.salonViewThumb) {
+      els.salonViewThumb.innerHTML = renderSalonThumb(data.image_url, name, 'admin-salon-view__thumb');
+    }
     if (els.salonViewSub) {
       var sub = data.subscription || {};
       var subLine = sub.plan_label || sub.status || '';
@@ -3684,6 +3808,7 @@
       salonCount: $('admin-salon-count'),
       salonView: $('admin-salon-view'),
       salonViewTitle: $('admin-salon-view-title'),
+      salonViewThumb: $('admin-salon-view-thumb'),
       salonViewSub: $('admin-salon-view-sub'),
       salonViewLink: $('admin-salon-view-link'),
       salonViewBody: $('admin-salon-view-body'),
