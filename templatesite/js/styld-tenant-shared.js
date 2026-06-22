@@ -136,12 +136,7 @@
       styleIds[id] = true;
     });
 
-    function coverUrl(path) {
-      if (!path || !supabaseUrl) return null;
-      return supabaseUrl.replace(/\/$/, '') + '/storage/v1/object/public/style-covers/' + String(path).replace(/^\/+/, '');
-    }
-
-    var logoFallbackUrl = coverUrl(logoImagePath);
+    var logoFallbackUrl = coverUrl(logoImagePath, supabaseUrl);
 
     return Object.keys(styleIds).map(function (styleId) {
       var item = meta[styleId] || {};
@@ -152,7 +147,7 @@
         sizeLabel: variant || '',
         durationLabel: formatStyleDuration(item.durationMinutes),
         priceLabel: formatStylePriceRange(prices[styleId], item.addons),
-        imageUrl: coverUrl(covers[styleId]) || logoFallbackUrl,
+        imageUrl: coverUrl(covers[styleId], supabaseUrl) || logoFallbackUrl,
       };
     });
   }
@@ -342,12 +337,104 @@
   }
 
   function coverUrl(path, supabaseUrl) {
-    if (!path || !supabaseUrl) return null;
-    return (
-      supabaseUrl.replace(/\/$/, '') +
-      '/storage/v1/object/public/style-covers/' +
-      String(path).replace(/^\/+/, '')
-    );
+    var storagePath = coverStoragePath(path);
+    if (!storagePath || !supabaseUrl) return null;
+    if (storagePath.indexOf('http://') === 0 || storagePath.indexOf('https://') === 0) return storagePath;
+    var objectPath = storagePath.replace(/^\/+/, '').replace(/^style-covers\//, '');
+    return supabaseUrl.replace(/\/$/, '') + '/storage/v1/object/public/style-covers/' + objectPath;
+  }
+
+  function resolveShareImageUrl(theme, covers, supabaseUrl) {
+    theme = theme && typeof theme === 'object' ? theme : {};
+    covers = covers && typeof covers === 'object' ? covers : {};
+    var stackPaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
+    var candidates = [theme.logoImagePath, theme.heroImagePath, stackPaths[0]];
+    var coverKeys = Object.keys(covers);
+    for (var i = 0; i < coverKeys.length; i++) {
+      candidates.push(covers[coverKeys[i]]);
+    }
+    for (var j = 0; j < candidates.length; j++) {
+      var url = coverUrl(candidates[j], supabaseUrl);
+      if (url) return url;
+    }
+    return null;
+  }
+
+  function upsertMetaTag(selector, createFn) {
+    var el = document.querySelector(selector);
+    if (!el) {
+      el = createFn();
+      document.head.appendChild(el);
+    }
+    return el;
+  }
+
+  function applySiteShareBranding(options) {
+    options = options || {};
+    var brandName = options.brandName || 'Book online';
+    var imageUrl = options.imageUrl || null;
+    var description =
+      options.description ||
+      ('Book appointments with ' + brandName + ' online.');
+    var pageUrl = options.pageUrl || window.location.href;
+    var title = options.title || brandName + ' | Book online';
+
+    document.title = title;
+
+    upsertMetaTag('meta[name="description"]', function () {
+      var meta = document.createElement('meta');
+      meta.name = 'description';
+      return meta;
+    }).setAttribute('content', description);
+
+    if (imageUrl) {
+      ['link[rel="icon"]', 'link[rel="shortcut icon"]'].forEach(function (selector) {
+        var link = document.querySelector(selector) || document.createElement('link');
+        link.rel = selector.indexOf('shortcut') >= 0 ? 'shortcut icon' : 'icon';
+        link.href = imageUrl;
+        if (!link.parentNode) document.head.appendChild(link);
+      });
+
+      upsertMetaTag('link[rel="apple-touch-icon"]', function () {
+        var link = document.createElement('link');
+        link.rel = 'apple-touch-icon';
+        return link;
+      }).setAttribute('href', imageUrl);
+    }
+
+    [
+      ['meta[property="og:type"]', 'website'],
+      ['meta[property="og:title"]', brandName],
+      ['meta[property="og:description"]', description],
+      ['meta[property="og:url"]', pageUrl],
+      ['meta[name="twitter:card"]', imageUrl ? 'summary_large_image' : 'summary'],
+      ['meta[name="twitter:title"]', brandName],
+      ['meta[name="twitter:description"]', description],
+    ].forEach(function (entry) {
+      upsertMetaTag(entry[0], function () {
+        var meta = document.createElement('meta');
+        if (entry[0].indexOf('property=') >= 0) {
+          meta.setAttribute('property', entry[0].split('"')[1]);
+        } else {
+          meta.name = entry[0].split('"')[1];
+        }
+        return meta;
+      }).setAttribute('content', entry[1]);
+    });
+
+    if (imageUrl) {
+      ['meta[property="og:image"]', 'meta[name="twitter:image"]'].forEach(function (selector) {
+        upsertMetaTag(selector, function () {
+          var meta = document.createElement('meta');
+          if (selector.indexOf('property=') >= 0) {
+            meta.setAttribute('property', 'og:image');
+          } else {
+            meta.name = 'twitter:image';
+          }
+          return meta;
+        }).setAttribute('content', imageUrl);
+      });
+    }
   }
 
   function applySiteTheme(theme) {
@@ -569,7 +656,9 @@
     var cfg = window.__STYLD_TENANT__ || {};
     var content = site.content || {};
     var theme = site.theme || {};
+    var covers = site.covers || {};
     var logoImageUrl = coverUrl(theme.logoImagePath, cfg.supabaseUrl);
+    var shareImageUrl = resolveShareImageUrl(theme, covers, cfg.supabaseUrl) || logoImageUrl;
 
     window.__STYLD_SITE_CONTENT__ = content;
     window.__STYLD_CANCELLATION_POLICY__ = site.cancellationPolicy || {};
@@ -616,6 +705,17 @@
         logoPlaceholder.replaceWith(logoImg);
       }
     }
+
+    applySiteShareBranding({
+      brandName: content.brandName || 'Your Brand',
+      imageUrl: shareImageUrl,
+      description:
+        content.tagline ||
+        content.heroDescription ||
+        content.menuBlurb ||
+        ('Book appointments with ' + (content.brandName || 'us') + ' online.'),
+      pageUrl: window.location.href,
+    });
 
     document.querySelectorAll('.profile-nav .profile-book-btn').forEach(function (btn) {
       btn.style.display = theme.hideBookNowButton ? 'none' : '';
@@ -664,6 +764,8 @@
     getSubdomain: getSubdomain,
     applySiteFooter: applySiteFooter,
     applySiteTheme: applySiteTheme,
+    applySiteShareBranding: applySiteShareBranding,
+    resolveShareImageUrl: resolveShareImageUrl,
     applyTenantBranding: applyTenantBranding,
     normalizeBookingHours: normalizeBookingHours,
     normalizeWeekdayHours: normalizeWeekdayHours,

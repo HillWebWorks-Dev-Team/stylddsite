@@ -104,7 +104,7 @@
       };
       window.__STYLD_TENANT_BOOKING__ = window.__SALON_SITE_BOOKING__;
 
-      applyBrandToPage(site.theme, site.content);
+      applyTenantBranding(site);
       populateStyleSelect(site.bookingStyles);
 
       if (statusEl) statusEl.hidden = true;

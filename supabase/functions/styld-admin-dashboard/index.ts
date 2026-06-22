@@ -1,4 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import {
+  buildStyleCatalogWithUrls,
+  loadSalonBrandMetaForUsers,
+  publicAssetUrl,
+  resolveBrandName,
+  summarizeStyleCatalogStats,
+} from './salon-branding.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -92,38 +99,11 @@ function pickData(row: { data?: unknown }) {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 
-function coverStoragePath(value: unknown): string | null {
-  if (value == null) return null;
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    return trimmed || null;
-  }
-  if (typeof value === 'object') {
-    const row = value as Record<string, unknown>;
-    const nested = row.storage_path ?? row.storagePath ?? row.path ?? row.url;
-    if (typeof nested === 'string' && nested.trim()) return nested.trim();
-  }
-  return null;
-}
-
-function publicAssetUrl(path: unknown, bucket = 'style-covers') {
-  const p = coverStoragePath(path);
-  if (!p) return null;
-  if (p.startsWith('http://') || p.startsWith('https://')) return p;
-  if (!SUPABASE_URL) return null;
-  return `${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/public/${bucket}/${p.replace(/^\/+/, '')}`;
-}
-
-function resolveProfileAvatar(avatar: unknown) {
-  const p = coverStoragePath(avatar);
-  if (!p) return null;
-  if (p.startsWith('http://') || p.startsWith('https://')) return p;
-  return (
-    publicAssetUrl(p, 'style-covers') ||
-    publicAssetUrl(p, 'avatars') ||
-    publicAssetUrl(p, 'profile-images') ||
-    null
-  );
+async function loadSalonMetaForUsers(
+  supabase: ReturnType<typeof adminClient>,
+  userIds: string[],
+) {
+  return loadSalonBrandMetaForUsers(supabase, SUPABASE_URL, userIds);
 }
 
 async function signedBookingPhotoUrl(
@@ -140,188 +120,7 @@ async function signedBookingPhotoUrl(
   } catch {
     /* fall through */
   }
-  return publicAssetUrl(cleaned, 'booking-photos');
-}
-
-function normalizeStorageObjectPath(path: string, bucket: string) {
-  let p = path.replace(/^\/+/, '');
-  const prefix = `${bucket}/`;
-  if (p.startsWith(prefix)) p = p.slice(prefix.length);
-  return p;
-}
-
-async function signedCoverUrl(
-  supabase: ReturnType<typeof adminClient>,
-  path: unknown,
-  bucket = 'style-covers',
-): Promise<string | null> {
-  const raw = coverStoragePath(path);
-  if (!raw) return null;
-  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
-
-  const objectPath = normalizeStorageObjectPath(raw, bucket);
-  if (!objectPath) return null;
-
-  try {
-    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(objectPath, 3600);
-    if (!error && data?.signedUrl) return data.signedUrl;
-  } catch {
-    /* fall through to public URL */
-  }
-
-  return publicAssetUrl(objectPath, bucket);
-}
-
-function resolveBrandName(
-  siteContent: Record<string, unknown> | null | undefined,
-  profile: Record<string, unknown>,
-) {
-  const content = siteContent || {};
-  return (
-    String(content.brandName || profile.business_name || profile.full_name || 'Salon').trim() || 'Salon'
-  );
-}
-
-async function resolveSalonImageUrl(
-  supabase: ReturnType<typeof adminClient>,
-  profile: Record<string, unknown>,
-  siteContent: Record<string, unknown> | null | undefined,
-  siteTheme: Record<string, unknown> | null | undefined,
-  styleCoverPath?: string | null,
-) {
-  const theme = siteTheme || {};
-  const content = siteContent || {};
-  const stackPaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
-  const candidates: unknown[] = [
-    theme.logoImagePath,
-    theme.heroImagePath,
-    stackPaths[0],
-    content.logoImagePath,
-    styleCoverPath,
-    profile.avatar_url,
-  ];
-
-  for (const candidate of candidates) {
-    if (candidate == null) continue;
-    const url = await signedCoverUrl(supabase, candidate, 'style-covers');
-    if (url) return url;
-    if (candidate === profile.avatar_url) {
-      for (const bucket of ['avatars', 'profile-images']) {
-        const avatarUrl = await signedCoverUrl(supabase, candidate, bucket);
-        if (avatarUrl) return avatarUrl;
-      }
-    }
-  }
-
-  return null;
-}
-
-type SalonMeta = {
-  brand_name: string;
-  email: string | null;
-  subdomain: string | null;
-  image_url: string | null;
-};
-
-async function loadSalonMetaForUsers(
-  supabase: ReturnType<typeof adminClient>,
-  userIds: string[],
-): Promise<Map<string, SalonMeta>> {
-  const uniqueIds = [...new Set(userIds.filter(Boolean))];
-  if (!uniqueIds.length) return new Map();
-
-  const [profiles, subdomains, settingsRows, coverRows] = await Promise.all([
-    safeTable<Record<string, unknown>>(supabase, 'profiles', (q) =>
-      q.select('id,email,full_name,business_name,avatar_url').in('id', uniqueIds),
-    ),
-    safeTable<{ user_id: string; subdomain: string }>(supabase, 'styld_site_subdomains', (q) =>
-      q.select('user_id,subdomain').in('user_id', uniqueIds),
-    ),
-    safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
-      q
-        .select('user_id,record_key,data')
-        .eq('record_type', 'site_setting')
-        .in('record_key', ['site_content', 'site_theme'])
-        .in('user_id', uniqueIds),
-    ),
-    safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
-      q.select('user_id,data,created_at').eq('record_type', 'style_cover_image').in('user_id', uniqueIds),
-    ),
-  ]);
-
-  const profileMap = new Map(profiles.map((p) => [String(p.id), p]));
-  const subMap = new Map(subdomains.map((s) => [String(s.user_id), s.subdomain]));
-  const settingsByUser = new Map<string, Record<string, unknown>>();
-  for (const row of settingsRows) {
-    const uid = String(row.user_id);
-    if (!settingsByUser.has(uid)) settingsByUser.set(uid, {});
-    settingsByUser.get(uid)![String(row.record_key)] = pickData(row);
-  }
-
-  const firstCoverByUser = new Map<string, string>();
-  const sortedCovers = [...coverRows].sort((a, b) =>
-    String(a.created_at || '').localeCompare(String(b.created_at || '')),
-  );
-  for (const row of sortedCovers) {
-    const uid = String(row.user_id);
-    if (firstCoverByUser.has(uid)) continue;
-    const path = coverStoragePath(pickData({ data: row.data }));
-    if (path) firstCoverByUser.set(uid, path);
-  }
-
-  const entries = await Promise.all(
-    uniqueIds.map(async (uid) => {
-      const profile = profileMap.get(uid) || {};
-      const settings = settingsByUser.get(uid) || {};
-      const siteContent = (settings.site_content || {}) as Record<string, unknown>;
-      const siteTheme = (settings.site_theme || {}) as Record<string, unknown>;
-      return [
-        uid,
-        {
-          brand_name: resolveBrandName(siteContent, profile),
-          email: (profile.email as string | null | undefined) ?? null,
-          subdomain: subMap.get(uid) || null,
-          image_url: await resolveSalonImageUrl(
-            supabase,
-            profile,
-            siteContent,
-            siteTheme,
-            firstCoverByUser.get(uid) || null,
-          ),
-        },
-      ] as const;
-    }),
-  );
-
-  return new Map(entries);
-}
-
-function salonImageUrl(
-  profile: Record<string, unknown>,
-  siteContent: Record<string, unknown> | null,
-  siteTheme: Record<string, unknown> | null,
-) {
-  const theme = siteTheme || {};
-  const content = siteContent || {};
-  const stackPaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
-  return (
-    publicAssetUrl(theme.logoImagePath) ||
-    publicAssetUrl(theme.heroImagePath) ||
-    (stackPaths.length ? publicAssetUrl(stackPaths[0]) : null) ||
-    publicAssetUrl(content.logoImagePath) ||
-    resolveProfileAvatar(profile.avatar_url) ||
-    null
-  );
-}
-
-function buildStyleCoverMap(rows: Array<{ record_key?: unknown; data?: unknown }>) {
-  const map = new Map<string, string>();
-  for (const row of rows) {
-    const key = String(row.record_key || '').trim();
-    const path = coverStoragePath(pickData({ data: row.data }));
-    if (key && path) map.set(key, path);
-  }
-  return map;
+  return publicAssetUrl(cleaned, SUPABASE_URL, 'booking-photos');
 }
 
 function parseBusinessCategory(
@@ -486,82 +285,6 @@ function aggregateRevenueByUser(bookingRows: { user_id: string; data: unknown }[
     map.set(uid, existing);
   }
   return map;
-}
-
-type StyleAddon = { id: string; name: string; price: number };
-
-type StyleCatalogItem = {
-  id: string;
-  title: string;
-  duration_minutes: number | null;
-  category: string | null;
-  base_price: number;
-  addon_count: number;
-  addons: StyleAddon[];
-  price_label: string;
-  description: string | null;
-  image_url: string | null;
-  has_cover: boolean;
-};
-
-function normalizeAddons(raw: unknown): StyleAddon[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((item, index) => {
-      if (!item || typeof item !== 'object') return null;
-      const row = item as Record<string, unknown>;
-      const name = String(row.name || '').trim();
-      if (!name) return null;
-      const id = String(row.id || `addon-${index}`).trim();
-      const price = Number(row.price);
-      return { id, name, price: Number.isFinite(price) ? price : 0 };
-    })
-    .filter((item): item is StyleAddon => !!item);
-}
-
-function formatStylePriceRange(basePrice: number, addons: StyleAddon[]): string {
-  const base = Number(basePrice) || 0;
-  if (!addons.length) return base > 0 ? `$${Math.round(base)}` : '—';
-  const maxAddon = addons.reduce((max, addon) => Math.max(max, addon.price || 0), 0);
-  const high = base + maxAddon;
-  if (high <= base) return base > 0 ? `$${Math.round(base)}` : '—';
-  return `$${Math.round(base)}–$${Math.round(high)}`;
-}
-
-function parseStyleCatalog(
-  meta: unknown,
-  prices: unknown,
-  coverPaths?: Map<string, string> | null,
-  logoFallbackPath?: unknown,
-): StyleCatalogItem[] {
-  const metaObj = meta && typeof meta === 'object' ? (meta as Record<string, unknown>) : {};
-  const priceObj = prices && typeof prices === 'object' ? (prices as Record<string, unknown>) : {};
-  const covers = coverPaths || new Map<string, string>();
-  const logoFallbackUrl = publicAssetUrl(logoFallbackPath);
-  const ids = new Set([...Object.keys(metaObj), ...Object.keys(priceObj), ...covers.keys()]);
-  return [...ids]
-    .map((id) => {
-      const item = (metaObj[id] || {}) as Record<string, unknown>;
-      const base = Number(priceObj[id]) || 0;
-      const addons = normalizeAddons(item.addons);
-      const title = String(item.title || id).trim() || id;
-      const coverUrl = publicAssetUrl(covers.get(id));
-      const imageUrl = coverUrl || logoFallbackUrl || null;
-      return {
-        id,
-        title,
-        duration_minutes: item.durationMinutes != null ? Number(item.durationMinutes) : null,
-        category: item.category ? String(item.category) : null,
-        base_price: base,
-        addon_count: addons.length,
-        addons,
-        price_label: formatStylePriceRange(base, addons),
-        description: item.description ? String(item.description) : null,
-        image_url: imageUrl,
-        has_cover: !!coverUrl,
-      };
-    })
-    .sort((a, b) => a.title.localeCompare(b.title));
 }
 
 function summarizeSiteTheme(theme: unknown) {
@@ -1101,7 +824,9 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
           brand_name: 'Salon',
           email: null,
           subdomain: null,
+          logo_url: null,
           image_url: null,
+          has_logo: false,
         };
         const sub = await fetchRevenueCatStatus(uid);
         return {
@@ -1110,7 +835,9 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
           brand_name: meta.brand_name,
           email: meta.email,
           subdomain: meta.subdomain,
+          logo_url: meta.logo_url,
           image_url: meta.image_url,
+          has_logo: meta.has_logo,
         };
       }),
     );
@@ -1311,7 +1038,9 @@ async function actionOverview(supabase: ReturnType<typeof adminClient>) {
       ...row,
       brand_name: meta?.brand_name || 'Salon',
       subdomain: meta?.subdomain || subMap.get(String(row.user_id)) || null,
-      image_url: meta?.image_url || null,
+      logo_url: meta?.logo_url || null,
+      image_url: meta?.logo_url || null,
+      has_logo: meta?.has_logo || false,
     };
   });
 
@@ -1464,7 +1193,7 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
     const settings = settingsByUser.get(uid) || {};
     const siteContent = (settings.site_content || {}) as Record<string, unknown>;
     const siteTheme = (settings.site_theme || {}) as Record<string, unknown>;
-    const styleCatalog = parseStyleCatalog(settings.style_catalog_meta, settings.style_price_overrides);
+    const styleStats = summarizeStyleCatalogStats(settings.style_catalog_meta, settings.style_price_overrides);
     const bookingPayment = (settings.booking_payment || {}) as Record<string, unknown>;
     const onboardingState = (settings.onboarding_state || {}) as Record<string, unknown>;
     const sitePublish = (settings.site_publish || {}) as Record<string, unknown>;
@@ -1490,7 +1219,6 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
       business_name: p.business_name,
       brand_name: brandName,
       avatar_url: p.avatar_url,
-      image_url: salonImageUrl(p, siteContent, siteTheme),
       created_at: p.created_at,
       updated_at: p.updated_at,
       total_revenue: Math.round(revenue.gross * 100) / 100,
@@ -1521,8 +1249,8 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
       page_views_30d: viewsBySub30.get(subdomain) || 0,
       hero_layout: String(siteTheme.heroLayout || 'split'),
       hero_layout_label: summarizeSiteTheme(siteTheme).hero_layout_label,
-      style_count: styleCatalog.length,
-      addon_count: styleCatalog.reduce((sum, style) => sum + style.addon_count, 0),
+      style_count: styleStats.style_count,
+      addon_count: styleStats.addon_count,
       payment_mode: String(bookingPayment.mode || 'none'),
       payment_mode_label: paymentModeLabel(bookingPayment.mode),
       business_category: businessCategory,
@@ -1541,7 +1269,9 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
     return {
       ...u,
       brand_name: meta.brand_name || u.brand_name,
+      logo_url: meta.logo_url,
       image_url: meta.image_url,
+      has_logo: meta.has_logo,
     };
   });
 
@@ -1577,18 +1307,21 @@ async function actionStyles(supabase: ReturnType<typeof adminClient>, filters: R
     .toLowerCase()
     .trim();
 
-  const [settingsRows, subdomains, profiles] = await Promise.all([
+  const [settingsRows, subdomains, profiles, coverRows] = await Promise.all([
     safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
       q
         .select('user_id,record_key,data')
         .eq('record_type', 'site_setting')
-        .in('record_key', ['style_catalog_meta', 'style_price_overrides', 'site_content']),
+        .in('record_key', ['style_catalog_meta', 'style_price_overrides', 'site_content', 'site_theme']),
     ),
     safeTable<{ user_id: string; subdomain: string }>(supabase, 'styld_site_subdomains', (q) =>
       q.select('user_id,subdomain'),
     ),
     safeTable<Record<string, unknown>>(supabase, 'profiles', (q) =>
       q.select('id,email,full_name,business_name'),
+    ),
+    safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+      q.select('user_id,record_key,data').eq('record_type', 'style_cover_image'),
     ),
   ]);
 
@@ -1600,37 +1333,59 @@ async function actionStyles(supabase: ReturnType<typeof adminClient>, filters: R
     settingsByUser.get(uid)![String(row.record_key)] = pickData(row);
   }
 
+  const coversByUser = new Map<string, Array<{ record_key?: unknown; data?: unknown }>>();
+  for (const row of coverRows) {
+    const uid = String(row.user_id || '');
+    if (!uid) continue;
+    if (!coversByUser.has(uid)) coversByUser.set(uid, []);
+    coversByUser.get(uid)!.push(row);
+  }
+
   const subMap = new Map(subdomains.map((s) => [String(s.user_id), s.subdomain]));
   const profileMap = new Map(profiles.map((p) => [String(p.id), p]));
 
-  const userIds = new Set<string>([
+  const userIds = [...new Set<string>([
     ...settingsByUser.keys(),
     ...subMap.keys(),
     ...profiles.map((p) => String(p.id)),
-  ]);
+  ])].filter((uid) => !isHiddenSalonUser(uid, profileMap.get(uid)?.email));
 
-  let salons = [...userIds]
-    .filter((uid) => !isHiddenSalonUser(uid, profileMap.get(uid)?.email))
-    .map((uid) => {
-    const settings = settingsByUser.get(uid) || {};
-    const profile = profileMap.get(uid) || {};
-    const content = (settings.site_content || {}) as Record<string, unknown>;
-    const styles = parseStyleCatalog(settings.style_catalog_meta, settings.style_price_overrides);
-    const subdomain = subMap.get(uid) || '';
-    const brandName =
-      String(content.brandName || profile.business_name || profile.full_name || 'Salon').trim() || 'Salon';
+  const metaByUser = await loadSalonMetaForUsers(supabase, userIds);
 
-    return {
-      user_id: uid,
-      brand_name: brandName,
-      email: profile.email ?? null,
-      subdomain: subdomain || null,
-      public_url: subdomain ? `https://${subdomain}.${ROOT_DOMAIN}` : null,
-      style_count: styles.length,
-      addon_count: styles.reduce((sum, style) => sum + style.addon_count, 0),
-      styles,
-    };
-  });
+  let salons = await Promise.all(
+    userIds.map(async (uid) => {
+      const settings = settingsByUser.get(uid) || {};
+      const profile = profileMap.get(uid) || {};
+      const content = (settings.site_content || {}) as Record<string, unknown>;
+      const theme = (settings.site_theme || {}) as Record<string, unknown>;
+      const styles = await buildStyleCatalogWithUrls(
+        supabase,
+        SUPABASE_URL,
+        settings.style_catalog_meta,
+        settings.style_price_overrides,
+        coversByUser.get(uid) || [],
+        theme.logoImagePath,
+      );
+      const subdomain = subMap.get(uid) || '';
+      const brandName =
+        String(content.brandName || profile.business_name || profile.full_name || 'Salon').trim() || 'Salon';
+      const meta = metaByUser.get(uid);
+
+      return {
+        user_id: uid,
+        brand_name: meta?.brand_name || brandName,
+        email: profile.email ?? null,
+        subdomain: subdomain || null,
+        public_url: subdomain ? `https://${subdomain}.${ROOT_DOMAIN}` : null,
+        logo_url: meta?.logo_url || null,
+        image_url: meta?.logo_url || null,
+        has_logo: meta?.has_logo || false,
+        style_count: styles.length,
+        addon_count: styles.reduce((sum, style) => sum + style.addon_count, 0),
+        styles,
+      };
+    }),
+  );
 
   salons.sort((a, b) => {
     if (b.style_count !== a.style_count) return b.style_count - a.style_count;
@@ -1952,11 +1707,14 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
   const siteContent = (siteSettings.site_content || {}) as Record<string, unknown>;
   const siteTheme = (siteSettings.site_theme || {}) as Record<string, unknown>;
   const sitePublish = (siteSettings.site_publish || {}) as Record<string, unknown>;
-  const styleCoverMap = buildStyleCoverMap(covers);
-  const styleCatalog = parseStyleCatalog(
+  const brandMetaByUser = await loadSalonMetaForUsers(supabase, [userId]);
+  const brandMeta = brandMetaByUser.get(userId);
+  const styleCatalog = await buildStyleCatalogWithUrls(
+    supabase,
+    SUPABASE_URL,
     siteSettings.style_catalog_meta,
     siteSettings.style_price_overrides,
-    styleCoverMap,
+    covers,
     siteTheme.logoImagePath,
   );
   const siteThemeSummary = summarizeSiteTheme(siteTheme);
@@ -2006,20 +1764,14 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
   const businessCategory = parseBusinessCategory(siteSettings.onboarding_responses, siteContent, [
     String(siteContent.brandName || profileRow.business_name || profileRow.full_name || ''),
   ]);
-  const firstStyleCover = styleCoverMap.size ? styleCoverMap.values().next().value : null;
-  const imageUrl = await resolveSalonImageUrl(
-    supabase,
-    profileRow,
-    siteContent,
-    siteTheme,
-    firstStyleCover || null,
-  );
 
   return {
     profile: profile.data,
     brand_name: resolveBrandName(siteContent, profileRow),
     tagline: siteContent.tagline || null,
-    image_url: imageUrl,
+    logo_url: brandMeta?.logo_url || null,
+    image_url: brandMeta?.logo_url || null,
+    has_logo: brandMeta?.has_logo || false,
     business_category: businessCategory,
     business_category_label: businessCategory === 'barber' ? 'Barber' : 'Salon',
     public_url: subdomain ? `https://${subdomain}.${ROOT_DOMAIN}` : null,
@@ -2111,10 +1863,17 @@ async function fetchEmailsForUser(
 async function enrichRowsWithSalonMeta<T extends Record<string, unknown>>(
   supabase: ReturnType<typeof adminClient>,
   rows: T[],
-): Promise<(T & { brand_name: string | null; subdomain: string | null; image_url: string | null })[]> {
+): Promise<(T & { brand_name: string | null; subdomain: string | null; logo_url: string | null; image_url: string | null; has_logo: boolean })[]> {
   const userIds = [...new Set(rows.map((r) => String(r.user_id || '')).filter(Boolean))];
   if (!userIds.length) {
-    return rows.map((r) => ({ ...r, brand_name: null, subdomain: null, image_url: null }));
+    return rows.map((r) => ({
+      ...r,
+      brand_name: null,
+      subdomain: null,
+      logo_url: null,
+      image_url: null,
+      has_logo: false,
+    }));
   }
 
   const metaByUser = await loadSalonMetaForUsers(supabase, userIds);
@@ -2126,7 +1885,9 @@ async function enrichRowsWithSalonMeta<T extends Record<string, unknown>>(
       ...row,
       brand_name: meta?.brand_name || null,
       subdomain: meta?.subdomain || null,
-      image_url: meta?.image_url || null,
+      logo_url: meta?.logo_url || null,
+      image_url: meta?.logo_url || null,
+      has_logo: meta?.has_logo || false,
     };
   });
 }

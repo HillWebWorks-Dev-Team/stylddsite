@@ -51,15 +51,24 @@
   }
 
   function coverStoragePath(value) {
-    if (!value || typeof value !== 'object') {
-      return typeof value === 'string' ? value : null;
+    if (value == null) return null;
+    if (typeof value === 'string') {
+      var trimmed = value.trim();
+      return trimmed || null;
     }
-    return value.storage_path || value.storagePath || null;
+    if (typeof value === 'object') {
+      var nested = value.storage_path || value.storagePath || value.path || value.url;
+      if (typeof nested === 'string' && nested.trim()) return nested.trim();
+    }
+    return null;
   }
 
   function coverUrl(path) {
-    if (!path) return null;
-    return cfg.supabaseUrl.replace(/\/$/, '') + '/storage/v1/object/public/style-covers/' + String(path).replace(/^\/+/, '');
+    var storagePath = coverStoragePath(path);
+    if (!storagePath) return null;
+    if (storagePath.indexOf('http://') === 0 || storagePath.indexOf('https://') === 0) return storagePath;
+    var objectPath = storagePath.replace(/^\/+/, '').replace(/^style-covers\//, '');
+    return cfg.supabaseUrl.replace(/\/$/, '') + '/storage/v1/object/public/style-covers/' + objectPath;
   }
 
   function formatStylePriceRange(basePrice, addons) {
@@ -274,15 +283,25 @@
         logo.src = window.__STYLD_SITE_THEME__.logoImageUrl;
       }
 
-      var logoUrl = window.__STYLD_SITE_THEME__.logoImageUrl;
-      if (logoUrl) {
-        var favicon = document.querySelector("link[rel='icon']") || document.createElement('link');
-        favicon.rel = 'icon';
-        favicon.href = logoUrl;
-        if (!favicon.parentNode) document.head.appendChild(favicon);
+      var shareImageUrl = window.__STYLD_SITE_THEME__.logoImageUrl;
+      if (window.StyldTenant && window.StyldTenant.resolveShareImageUrl) {
+        shareImageUrl =
+          window.StyldTenant.resolveShareImageUrl(theme, covers, cfg.supabaseUrl) || shareImageUrl;
       }
-
-      document.title = (content.brandName || subdomain) + ' | Book online';
+      if (window.StyldTenant && window.StyldTenant.applySiteShareBranding) {
+        window.StyldTenant.applySiteShareBranding({
+          brandName: content.brandName || subdomain,
+          imageUrl: shareImageUrl,
+          description:
+            content.tagline ||
+            content.heroDescription ||
+            content.menuBlurb ||
+            ('Book appointments with ' + (content.brandName || subdomain) + ' online.'),
+          pageUrl: window.location.href,
+        });
+      } else {
+        document.title = (content.brandName || subdomain) + ' | Book online';
+      }
     })
     .catch(function (err) {
       showError(err && err.message ? err.message : 'Site not found.');

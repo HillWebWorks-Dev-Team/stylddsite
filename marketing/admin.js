@@ -856,7 +856,7 @@
               '<tr class="admin-row-clickable" data-open-user="' +
               esc(row.user_id) +
               '" role="button" tabindex="0"><td><div class="admin-table-salon">' +
-              renderSalonThumb(row.image_url, name, 'admin-table-salon__thumb') +
+              renderSalonThumb(salonLogoUrl(row), name, 'admin-table-salon__thumb') +
               '<strong>' +
               esc(name) +
               '</strong></div></td><td>' +
@@ -994,7 +994,7 @@
             '<tr class="admin-row-clickable" data-open-user="' +
             esc(s.user_id) +
             '" role="button" tabindex="0"><td><div class="admin-table-salon">' +
-            renderSalonThumb(s.image_url, name, 'admin-table-salon__thumb') +
+            renderSalonThumb(salonLogoUrl(s), name, 'admin-table-salon__thumb') +
             '<div><strong>' +
             esc(name) +
             '</strong><br><span class="admin-muted">' +
@@ -1337,6 +1337,11 @@
       .toUpperCase();
   }
 
+  function salonLogoUrl(row) {
+    if (!row) return null;
+    return row.logo_url || row.image_url || null;
+  }
+
   function enrichSalonRecord(row) {
     if (!row) return row;
     var uid = String(row.user_id || '');
@@ -1348,7 +1353,9 @@
     return Object.assign({}, row, {
       brand_name:
         row.brand_name && row.brand_name !== 'Salon' ? row.brand_name : user.brand_name || row.brand_name,
-      image_url: row.image_url || user.image_url || null,
+      logo_url: row.logo_url || user.logo_url || null,
+      image_url: salonLogoUrl(row) || salonLogoUrl(user),
+      has_logo: row.has_logo != null ? row.has_logo : user.has_logo,
       email: row.email || user.email || null,
       subdomain: row.subdomain || user.subdomain || null,
     });
@@ -1366,7 +1373,7 @@
         className +
         '__img" src="' +
         esc(imageUrl) +
-        '" alt="" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false">' +
+        '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false">' +
         '<span class="' +
         className +
         '__fallback" hidden>' +
@@ -2395,7 +2402,7 @@
     var hero =
       '<div class="admin-biz-hero">' +
       '<div class="admin-biz-hero__main">' +
-      renderSalonThumb(data.image_url, data.brand_name || ownerName, 'admin-biz-hero__avatar') +
+      renderSalonThumb(salonLogoUrl(data), data.brand_name || ownerName, 'admin-biz-hero__avatar') +
       '<div><h3>Business</h3><p class="admin-muted">' +
       esc(data.brand_name || 'Salon') +
       (data.tagline ? ' · ' + esc(truncate(data.tagline, 48)) : '') +
@@ -2418,7 +2425,7 @@
     var accountCard = infoCard(
       'Account',
       '<div class="admin-account-block">' +
-        renderSalonThumb(data.image_url, data.brand_name || ownerName, 'admin-account-block__avatar') +
+        renderSalonThumb(salonLogoUrl(data), data.brand_name || ownerName, 'admin-account-block__avatar') +
         '<div>' +
         '<strong class="admin-account-block__name">' +
         esc(ownerName) +
@@ -2634,7 +2641,7 @@
 
   function salonRowHtml(u) {
     var name = u.brand_name || u.business_name || u.full_name || 'Salon';
-    var img = renderSalonThumb(u.image_url, name, 'admin-salon-row__media-inner');
+    var img = renderSalonThumb(salonLogoUrl(u), name, 'admin-salon-row__media-inner');
     return (
       '<button type="button" class="admin-salon-row" data-open-user="' +
       esc(u.user_id) +
@@ -3126,7 +3133,7 @@
     var a = data.analytics || {};
     var sub = data.subscription || {};
     var name = data.brand_name || 'Salon';
-    var img = renderSalonThumb(data.image_url, name, 'admin-salon-hero__media-inner');
+    var img = renderSalonThumb(salonLogoUrl(data), name, 'admin-salon-hero__media-inner');
 
     return (
       '<div class="admin-salon-hero admin-salon-hero--dash">' +
@@ -3444,7 +3451,7 @@
     var name = data.brand_name || 'Salon';
     if (els.salonViewTitle) els.salonViewTitle.textContent = name;
     if (els.salonViewThumb) {
-      els.salonViewThumb.innerHTML = renderSalonThumb(data.image_url, name, 'admin-salon-view__thumb');
+      els.salonViewThumb.innerHTML = renderSalonThumb(salonLogoUrl(data), name, 'admin-salon-view__thumb');
     }
     if (els.salonViewSub) {
       var sub = data.subscription || {};
