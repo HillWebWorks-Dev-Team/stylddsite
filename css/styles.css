@@ -6822,13 +6822,25 @@ body.page-cover-splash .profile-below-hero {
   display: flex;
   gap: 0.75rem;
   width: max-content;
-  min-width: 100%;
   padding: 0 1rem;
+}
+
+.profile-portfolio-carousel--centered {
+  overflow-x: hidden;
+}
+
+.profile-portfolio-carousel--centered .profile-portfolio-carousel__track {
+  width: 100%;
+  justify-content: center;
 }
 
 .profile-portfolio-carousel__slide {
   flex: 0 0 min(68vw, 260px);
   scroll-snap-align: start;
+}
+
+.profile-portfolio-carousel--centered .profile-portfolio-carousel__slide {
+  scroll-snap-align: center;
 }
 
 .profile-portfolio-item,
@@ -6888,7 +6900,8 @@ body.page-cover-splash .profile-below-hero {
 
 .profile-portfolio-grid--catalog {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 260px));
+  justify-content: center;
   gap: 0.75rem;
 }
 

@@ -679,7 +679,28 @@
     track.innerHTML = slidesHtml;
 
     startPortfolioVideos(track);
+    syncPortfolioCarouselLayout(track);
     section.hidden = false;
+  }
+
+  function syncPortfolioCarouselLayout(track) {
+    var carousel = document.getElementById('profile-portfolio-carousel');
+    if (!carousel || !track) return;
+
+    function apply() {
+      var fits = track.scrollWidth <= carousel.clientWidth + 2;
+      carousel.classList.toggle('profile-portfolio-carousel--centered', fits);
+    }
+
+    requestAnimationFrame(apply);
+
+    if (!carousel.dataset.centeringBound) {
+      carousel.dataset.centeringBound = '1';
+      window.addEventListener('resize', function () {
+        clearTimeout(carousel._portfolioResizeTimer);
+        carousel._portfolioResizeTimer = setTimeout(apply, 120);
+      });
+    }
   }
 
   function populatePortfolioCatalog(content, theme) {
