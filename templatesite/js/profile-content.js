@@ -454,9 +454,121 @@
     document.querySelectorAll('[data-site-section]').forEach(function (el) {
       var sectionId = el.getAttribute('data-site-section');
       if (!sectionId) return;
-      if (sectionId === 'visit' || sectionId === 'aboutMe' || sectionId === 'policies') return;
+      if (
+        sectionId === 'visit' ||
+        sectionId === 'aboutMe' ||
+        sectionId === 'policies' ||
+        sectionId === 'portfolio'
+      ) {
+        return;
+      }
       el.hidden = isSectionHidden(content, sectionId);
     });
+  }
+
+  function resolvePortfolioMediaUrl(storagePath) {
+    if (window.StyldTenant && typeof window.StyldTenant.resolveStyleCoverUrl === 'function') {
+      return window.StyldTenant.resolveStyleCoverUrl(storagePath);
+    }
+    var cfg = window.__STYLD_TENANT__ || {};
+    if (!storagePath || !cfg.supabaseUrl) return null;
+    var path = String(storagePath).trim();
+    if (!path) return null;
+    if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0) return path;
+    var objectPath = path.replace(/^\/+/, '').replace(/^style-covers\//, '');
+    return cfg.supabaseUrl.replace(/\/$/, '') + '/storage/v1/object/public/style-covers/' + objectPath;
+  }
+
+  function normalizePortfolioItems(theme) {
+    theme = theme && typeof theme === 'object' ? theme : {};
+    if (Array.isArray(theme.portfolioItems) && theme.portfolioItems.length) {
+      return theme.portfolioItems
+        .slice(0, 24)
+        .map(function (item) {
+          if (!item || typeof item !== 'object') return null;
+          var path = item.storagePath || item.storage_path || '';
+          path = String(path || '').trim();
+          if (!path) return null;
+          return {
+            storagePath: path,
+            mediaType: item.mediaType === 'video' ? 'video' : 'image',
+          };
+        })
+        .filter(Boolean);
+    }
+    if (Array.isArray(theme.galleryImagePaths) && theme.galleryImagePaths.length) {
+      return theme.galleryImagePaths
+        .slice(0, 24)
+        .map(function (path) {
+          path = String(path || '').trim();
+          if (!path) return null;
+          return { storagePath: path, mediaType: 'image' };
+        })
+        .filter(Boolean);
+    }
+    return [];
+  }
+
+  function populatePortfolio(content, theme) {
+    var section = document.getElementById('profile-portfolio-section');
+    var grid = document.getElementById('profile-portfolio-grid');
+    var titleEl = document.getElementById('profile-portfolio-title');
+    var blurbEl = document.getElementById('profile-portfolio-blurb');
+    var menuSection = document.getElementById('profile-menu-section');
+    if (!section || !grid) return;
+
+    var items = normalizePortfolioItems(theme);
+    if (isSectionHidden(content, 'portfolio') || !items.length) {
+      section.hidden = true;
+      grid.innerHTML = '';
+      return;
+    }
+
+    if (menuSection && menuSection.parentNode) {
+      var parent = menuSection.parentNode;
+      var placement = String(content.portfolioPlacement || 'above_menu').trim();
+      if (placement === 'below_menu') {
+        parent.insertBefore(section, menuSection.nextSibling);
+      } else {
+        parent.insertBefore(section, menuSection);
+      }
+    }
+
+    if (titleEl) {
+      titleEl.textContent = String(content.reelsTitle || 'Previous work').trim() || 'Previous work';
+    }
+    if (blurbEl) {
+      var blurb = String(content.reelsBlurb || '').trim();
+      blurbEl.textContent = blurb;
+      blurbEl.hidden = !blurb;
+    }
+
+    grid.innerHTML = items
+      .map(function (item, index) {
+        var url = resolvePortfolioMediaUrl(item.storagePath);
+        if (!url) return '';
+        if (item.mediaType === 'video') {
+          return (
+            '<div class="profile-portfolio-item">' +
+            '<video controls playsinline preload="metadata" src="' +
+            escapeHtml(url) +
+            '" aria-label="Portfolio video ' +
+            (index + 1) +
+            '"></video>' +
+            '</div>'
+          );
+        }
+        return (
+          '<div class="profile-portfolio-item">' +
+          '<img src="' +
+          escapeHtml(url) +
+          '" alt="" loading="lazy" decoding="async" />' +
+          '</div>'
+        );
+      })
+      .join('');
+
+    section.hidden = false;
   }
 
   window.applyStyldPreviewContent = function applyStyldPreviewContent() {
@@ -608,6 +720,7 @@
     }
 
     applySectionVisibility(content);
+    populatePortfolio(content, theme);
 
     // Footer
     if (window.StyldTenant && window.StyldTenant.applySiteFooter) {

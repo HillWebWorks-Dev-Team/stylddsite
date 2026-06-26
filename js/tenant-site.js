@@ -219,6 +219,8 @@
         textColorSources:
           theme.textColorSources && typeof theme.textColorSources === 'object' ? theme.textColorSources : null,
         heroCoverBlur: !!theme.heroCoverBlur,
+        portfolioItems: Array.isArray(theme.portfolioItems) ? theme.portfolioItems : [],
+        galleryImagePaths: Array.isArray(theme.galleryImagePaths) ? theme.galleryImagePaths : [],
       };
 
       if (window.StyldTenant && window.StyldTenant.applySiteTheme) {

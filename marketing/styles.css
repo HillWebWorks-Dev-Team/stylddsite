@@ -1121,19 +1121,7 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   font-size: 1.125rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  margin: 0 0 0.5rem;
-}
-
-.site-layout-caption__link {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.45);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.site-layout-caption__link:hover {
-  color: var(--pink);
+  margin: 0;
 }
 
 @media (hover: none) {
@@ -1173,6 +1161,9 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   width: 100%;
   height: auto;
   min-height: 0;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
   border-radius: 1.25rem;
@@ -1184,6 +1175,11 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   border-color: rgba(255, 45, 138, 0.45);
   transform: translateY(-4px);
   box-shadow: 0 24px 55px rgba(0, 0, 0, 0.42);
+}
+
+.site-layout-card:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 3px;
 }
 
 .site-layout-browser {
@@ -1266,7 +1262,7 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   border: 0;
   transform: scale(var(--preview-scale));
   transform-origin: top left;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 /* ── Mobile card mode — phone frame ───────────────────────── */
@@ -2498,10 +2494,6 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
     aspect-ratio: 16 / 10;
   }
 
-  .site-layout-browser__viewport iframe {
-    pointer-events: none;
-  }
-
   .site-layout-caption {
     padding: 0 0.25rem;
     max-width: 20rem;
@@ -2513,10 +2505,6 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
 
   .site-layout-caption__type {
     font-size: 0.625rem;
-  }
-
-  .site-layout-caption__link {
-    font-size: 0.75rem;
   }
 
   .site-layouts-dots {

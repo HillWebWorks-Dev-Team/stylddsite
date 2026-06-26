@@ -91,7 +91,49 @@ Profile CSS uses fallbacks, e.g. `color: var(--text-price, var(--ink));` — do 
 
 On **`/book`** (cover layout): if both hidden, `.profile-book-intro` is hidden and the page starts at the menu. On **split** home: `.profile-info` beside the hero hides when both are off.
 
-Other ids: `"menu"`, `"visit"`, `"reviews"` — `[data-site-section="..."]` elements.
+Other ids: `"menu"`, `"visit"`, `"reviews"`, `"portfolio"` — `[data-site-section="..."]` elements. The portfolio section manages its own `hidden` state in `populatePortfolio()` (do not drive it from the generic visibility loop).
+
+## Previous work portfolio (`portfolioItems`)
+
+App path: **Site editor → Content → Previous work**
+
+| Source | Fields |
+|--------|--------|
+| `site_content` | `reelsTitle`, `reelsBlurb`, `portfolioPlacement` (`above_menu` \| `below_menu`, default `above_menu`), `hiddenSections` includes `'portfolio'` to hide |
+| `site_theme` | `portfolioItems: { storagePath, mediaType: 'image' \| 'video' }[]` (max 24). Legacy: `galleryImagePaths: string[]` |
+
+**Media URLs:** Supabase bucket `style-covers`, public:
+`{SUPABASE_URL}/storage/v1/object/public/style-covers/{storagePath}`  
+Use `StyldTenant.resolveStyleCoverUrl(path)` when available.
+
+**HTML** — in `tenant/profile.html` and `tenant/book.html` inside `<main>` (before menu; JS reorders):
+
+```html
+<section class="profile-portfolio-section" id="profile-portfolio-section" data-site-section="portfolio" hidden>
+  <div class="container">
+    <div class="profile-menu-head profile-portfolio-head">
+      <h2 id="profile-portfolio-title">Previous work</h2>
+      <p class="profile-menu-blurb" id="profile-portfolio-blurb"></p>
+    </div>
+    <div class="profile-portfolio-grid" id="profile-portfolio-grid"></div>
+  </div>
+</section>
+```
+
+**JS** (`js/profile-content.js`) — `populatePortfolio(content, theme)`:
+
+1. Show only if `'portfolio'` ∉ `hiddenSections` **and** items exist
+2. If `portfolioPlacement === 'below_menu'`, move section after `#profile-menu-section`; else before
+3. Title/blurb from `reelsTitle` / `reelsBlurb`
+4. Grid: images → `<img>`, videos → `<video controls playsinline preload="metadata">`
+5. Called from `applyStyldPreviewContent()` after menu/location setup
+6. Exclude `'portfolio'` from generic `[data-site-section]` visibility loop
+
+**CSS** (`css/styles.css`): `.profile-portfolio-section`, `.profile-portfolio-grid` (`repeat(auto-fill, minmax(9rem, 1fr))`), `.profile-portfolio-item` (square, `border-radius: 14px`).
+
+**Storage migration:** `supabase/migrations/20260609120000_style_covers_video_mime.sql` — allow `video/mp4`, `video/quicktime`, `video/webm` on `style-covers`.
+
+**Section order:** Hero → Reviews (optional) → Portfolio (if above menu) → Menu → Portfolio (if below menu) → Location → Footer
 
 ## Style add-ons (`style_catalog_meta`)
 

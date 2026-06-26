@@ -684,6 +684,8 @@
       textColorSources:
         theme.textColorSources && typeof theme.textColorSources === 'object' ? theme.textColorSources : null,
       heroCoverBlur: !!theme.heroCoverBlur,
+      portfolioItems: Array.isArray(theme.portfolioItems) ? theme.portfolioItems : [],
+      galleryImagePaths: Array.isArray(theme.galleryImagePaths) ? theme.galleryImagePaths : [],
     };
 
     applySiteTheme(theme);
@@ -766,6 +768,10 @@
     applySiteTheme: applySiteTheme,
     applySiteShareBranding: applySiteShareBranding,
     resolveShareImageUrl: resolveShareImageUrl,
+    resolveStyleCoverUrl: function (path) {
+      var cfg = window.__STYLD_TENANT__ || {};
+      return coverUrl(path, cfg.supabaseUrl);
+    },
     applyTenantBranding: applyTenantBranding,
     normalizeBookingHours: normalizeBookingHours,
     normalizeWeekdayHours: normalizeWeekdayHours,
