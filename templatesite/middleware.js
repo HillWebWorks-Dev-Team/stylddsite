@@ -1,6 +1,15 @@
 import { rewrite } from '@vercel/functions';
+import {
+  buildShareMetaTags,
+  fetchTenantShareMeta,
+  injectShareMetaIntoHtml,
+  isHtmlDocumentRequest,
+  tenantPageUrl,
+} from './lib/tenant-share-meta.js';
 
 const ROOT_DOMAIN = process.env.STYLD_ROOT_DOMAIN || 'styldd.com';
+const SUPABASE_URL = process.env.STYLD_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.STYLD_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 
 const MARKETING_PAGES = {
   '/support': '/marketing/support.html',
@@ -17,6 +26,7 @@ const TENANT_STATIC_PAGES = {
   '/booking-details': '/booking-details.html',
   '/styles-catalog': '/styles-catalog.html',
   '/gallery': '/gallery.html',
+  '/portfolio': '/tenant/portfolio.html',
   '/review': '/review.html',
 };
 
@@ -38,7 +48,42 @@ function resolveTenantHtmlPath(pathname) {
   return '/tenant/profile.html';
 }
 
-export default function middleware(request) {
+async function htmlWithTenantShareMeta(request, subdomain, htmlPath) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !isHtmlDocumentRequest(request)) {
+    return null;
+  }
+
+  const meta = await fetchTenantShareMeta(subdomain, SUPABASE_URL, SUPABASE_ANON_KEY);
+  if (!meta) return null;
+
+  const origin = new URL(request.url).origin;
+  const htmlRes = await fetch(`${origin}${htmlPath}`, {
+    headers: { Accept: 'text/html' },
+  });
+  if (!htmlRes.ok) return null;
+
+  const html = await htmlRes.text();
+  const pageUrl = tenantPageUrl(request, subdomain);
+  const tags = buildShareMetaTags({
+    brandName: meta.brandName,
+    description: meta.description,
+    imageUrl: meta.imageUrl,
+    pageUrl,
+    title: `${meta.brandName} | Book online`,
+  });
+  const enriched = injectShareMetaIntoHtml(html, tags);
+  if (enriched === html) return null;
+
+  return new Response(enriched, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+    },
+  });
+}
+
+export default async function middleware(request) {
   const host = (request.headers.get('host') || '').split(':')[0].toLowerCase();
   const url = new URL(request.url);
 
@@ -77,7 +122,13 @@ export default function middleware(request) {
     return;
   }
 
-  url.pathname = resolveTenantHtmlPath(url.pathname);
+  const htmlPath = resolveTenantHtmlPath(url.pathname);
+  const enriched = await htmlWithTenantShareMeta(request, subdomain, htmlPath);
+  if (enriched) {
+    return enriched;
+  }
+
+  url.pathname = htmlPath;
   url.searchParams.set('subdomain', subdomain);
   return rewrite(url);
 }

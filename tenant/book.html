@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=52" />
+    <link rel="stylesheet" href="/css/styles.css?v=54" />
     <style>
       #tenant-status {
         position: fixed;
@@ -78,11 +78,16 @@
 
         <section class="profile-portfolio-section" id="profile-portfolio-section" data-site-section="portfolio" hidden>
           <div class="container">
-            <div class="profile-menu-head profile-portfolio-head">
-              <h2 id="profile-portfolio-title">Previous work</h2>
-              <p class="profile-menu-blurb" id="profile-portfolio-blurb"></p>
+            <div class="profile-portfolio-head profile-portfolio-head--row">
+              <div class="profile-portfolio-head__text">
+                <h2 id="profile-portfolio-title">Previous work</h2>
+                <p class="profile-menu-blurb" id="profile-portfolio-blurb"></p>
+              </div>
+              <a class="profile-portfolio-view-more" id="profile-portfolio-view-more" href="/portfolio" hidden>View more</a>
             </div>
-            <div class="profile-portfolio-grid" id="profile-portfolio-grid"></div>
+          </div>
+          <div class="profile-portfolio-carousel" id="profile-portfolio-carousel" aria-label="Previous work preview">
+            <div class="profile-portfolio-carousel__track" id="profile-portfolio-carousel-track"></div>
           </div>
         </section>
 
@@ -133,7 +138,7 @@
     <script src="/js/styld-tenant-config.js?v=1780530043880"></script>
     <script src="/js/styld-tenant-config.local.js?v=1780530043880"></script>
     <script src="/js/styld-tenant-shared.js?v=67"></script>
-    <script src="/js/profile-content.js?v=20"></script>
+    <script src="/js/profile-content.js?v=22"></script>
     <script src="/js/site-reviews.js?v=1"></script>
     <script src="/js/tenant-site.js?v=67"></script>
   </body>

@@ -106,34 +106,32 @@ App path: **Site editor → Content → Previous work**
 `{SUPABASE_URL}/storage/v1/object/public/style-covers/{storagePath}`  
 Use `StyldTenant.resolveStyleCoverUrl(path)` when available.
 
-**HTML** — in `tenant/profile.html` and `tenant/book.html` inside `<main>` (before menu; JS reorders):
-
-```html
-<section class="profile-portfolio-section" id="profile-portfolio-section" data-site-section="portfolio" hidden>
-  <div class="container">
-    <div class="profile-menu-head profile-portfolio-head">
-      <h2 id="profile-portfolio-title">Previous work</h2>
-      <p class="profile-menu-blurb" id="profile-portfolio-blurb"></p>
-    </div>
-    <div class="profile-portfolio-grid" id="profile-portfolio-grid"></div>
-  </div>
-</section>
+**Routing** — `middleware.js` `TENANT_STATIC_PAGES`:
+```js
+'/portfolio': '/tenant/portfolio.html',
 ```
 
-**JS** (`js/profile-content.js`) — `populatePortfolio(content, theme)`:
+**Home + book pages** — carousel preview (not a full grid):
 
-1. Show only if `'portfolio'` ∉ `hiddenSections` **and** items exist
-2. If `portfolioPlacement === 'below_menu'`, move section after `#profile-menu-section`; else before
-3. Title/blurb from `reelsTitle` / `reelsBlurb`
-4. Grid: images → `<img>`, videos → `<video controls playsinline preload="metadata">`
-5. Called from `applyStyldPreviewContent()` after menu/location setup
-6. Exclude `'portfolio'` from generic `[data-site-section]` visibility loop
+1. Header row in `.container`: title, blurb, **View more** → `/portfolio`
+2. Full-bleed carousel below: `#profile-portfolio-carousel-track`, first **8** items, ~1.5 portrait slides visible, horizontal scroll + scroll-snap. Slides are **3:4 portrait**; images use `object-fit: contain`, videos autoplay muted loop with `object-fit: cover`.
 
-**CSS** (`css/styles.css`): `.profile-portfolio-section`, `.profile-portfolio-grid` (`repeat(auto-fill, minmax(9rem, 1fr))`), `.profile-portfolio-item` (square, `border-radius: 14px`).
+**Catalog page** `tenant/portfolio.html` (`body.page-portfolio`):
 
-**Storage migration:** `supabase/migrations/20260609120000_style_covers_video_mime.sql` — allow `video/mp4`, `video/quicktime`, `video/webm` on `style-covers`.
+- Nav: brand → `/`, Book Now → `/booking`
+- Back link → `/`
+- `#portfolio-catalog-title`, `#portfolio-catalog-blurb`, `#portfolio-catalog-grid` — all items in responsive grid
 
-**Section order:** Hero → Reviews (optional) → Portfolio (if above menu) → Menu → Portfolio (if below menu) → Location → Footer
+**JS** (`js/profile-content.js`):
+
+- `populatePortfolio()` — carousel preview + View more link; placement above/below menu
+- `populatePortfolioCatalog()` — full grid on `/portfolio`
+- If `body.page-portfolio`, catalog populate only; early return from `applyStyldPreviewContent()`
+- Exclude `'portfolio'` from generic `[data-site-section]` visibility loop
+
+**CSS:** `.profile-portfolio-carousel`, `.profile-portfolio-carousel__slide`, `.profile-portfolio-view-more`, `.profile-portfolio-grid--catalog`
+
+**Section order:** Hero → Reviews → Portfolio (if above menu) → Menu → Portfolio (if below menu) → Location → Footer. Full catalog at `/portfolio`.
 
 ## Style add-ons (`style_catalog_meta`)
 

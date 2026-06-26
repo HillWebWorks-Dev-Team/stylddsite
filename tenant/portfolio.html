@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Loading…</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/styles.css?v=54" />
+    <style>
+      #tenant-status {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 2rem;
+        background: #fafafa;
+        color: #525252;
+        font: 600 1rem/1.5 "Source Sans 3", system-ui, sans-serif;
+        text-align: center;
+        z-index: 9999;
+      }
+      #tenant-status[hidden] { display: none; }
+      body.tenant-error .profile-nav,
+      body.tenant-error .portfolio-catalog-main,
+      body.tenant-error .site-footer { opacity: 0.2; pointer-events: none; }
+    </style>
+  </head>
+  <body class="tpl-profile page-portfolio">
+    <div id="tenant-status">Loading your site…</div>
+
+    <nav class="profile-nav" id="profile-nav">
+      <div class="container profile-nav__inner">
+        <a class="profile-brand" href="/">
+          <div class="profile-brand__logo" id="profile-logo-placeholder" aria-hidden="true"></div>
+          <span id="profile-brand-name">Your Brand</span>
+        </a>
+        <a class="profile-book-btn" href="/booking">Book Now</a>
+      </div>
+    </nav>
+
+    <main class="portfolio-catalog-main" id="portfolio-catalog-main">
+      <div class="container">
+        <a class="portfolio-catalog-back" href="/">← Back</a>
+        <div class="profile-portfolio-head portfolio-catalog-head">
+          <h1 id="portfolio-catalog-title">Previous work</h1>
+          <p class="profile-menu-blurb" id="portfolio-catalog-blurb"></p>
+        </div>
+        <div class="profile-portfolio-grid profile-portfolio-grid--catalog" id="portfolio-catalog-grid"></div>
+      </div>
+    </main>
+
+    <footer class="site-footer site-footer--home-promo">
+      <div class="container footer-bottom">
+        <p id="preview-footer-brand">&copy; Your brand name</p>
+        <p class="footer-built-by">
+          <a class="footer-built-by__link" href="https://styldd.com" target="_blank" rel="noopener noreferrer">
+            <img class="footer-built-by__logo" src="/assets/styld-icon.png" alt="" width="22" height="22" decoding="async" />
+            <span>Built with Styld</span>
+          </a>
+        </p>
+      </div>
+    </footer>
+
+    <script src="/js/vercel-analytics.bundle.js" defer></script>
+    <script src="/js/styld-tenant-config.js?v=1780530043880"></script>
+    <script src="/js/styld-tenant-config.local.js?v=1780530043880"></script>
+    <script src="/js/styld-tenant-shared.js?v=67"></script>
+    <script src="/js/profile-content.js?v=22"></script>
+    <script src="/js/tenant-site.js?v=67"></script>
+  </body>
+</html>
