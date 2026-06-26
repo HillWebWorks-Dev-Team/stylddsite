@@ -1055,6 +1055,176 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   background: linear-gradient(180deg, var(--black) 0%, rgba(255, 45, 138, 0.04) 50%, var(--black) 100%);
 }
 
+.site-layouts {
+  padding: 5rem 0;
+  border-top: 1px solid var(--border);
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(255, 45, 138, 0.08) 0%, transparent 70%),
+    var(--black);
+}
+
+.site-layouts-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.35rem;
+  margin: 0;
+  padding: 0;
+}
+
+.site-layout-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.site-layout-card:hover {
+  border-color: rgba(255, 45, 138, 0.45);
+  transform: translateY(-4px);
+  box-shadow: 0 24px 55px rgba(0, 0, 0, 0.42);
+}
+
+.site-layout-browser {
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.site-layout-browser__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.site-layout-browser__dots {
+  display: inline-flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.site-layout-browser__dots i {
+  display: block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.site-layout-browser__dots i:first-child {
+  background: #ff5f57;
+}
+
+.site-layout-browser__dots i:nth-child(2) {
+  background: #febc2e;
+}
+
+.site-layout-browser__dots i:nth-child(3) {
+  background: #28c840;
+}
+
+.site-layout-browser__url {
+  flex: 1;
+  min-width: 0;
+  padding: 0.28rem 0.75rem;
+  font-size: 0.7rem;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.site-layout-browser__viewport {
+  --preview-scale: 0.28;
+  position: relative;
+  aspect-ratio: 10 / 15;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+
+.site-layout-browser__viewport iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% / var(--preview-scale));
+  height: calc(100% / var(--preview-scale));
+  border: 0;
+  transform: scale(var(--preview-scale));
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.site-layout-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  padding: 1.15rem 1.25rem 1.35rem;
+}
+
+.site-layout-card__tag {
+  align-self: flex-start;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pink);
+  background: var(--pink-dim);
+  border: 1px solid rgba(255, 45, 138, 0.25);
+  border-radius: 999px;
+}
+
+.site-layout-card__body h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.site-layout-card__body p {
+  flex: 1;
+  font-size: 0.9375rem;
+  color: var(--white-muted);
+  line-height: 1.6;
+}
+
+.site-layout-card__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--pink);
+  text-decoration: none;
+}
+
+.site-layout-card__link:hover {
+  text-decoration: underline;
+}
+
+.site-layouts-footnote {
+  margin-top: 1.75rem;
+  text-align: center;
+  font-size: 0.9375rem;
+  color: var(--white-muted);
+  max-width: 42rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .screenshot-explorer {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
@@ -1689,6 +1859,17 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
 
   .site-nav {
     display: none;
+  }
+
+  .site-layouts-grid {
+    grid-template-columns: 1fr;
+    max-width: 26rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .site-layouts {
+    padding: 3.5rem 0;
   }
 
   .header-icon-btn,
