@@ -173,3 +173,4 @@ Redeploy this Vercel project after changing tenant JS or offline copy so `*.styl
 ### Known gap
 
 If someone cancels and never opens the app, unpublish runs on next app open. For instant takedown without opening the app, add a RevenueCat webhook later.
+
