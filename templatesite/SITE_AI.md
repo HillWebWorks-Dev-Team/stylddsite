@@ -114,7 +114,7 @@ Use `StyldTenant.resolveStyleCoverUrl(path)` when available.
 **Home + book pages** — carousel preview (not a full grid):
 
 1. Header row in `.container`: title, blurb, **View more** → `/portfolio`
-2. Full-bleed carousel below: `#profile-portfolio-carousel-track`, first **8** items, ~1.5 portrait slides visible, horizontal scroll + scroll-snap. Slides are **3:4 portrait**; images use `object-fit: contain`, videos autoplay muted loop with `object-fit: cover`.
+2. Full-bleed carousel below: `#profile-portfolio-carousel-track`, first **5** items, horizontal scroll + scroll-snap. If **>5 items**, append a **View more** slide linking to `/portfolio` and show header **View more** (hide both when ≤5). Slides are **3:4 portrait** with **`object-fit: cover`**. Carousel videos: `autoplay muted playsinline loop`. Tap any item → fullscreen lightbox.
 
 **Catalog page** `tenant/portfolio.html` (`body.page-portfolio`):
 

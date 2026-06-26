@@ -2339,6 +2339,32 @@ body.page-home--cover-preview .hero-landing {
   background: var(--cream, #fafafa);
 }
 
+/* Sticky footer — tenant home / book / portfolio (not cover splash) */
+body.tpl-profile:not(.page-cover-splash) {
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body.tpl-profile:not(.page-cover-splash) .profile-below-hero {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+body.tpl-profile:not(.page-cover-splash) #site-main-content,
+body.tpl-profile:not(.page-cover-splash) .portfolio-catalog-main {
+  flex: 1 1 auto;
+}
+
+body.tpl-profile:not(.page-cover-splash) > .site-footer.site-footer--home-promo,
+body.tpl-profile:not(.page-cover-splash) .profile-below-hero > .site-footer.site-footer--home-promo {
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
 .tpl-profile.page-review .review-page,
 .tpl-profile.page-manage-booking .manage-booking-main {
   flex: 1;
@@ -6801,16 +6827,32 @@ body.page-cover-splash .profile-below-hero {
 }
 
 .profile-portfolio-carousel__slide {
-  flex: 0 0 calc((100vw - 2rem - 0.75rem) / 1.5);
-  max-width: 280px;
+  flex: 0 0 min(68vw, 260px);
   scroll-snap-align: start;
 }
 
-.profile-portfolio-item {
+.profile-portfolio-item,
+.profile-portfolio-view-more-slide {
   aspect-ratio: 3 / 4;
   border-radius: 14px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.04);
+}
+
+.profile-portfolio-item-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.profile-portfolio-item-btn:focus-visible {
+  outline: 2px solid var(--text-accent, var(--pink));
+  outline-offset: 3px;
 }
 
 .profile-portfolio-item img,
@@ -6818,14 +6860,30 @@ body.page-cover-splash .profile-below-hero {
   display: block;
   width: 100%;
   height: 100%;
-}
-
-.profile-portfolio-item img {
-  object-fit: contain;
-}
-
-.profile-portfolio-item video {
   object-fit: cover;
+  pointer-events: none;
+}
+
+.profile-portfolio-view-more-slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-decoration: none;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px dashed rgba(0, 0, 0, 0.14);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.profile-portfolio-view-more-slide span {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-accent, var(--pink));
+}
+
+.profile-portfolio-view-more-slide:hover {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.22);
 }
 
 .profile-portfolio-grid--catalog {
@@ -6834,10 +6892,73 @@ body.page-cover-splash .profile-below-hero {
   gap: 0.75rem;
 }
 
+.profile-portfolio-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.profile-portfolio-lightbox[hidden] {
+  display: none !important;
+}
+
+.profile-portfolio-lightbox__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.profile-portfolio-lightbox__close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.profile-portfolio-lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.profile-portfolio-lightbox__stage {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 720px);
+  max-height: calc(100vh - 3rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-portfolio-lightbox__media {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 3rem);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 0.5rem;
+}
+
+body.profile-portfolio-lightbox-open {
+  overflow: hidden;
+}
+
 .page-portfolio .portfolio-catalog-main {
   padding: 1.5rem 0 3rem;
   background: var(--cream, #fff);
-  min-height: 50vh;
+  min-height: 0;
 }
 
 .page-portfolio .portfolio-catalog-back {

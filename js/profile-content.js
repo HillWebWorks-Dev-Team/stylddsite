@@ -516,34 +516,106 @@
   function buildPortfolioItemHtml(item, index) {
     var url = resolvePortfolioMediaUrl(item.storagePath);
     if (!url) return '';
-    if (item.mediaType === 'video') {
-      return (
-        '<div class="profile-portfolio-item profile-portfolio-item--video">' +
+    var mediaType = item.mediaType === 'video' ? 'video' : 'image';
+    var inner;
+    if (mediaType === 'video') {
+      inner =
         '<video autoplay muted loop playsinline preload="metadata" src="' +
         escapeHtml(url) +
-        '" aria-label="Portfolio video ' +
-        (index + 1) +
-        '"></video>' +
-        '</div>'
-      );
+        '" tabindex="-1" aria-hidden="true"></video>';
+    } else {
+      inner =
+        '<img src="' +
+        escapeHtml(url) +
+        '" alt="" loading="lazy" decoding="async" />';
     }
     return (
-      '<div class="profile-portfolio-item profile-portfolio-item--image">' +
-      '<img src="' +
+      '<button type="button" class="profile-portfolio-item profile-portfolio-item-btn profile-portfolio-item--' +
+      mediaType +
+      '" data-portfolio-url="' +
       escapeHtml(url) +
-      '" alt="" loading="lazy" decoding="async" />' +
-      '</div>'
+      '" data-portfolio-type="' +
+      mediaType +
+      '" aria-label="View portfolio item ' +
+      (index + 1) +
+      '">' +
+      inner +
+      '</button>'
     );
   }
 
   function startPortfolioVideos(root) {
     if (!root) return;
-    root.querySelectorAll('.profile-portfolio-item video').forEach(function (video) {
+    root.querySelectorAll('.profile-portfolio-item-btn video').forEach(function (video) {
       video.muted = true;
       var playPromise = video.play();
       if (playPromise && typeof playPromise.catch === 'function') {
         playPromise.catch(function () {});
       }
+    });
+  }
+
+  function openPortfolioLightbox(url, mediaType) {
+    var lightbox = document.getElementById('profile-portfolio-lightbox');
+    var stage = document.getElementById('profile-portfolio-lightbox-stage');
+    if (!lightbox || !stage || !url) return;
+
+    stage.innerHTML = '';
+    if (mediaType === 'video') {
+      var video = document.createElement('video');
+      video.className = 'profile-portfolio-lightbox__media';
+      video.src = url;
+      video.controls = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      stage.appendChild(video);
+      var playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(function () {});
+      }
+    } else {
+      var img = document.createElement('img');
+      img.className = 'profile-portfolio-lightbox__media';
+      img.src = url;
+      img.alt = '';
+      stage.appendChild(img);
+    }
+
+    lightbox.hidden = false;
+    document.body.classList.add('profile-portfolio-lightbox-open');
+  }
+
+  function closePortfolioLightbox() {
+    var lightbox = document.getElementById('profile-portfolio-lightbox');
+    var stage = document.getElementById('profile-portfolio-lightbox-stage');
+    if (!lightbox) return;
+    lightbox.hidden = true;
+    document.body.classList.remove('profile-portfolio-lightbox-open');
+    if (stage) {
+      stage.querySelectorAll('video').forEach(function (video) {
+        video.pause();
+      });
+      stage.innerHTML = '';
+    }
+  }
+
+  function setupPortfolioLightbox() {
+    if (document.body.dataset.portfolioLightboxBound) return;
+    document.body.dataset.portfolioLightboxBound = '1';
+
+    document.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('.profile-portfolio-item-btn') : null;
+      if (btn) {
+        openPortfolioLightbox(btn.getAttribute('data-portfolio-url'), btn.getAttribute('data-portfolio-type'));
+        return;
+      }
+      if (e.target && e.target.closest && e.target.closest('[data-portfolio-lightbox-close]')) {
+        closePortfolioLightbox();
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closePortfolioLightbox();
     });
   }
 
@@ -582,16 +654,29 @@
       blurbEl.textContent = blurb;
       blurbEl.hidden = !blurb;
     }
-    if (viewMoreEl) viewMoreEl.hidden = false;
 
-    track.innerHTML = items
-      .slice(0, 8)
+    var hasMore = items.length > 5;
+    if (viewMoreEl) viewMoreEl.hidden = !hasMore;
+
+    var slidesHtml = items
+      .slice(0, 5)
       .map(function (item, index) {
         var itemHtml = buildPortfolioItemHtml(item, index);
         if (!itemHtml) return '';
         return '<div class="profile-portfolio-carousel__slide">' + itemHtml + '</div>';
       })
       .join('');
+
+    if (hasMore) {
+      slidesHtml +=
+        '<div class="profile-portfolio-carousel__slide">' +
+        '<a class="profile-portfolio-view-more-slide" href="/portfolio">' +
+        '<span>View more</span>' +
+        '</a>' +
+        '</div>';
+    }
+
+    track.innerHTML = slidesHtml;
 
     startPortfolioVideos(track);
     section.hidden = false;
@@ -814,6 +899,9 @@
   };
 
   if (window.__STYLD_SITE_CONTENT__) {
+    setupPortfolioLightbox();
     window.applyStyldPreviewContent();
+  } else {
+    setupPortfolioLightbox();
   }
 })();
