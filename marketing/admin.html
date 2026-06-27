@@ -48,7 +48,7 @@
         <div class="admin-nav__track" role="tablist">
           <button type="button" class="admin-tab is-active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
           <button type="button" class="admin-tab" data-tab="styld_revenue" role="tab" aria-selected="false">Styld Revenue</button>
-          <button type="button" class="admin-tab" data-tab="salons" role="tab" aria-selected="false">Salons</button>
+          <button type="button" class="admin-tab" data-tab="salons" role="tab" aria-selected="false">Pros</button>
           <button type="button" class="admin-tab" data-tab="bookings" role="tab" aria-selected="false">Bookings</button>
           <button type="button" class="admin-tab" data-tab="clients" role="tab" aria-selected="false">Clients</button>
           <button type="button" class="admin-tab" data-tab="cancellations" role="tab" aria-selected="false">Cancellations</button>
@@ -67,7 +67,7 @@
       <section class="admin-panel" data-panel="overview">
         <div class="admin-panel-head">
           <h2>Overview</h2>
-          <p class="admin-muted">Payments through the app, your platform cut, and Stripe Connect balances across all salons.</p>
+          <p class="admin-muted">Payments through the app, your platform cut, and Stripe Connect balances across all pros.</p>
         </div>
         <div id="admin-overview-panel"></div>
       </section>
@@ -94,17 +94,17 @@
       <section class="admin-panel" data-panel="salons" hidden>
         <div class="admin-panel-head admin-panel-head--toolbar">
           <div>
-            <h2>All salons</h2>
+            <h2>All pros</h2>
             <p class="admin-muted">Click a row for the full dashboard — subscription from RevenueCat.</p>
           </div>
           <div class="admin-salon-toolbar">
             <div class="admin-revenue-range admin-salon-type-filter" role="group" aria-label="Business type">
               <button type="button" class="admin-range-btn is-active" data-salon-type="all" aria-pressed="true">All</button>
               <button type="button" class="admin-range-btn" data-salon-type="barber" aria-pressed="false">Barbers</button>
-              <button type="button" class="admin-range-btn" data-salon-type="salon" aria-pressed="false">Salons</button>
+              <button type="button" class="admin-range-btn" data-salon-type="salon" aria-pressed="false">Stylists &amp; more</button>
             </div>
             <label class="admin-sort-label" for="admin-salon-sort">Sort by</label>
-            <select id="admin-salon-sort" class="admin-select" aria-label="Sort salons">
+            <select id="admin-salon-sort" class="admin-select" aria-label="Sort pros">
               <option value="revenue_desc">Top revenue</option>
               <option value="revenue_asc">Lowest revenue</option>
               <option value="collected_desc">Top collected</option>
@@ -118,8 +118,8 @@
               <option value="views_asc">Least views (30d)</option>
               <option value="inquiries_desc">Most inquiries</option>
               <option value="stripe_desc">Highest Stripe balance</option>
-              <option value="newest">Newest salon</option>
-              <option value="oldest">Oldest salon</option>
+              <option value="newest">Newest pro</option>
+              <option value="oldest">Oldest pro</option>
               <option value="last_active">Recently active</option>
               <option value="name_asc">Name A–Z</option>
               <option value="name_desc">Name Z–A</option>
@@ -133,7 +133,7 @@
       <section class="admin-panel" data-panel="bookings" hidden>
         <div class="admin-panel-head">
           <h2>All bookings</h2>
-          <p class="admin-muted">Every appointment across all salons · click any card for full details.</p>
+          <p class="admin-muted">Every appointment across all pros · click any card for full details.</p>
         </div>
         <div id="admin-bookings-panel"></div>
       </section>
@@ -141,7 +141,7 @@
       <section class="admin-panel" data-panel="clients" hidden>
         <div class="admin-panel-head">
           <h2>Clients</h2>
-          <p class="admin-muted">Unique clients from bookings · click to open their relationship at that salon.</p>
+          <p class="admin-muted">Unique clients from bookings · click to open their relationship with that pro.</p>
         </div>
         <div id="admin-clients-panel"></div>
       </section>
@@ -157,7 +157,7 @@
       <section class="admin-panel" data-panel="inquiries" hidden>
         <div class="admin-panel-head">
           <h2>Inquiries</h2>
-          <p class="admin-muted">Contact form messages from salon sites.</p>
+          <p class="admin-muted">Contact form messages from booking sites.</p>
         </div>
         <div id="admin-inquiries-panel"></div>
       </section>
@@ -173,7 +173,7 @@
       <section class="admin-panel" data-panel="emails" hidden>
         <div class="admin-panel-head">
           <h2>Sent emails</h2>
-          <p class="admin-muted">Previews of transactional emails sent to clients from each salon account.</p>
+          <p class="admin-muted">Previews of transactional emails sent to clients from each pro account.</p>
         </div>
         <div id="admin-emails-panel"></div>
       </section>
@@ -181,7 +181,7 @@
       <section class="admin-panel" data-panel="onboarding" hidden>
         <div class="admin-panel-head">
           <h2>Onboarding responses</h2>
-          <p class="admin-muted">Survey answers from new salon sign-ups.</p>
+          <p class="admin-muted">Survey answers from new pro sign-ups.</p>
         </div>
         <div id="admin-onboarding-panel"></div>
       </section>
@@ -189,7 +189,7 @@
       <section class="admin-panel" data-panel="analytics" hidden>
         <div class="admin-panel-head">
           <h2>Site analytics</h2>
-          <p class="admin-muted">Aggregate page views across all published salon sites.</p>
+          <p class="admin-muted">Aggregate page views across all published booking sites.</p>
         </div>
         <div id="admin-analytics-panel"></div>
       </section>
@@ -198,17 +198,17 @@
 
   <div id="admin-salon-view" class="admin-salon-view" hidden>
     <header class="admin-salon-view__head">
-      <button type="button" class="admin-btn admin-btn--ghost" id="admin-salon-back">← All salons</button>
+      <button type="button" class="admin-btn admin-btn--ghost" id="admin-salon-back">← All pros</button>
       <div class="admin-salon-view__title-wrap">
         <div id="admin-salon-view-thumb" class="admin-salon-view__thumb-wrap" aria-hidden="true"></div>
         <div>
-          <h2 id="admin-salon-view-title">Salon</h2>
+          <h2 id="admin-salon-view-title">Pro</h2>
           <p id="admin-salon-view-sub" class="admin-muted"></p>
         </div>
       </div>
       <a id="admin-salon-view-link" class="admin-btn admin-btn--ghost" href="#" target="_blank" rel="noopener noreferrer" hidden>Open site</a>
     </header>
-    <nav class="admin-salon-view__tabs" id="admin-salon-tabs" role="tablist" aria-label="Salon sections">
+    <nav class="admin-salon-view__tabs" id="admin-salon-tabs" role="tablist" aria-label="Pro sections">
       <button type="button" class="admin-salon-tab is-active" data-salon-tab="analytics" role="tab" aria-selected="true">Analytics</button>
       <button type="button" class="admin-salon-tab" data-salon-tab="bookings" role="tab" aria-selected="false">Bookings</button>
       <button type="button" class="admin-salon-tab" data-salon-tab="styles" role="tab" aria-selected="false">Styles</button>
@@ -234,6 +234,6 @@
 
   <script src="/js/marketing-config.js?v=2"></script>
   <script src="/js/marketing-config.local.js?v=2"></script>
-  <script src="/marketing/admin.js?v=30"></script>
+  <script src="/marketing/admin.js?v=31"></script>
 </body>
 </html>

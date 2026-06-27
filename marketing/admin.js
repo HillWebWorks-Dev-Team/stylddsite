@@ -267,7 +267,7 @@
       services: services,
       serviceMap: serviceMap,
       avgSpend: avgSpend,
-      salonName: salonData.brand_name || 'Salon',
+      salonName: salonData.brand_name || 'Pro',
       stats: {
         collected: collected,
         pending: pending,
@@ -301,7 +301,7 @@
       : '<p class="admin-muted">No services booked yet.</p>';
 
     var reviewBlock = detail.reviews.length
-      ? '<section class="admin-drawer-section"><h4>Reviews at this salon (' +
+      ? '<section class="admin-drawer-section"><h4>Reviews for this pro (' +
         detail.reviews.length +
         ')</h4><div class="admin-client-reviews">' +
         detail.reviews
@@ -449,7 +449,7 @@
       '<h3>Clients</h3>' +
       '<p class="admin-muted">' +
       esc(clients.length) +
-      ' unique clients · click any row for their history at this salon</p>' +
+      ' unique clients · click any row for their history with this pro</p>' +
       '</div></div>' +
       '<ul class="admin-client-list">' +
       clients.map(renderClientCard).join('') +
@@ -501,7 +501,7 @@
     if (!item || (!item.brand_name && !item.subdomain)) return '';
     return (
       '<span class="admin-record-card__salon">' +
-      esc(item.brand_name || 'Salon') +
+      esc(item.brand_name || 'Pro') +
       (item.subdomain ? ' · ' + esc(item.subdomain) : '') +
       '</span>'
     );
@@ -757,11 +757,11 @@
       '<p class="admin-overview-hero__hint">Total paid through Stripe checkout (deposits + service fees)</p>' +
       '</article>' +
       '<article class="admin-overview-hero__card">' +
-      '<span class="admin-overview-hero__label">Stylist collected</span>' +
+      '<span class="admin-overview-hero__label">Pro collected</span>' +
       '<strong class="admin-overview-hero__value">' +
       fmtMoney(p.collected) +
       '</strong>' +
-      '<p class="admin-overview-hero__hint">Booking value collected for salons (before Connect payout)</p>' +
+      '<p class="admin-overview-hero__hint">Booking value collected for pros (before Connect payout)</p>' +
       '</article>' +
       '<article class="admin-overview-hero__card admin-overview-hero__card--accent">' +
       '<span class="admin-overview-hero__label">Styld platform cut</span>' +
@@ -786,7 +786,7 @@
       'Payment flow',
       statCards([
         { label: 'Gross booking value', value: fmtMoney(p.gross), hint: 'Total appointment value (non-cancelled)' },
-        { label: 'Collected for salons', value: fmtMoney(p.collected) },
+        { label: 'Collected for pros', value: fmtMoney(p.collected) },
         { label: 'Still owed by clients', value: fmtMoney(p.pending) },
         { label: 'Estimated service fees', value: fmtMoney(p.estimated_service_fees), hint: 'Platform + pass-through processing' },
         { label: 'Est. processing pass-through', value: fmtMoney(p.estimated_processing_fees) },
@@ -823,7 +823,7 @@
       '<section class="admin-overview-section"><h3>Platform activity</h3>' +
       '<div class="admin-kpi-grid">' +
       [
-        ['Stylists', data.total_stylists],
+        ['Beauty pros', data.total_stylists],
         ['Published sites', data.published_sites],
         ['Bookings', data.total_bookings],
         ['Global clients', data.unique_clients_global],
@@ -848,10 +848,10 @@
       '</section>';
 
     var topSalonsHtml = topSalons.length
-      ? '<div class="admin-table-wrap"><table class="admin-table admin-table--clickable"><thead><tr><th>Salon</th><th>Subdomain</th><th>Collected</th><th>Gross</th><th>Pending</th></tr></thead><tbody>' +
+      ? '<div class="admin-table-wrap"><table class="admin-table admin-table--clickable"><thead><tr><th>Pro</th><th>Subdomain</th><th>Collected</th><th>Gross</th><th>Pending</th></tr></thead><tbody>' +
         topSalons
           .map(function (row) {
-            var name = row.brand_name || 'Salon';
+            var name = row.brand_name || 'Pro';
             return (
               '<tr class="admin-row-clickable" data-open-user="' +
               esc(row.user_id) +
@@ -889,7 +889,7 @@
       stripeCard +
       '</div>' +
       platformKpis +
-      '<section class="admin-overview-section"><div class="admin-bookings-panel__head"><div class="admin-bookings-panel__intro"><h3>Top salons by collected payments</h3><p class="admin-muted">Click a row to open the salon dashboard</p></div></div>' +
+      '<section class="admin-overview-section"><div class="admin-bookings-panel__head"><div class="admin-bookings-panel__intro"><h3>Top pros by collected payments</h3><p class="admin-muted">Click a row to open the pro dashboard</p></div></div>' +
       topSalonsHtml +
       '</section>' +
       charts;
@@ -981,15 +981,15 @@
 
   function renderRevenueSubscriberTable(subscribers, emptyMsg) {
     if (!subscribers || !subscribers.length) {
-      return '<p class="admin-empty-note">' + esc(emptyMsg || 'No salons on this plan.') + '</p>';
+      return '<p class="admin-empty-note">' + esc(emptyMsg || 'No pros on this plan.') + '</p>';
     }
     return (
-      '<div class="admin-table-wrap"><table class="admin-table admin-table--clickable admin-table--salon-subscribers"><thead><tr><th>Salon</th><th>Status</th><th>Access</th><th>Product</th><th>Started</th><th>Renews</th><th>Store</th></tr></thead><tbody>' +
+      '<div class="admin-table-wrap"><table class="admin-table admin-table--clickable admin-table--salon-subscribers"><thead><tr><th>Pro</th><th>Status</th><th>Access</th><th>Product</th><th>Started</th><th>Renews</th><th>Store</th></tr></thead><tbody>' +
       subscribers
         .map(function (raw) {
           var s = enrichSalonRecord(raw);
           if (isHiddenSalonUser(s)) return '';
-          var name = s.brand_name || s.business_name || s.full_name || 'Salon';
+          var name = s.brand_name || s.business_name || s.full_name || 'Pro';
           return (
             '<tr class="admin-row-clickable" data-open-user="' +
             esc(s.user_id) +
@@ -1108,7 +1108,7 @@
         { label: 'Styld cut (1%)', value: fmtMoney(platform.platform_fees) },
         { label: 'Service fees (total)', value: fmtMoney(platform.service_fees) },
         { label: 'Customer charges', value: fmtMoney(platform.customer_charges) },
-        { label: 'Salon collected', value: fmtMoney(platform.collected) },
+        { label: 'Pro collected', value: fmtMoney(platform.collected) },
       ]) +
         '<section class="admin-dash-card admin-dash-card--wide admin-revenue-chart-wrap"><h4>Platform cut by month</h4>' +
         barChartHtml(
@@ -1243,11 +1243,11 @@
         esc(selectedPlanData.label || selectedPlan) +
         ' subscribers</h3><p class="admin-muted">' +
         fmtCount(selectedPlanData.count || (selectedPlanData.subscribers && selectedPlanData.subscribers.length) || 0) +
-        ' salons · click a row to open the salon dashboard</p></div>' +
+        ' pros · click a row to open the pro dashboard</p></div>' +
         '<button type="button" class="admin-btn admin-btn--ghost" data-revenue-plan-clear>Clear filter</button></div>' +
         renderRevenueSubscriberTable(
           selectedPlanData.subscribers || [],
-          'No active salons on this plan.',
+          'No active pros on this plan.',
         ) +
         '</section>'
       : '';
@@ -1352,7 +1352,7 @@
     if (!user) return row;
     return Object.assign({}, row, {
       brand_name:
-        row.brand_name && row.brand_name !== 'Salon' ? row.brand_name : user.brand_name || row.brand_name,
+        row.brand_name && row.brand_name !== 'Pro' ? row.brand_name : user.brand_name || row.brand_name,
       logo_url: row.logo_url || user.logo_url || null,
       image_url: salonLogoUrl(row) || salonLogoUrl(user),
       has_logo: row.has_logo != null ? row.has_logo : user.has_logo,
@@ -1390,7 +1390,7 @@
       '<span class="admin-biz-type-pill admin-biz-type-pill--' +
       esc(tone) +
       '">' +
-      esc(label || (category === 'barber' ? 'Barber' : 'Salon')) +
+      esc(label || (category === 'barber' ? 'Barber' : 'Stylist & more')) +
       '</span>'
     );
   }
@@ -1482,7 +1482,7 @@
           esc(b.photo_hair_url) +
           '" target="_blank" rel="noopener"><img src="' +
           esc(b.photo_hair_url) +
-          '" alt="Current hair photo"></a><figcaption>Current hair</figcaption></figure>';
+          '" alt="Current look photo"></a><figcaption>Current look</figcaption></figure>';
       }
       if (b.photo_ref_url) {
         photos +=
@@ -1521,9 +1521,9 @@
       salonBlock =
         '<section class="admin-booking-detail__salon">' +
         '<div class="admin-booking-detail__salon-main">' +
-        '<span class="admin-booking-detail__salon-label">Salon</span>' +
+        '<span class="admin-booking-detail__salon-label">Pro</span>' +
         '<strong>' +
-        esc(salon.brand_name || 'Salon') +
+        esc(salon.brand_name || 'Pro') +
         '</strong>' +
         (salon.subdomain
           ? '<a class="admin-info-link" href="' +
@@ -1832,7 +1832,7 @@
       '<div class="admin-config-pill"><span>Deposit</span><strong>' +
       esc(depositLine) +
       '</strong></div>' +
-      '<div class="admin-config-pill"><span>Hair photo</span><strong>' +
+      '<div class="admin-config-pill"><span>Current look photo</span><strong>' +
       (requireHair !== false ? 'Required' : 'Optional') +
       '</strong></div>' +
       '<div class="admin-config-pill"><span>Reference photo</span><strong>' +
@@ -2036,7 +2036,7 @@
       '<section class="admin-main-panel admin-styles-salon-panel">' +
       renderMainListHead(
         'Service menu',
-        'Live services and add-ons from this salon’s catalog · prices show base through highest add-on',
+        'Live services and add-ons from this pro’s catalog · prices show base through highest add-on',
         styleCount,
         statsHtml,
       ) +
@@ -2146,7 +2146,7 @@
             (r.user_id
               ? '<div class="admin-record-card__foot"><button type="button" class="admin-link-btn" data-open-user="' +
                 esc(r.user_id) +
-                '">Open salon</button></div>'
+                '">Open pro</button></div>'
               : '') +
             '</article>'
           );
@@ -2198,7 +2198,7 @@
               ? '<span class="admin-pill admin-pill--good admin-pill--soft">Public</span>'
               : '<span class="admin-pill admin-pill--neutral admin-pill--soft">Hidden</span>') +
             (r.user_id
-              ? '<button type="button" class="admin-link-btn" data-open-user="' + esc(r.user_id) + '">Open salon</button>'
+              ? '<button type="button" class="admin-link-btn" data-open-user="' + esc(r.user_id) + '">Open pro</button>'
               : '') +
             '</div></article>'
           );
@@ -2209,14 +2209,14 @@
   }
 
   var EMAIL_TEMPLATE_LABELS = {
-    'salon-booking': 'Salon: new booking',
+    'salon-booking': 'Pro: new booking',
     'customer-confirmation': 'Customer: booking received',
     'customer-reminder': 'Customer: reminder',
     'daily-digest': 'Owner: daily digest',
     'deposit-received': 'Customer: deposit received',
-    'salon-cancelled': 'Salon: cancelled',
+    'salon-cancelled': 'Pro: cancelled',
     'customer-cancelled': 'Customer: cancelled',
-    'salon-rescheduled': 'Salon: rescheduled',
+    'salon-rescheduled': 'Pro: rescheduled',
     'customer-rescheduled': 'Customer: rescheduled',
     'review-request': 'Customer: review request',
   };
@@ -2335,7 +2335,7 @@
           esc(email.status || 'sent') +
           '</span>',
       },
-      email.brand_name ? { label: 'Salon', value: email.brand_name } : { label: 'Salon', value: null },
+      email.brand_name ? { label: 'Pro', value: email.brand_name } : { label: 'Pro', value: null },
       email.booking_id
         ? { label: 'Booking', value: truncate(String(email.booking_id), 24) }
         : { label: 'Booking', value: null },
@@ -2404,7 +2404,7 @@
       '<div class="admin-biz-hero__main">' +
       renderSalonThumb(salonLogoUrl(data), data.brand_name || ownerName, 'admin-biz-hero__avatar') +
       '<div><h3>Business</h3><p class="admin-muted">' +
-      esc(data.brand_name || 'Salon') +
+      esc(data.brand_name || 'Pro') +
       (data.tagline ? ' · ' + esc(truncate(data.tagline, 48)) : '') +
       '</p>' +
       (data.public_url
@@ -2640,7 +2640,7 @@
   }
 
   function salonRowHtml(u) {
-    var name = u.brand_name || u.business_name || u.full_name || 'Salon';
+    var name = u.brand_name || u.business_name || u.full_name || 'Pro';
     var img = renderSalonThumb(salonLogoUrl(u), name, 'admin-salon-row__media-inner');
     return (
       '<button type="button" class="admin-salon-row" data-open-user="' +
@@ -2700,7 +2700,7 @@
     if (!target) return;
     var list = users || [];
     if (!list.length) {
-      target.innerHTML = '<p class="admin-muted">No salons found.</p>';
+      target.innerHTML = '<p class="admin-muted">No pros found.</p>';
       return;
     }
     target.innerHTML = list.map(salonRowHtml).join('');
@@ -2726,7 +2726,7 @@
           (barbers === 1 ? '' : 's') +
           ' · ' +
           fmtCount(salons) +
-          ' salon' +
+          ' pro' +
           (salons === 1 ? '' : 's');
       }
       els.salonCount.textContent = countLabel;
@@ -2811,7 +2811,7 @@
 
     els.clientsPanel.innerHTML =
       '<section class="admin-main-panel">' +
-      renderMainListHead('All clients', 'Grouped by salon and contact info', clients.length, '') +
+      renderMainListHead('All clients', 'Grouped by pro and contact info', clients.length, '') +
       statCards([
         { label: 'Unique clients', value: clients.length },
         { label: 'Total visits', value: totalVisits },
@@ -2895,7 +2895,7 @@
         : '') +
       '<div class="admin-record-card__foot">' +
       (r.user_id
-        ? '<button type="button" class="admin-link-btn" data-open-user="' + esc(r.user_id) + '">Open salon</button>'
+        ? '<button type="button" class="admin-link-btn" data-open-user="' + esc(r.user_id) + '">Open pro</button>'
         : '') +
       '</div></article>'
     );
@@ -2931,7 +2931,7 @@
     inquiries = inquiries || [];
     els.inquiriesPanel.innerHTML =
       '<section class="admin-main-panel">' +
-      renderMainListHead('Inquiries', 'Messages from salon contact forms', inquiries.length, '') +
+      renderMainListHead('Inquiries', 'Messages from booking site contact forms', inquiries.length, '') +
       renderInquiryCards(inquiries, { showSalon: true }) +
       '</section>';
   }
@@ -2967,7 +2967,7 @@
     }
     els.onboardingPanel.innerHTML =
       '<section class="admin-main-panel">' +
-      renderMainListHead('Onboarding survey', 'Answers from new salon sign-ups', responses.length, '') +
+      renderMainListHead('Onboarding survey', 'Answers from new pro sign-ups', responses.length, '') +
       '<div class="admin-record-list">' +
       responses.map(renderOnboardingCard).join('') +
       '</div></section>';
@@ -3132,7 +3132,7 @@
     var rev = data.revenue_summary || {};
     var a = data.analytics || {};
     var sub = data.subscription || {};
-    var name = data.brand_name || 'Salon';
+    var name = data.brand_name || 'Pro';
     var img = renderSalonThumb(salonLogoUrl(data), name, 'admin-salon-hero__media-inner');
 
     return (
@@ -3178,7 +3178,7 @@
   }
 
   function renderSalonTab(data, tab) {
-    if (!data) return '<p class="admin-empty-note">No salon data loaded.</p>';
+    if (!data) return '<p class="admin-empty-note">No pro data loaded.</p>';
 
     if (tab === 'analytics') {
       return (
@@ -3448,7 +3448,7 @@
   function openSalonDashboard(data, initialTab) {
     state.salonData = data;
     state.salonTab = initialTab || 'analytics';
-    var name = data.brand_name || 'Salon';
+    var name = data.brand_name || 'Pro';
     if (els.salonViewTitle) els.salonViewTitle.textContent = name;
     if (els.salonViewThumb) {
       els.salonViewThumb.innerHTML = renderSalonThumb(salonLogoUrl(data), name, 'admin-salon-view__thumb');
@@ -3484,7 +3484,7 @@
   }
 
   function openUserDrawer(userId, salonTab) {
-    setStatus('Loading salon dashboard…');
+    setStatus('Loading pro dashboard…');
     api('user_detail', { user_id: userId }, state.pin)
       .then(function (data) {
         setStatus('');
