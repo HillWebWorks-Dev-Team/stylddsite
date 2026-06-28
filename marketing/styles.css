@@ -2392,6 +2392,39 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   margin-top: 0.15rem;
 }
 
+.footer-social {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.footer-social a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: var(--white-muted);
+  text-decoration: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.footer-social a:hover {
+  color: #fff;
+  border-color: rgba(255, 45, 138, 0.45);
+  background: rgba(255, 45, 138, 0.08);
+}
+
+.footer-social svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+}
+
 .copy {
   font-size: 0.8125rem;
   color: var(--white-faint);
@@ -3202,6 +3235,10 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   line-height: 1.65;
 }
 
+.legal-prose ol li {
+  padding-left: 0.15rem;
+}
+
 .legal-prose p + p {
   margin-top: 0.75rem;
 }
@@ -3211,6 +3248,13 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   padding-left: 1.25rem;
   display: grid;
   gap: 0.45rem;
+}
+
+.legal-prose ol {
+  margin: 0.5rem 0 0;
+  padding-left: 1.35rem;
+  display: grid;
+  gap: 0.55rem;
 }
 
 .legal-prose a {
@@ -3228,4 +3272,61 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   background: rgba(255, 255, 255, 0.08);
   padding: 0.1rem 0.35rem;
   border-radius: 0.35rem;
+}
+
+.legal-callout {
+  margin: 1.25rem 0 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: 0.85rem;
+  background: rgba(251, 191, 36, 0.06);
+  color: var(--white-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.legal-callout strong {
+  color: var(--white);
+}
+
+.legal-prose hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 0.5rem 0;
+}
+
+.legal-table-wrap {
+  overflow-x: auto;
+  margin-top: 0.75rem;
+}
+
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.legal-table th,
+.legal-table td {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--white-muted);
+  line-height: 1.55;
+}
+
+.legal-table th {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--white);
+  font-weight: 600;
+}
+
+.legal-table--wide {
+  min-width: 42rem;
+}
+
+.legal-prose em {
+  font-style: italic;
+  color: var(--white-dim);
 }
