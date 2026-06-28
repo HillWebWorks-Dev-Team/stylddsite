@@ -7989,9 +7989,11 @@ body.page-cover-splash .profile-below-hero {
   padding: 0 1rem;
 }
 .profile-hero-stack--tall .profile-hero-stack__img {
-  aspect-ratio: 4 / 9;
+  aspect-ratio: auto;
+  height: auto;
   width: min(100%, 400px);
   max-width: 400px;
+  object-fit: contain;
 }
 .profile-hero-stack__img {
   display: block;
@@ -8053,53 +8055,11 @@ body.page-cover-splash .profile-below-hero {
   display: block;
 }
 .profile-hero--stack .profile-hero__grid {
-  display: none;
+  grid-template-columns: 1fr;
+  padding-top: 1.5rem;
 }
-
 .profile-hero--stack .profile-photo {
   display: none;
-}
-
-@media (min-width: 701px) {
-  .profile-hero--stack {
-    padding: 1rem 0 0.5rem;
-  }
-
-  .profile-hero-stack--wide {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0 1.25rem;
-    max-width: 880px;
-    margin: 0 auto;
-  }
-
-  .profile-hero-stack--wide .profile-hero-stack__img {
-    aspect-ratio: auto;
-    width: 100%;
-    height: clamp(120px, 14vh, 168px);
-    max-height: 168px;
-    border-radius: 12px;
-  }
-
-  .profile-hero-stack--tall {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: flex-end;
-    gap: 0.65rem;
-    padding: 0 1rem;
-    max-width: 100%;
-  }
-
-  .profile-hero-stack--tall .profile-hero-stack__img {
-    width: auto;
-    height: clamp(200px, 28vh, 260px);
-    max-width: min(140px, 12vw);
-    aspect-ratio: 4 / 9;
-    border-radius: 12px;
-  }
 }
 
 /* Previous work portfolio */
