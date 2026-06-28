@@ -40,6 +40,144 @@
     return content.hiddenLocationParts.indexOf(part) !== -1;
   }
 
+  function formatMenuMoney(amount) {
+    return '$' + (Math.round(Number(amount) || 0)).toFixed(0);
+  }
+
+  function siteStyleById(styleId) {
+    return (window.__STYLD_SITE_STYLES__ || []).find(function (style) {
+      return style.id === styleId;
+    }) || null;
+  }
+
+  function siteStyleVariantChoices(style) {
+    if (window.StyldTenant && window.StyldTenant.getStyleVariantChoices) {
+      return window.StyldTenant.getStyleVariantChoices(style);
+    }
+    return [];
+  }
+
+  function ensureProfileVariantModal() {
+    if (document.getElementById('profile-style-variant-modal')) return;
+
+    var backdrop = document.createElement('div');
+    backdrop.id = 'profile-style-variant-modal-backdrop';
+    backdrop.className = 'booking-variant-modal__backdrop';
+    backdrop.hidden = true;
+    backdrop.setAttribute('aria-hidden', 'true');
+
+    var modal = document.createElement('div');
+    modal.id = 'profile-style-variant-modal';
+    modal.className = 'booking-variant-modal';
+    modal.hidden = true;
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'profile-style-variant-modal-title');
+    modal.innerHTML =
+      '<div class="booking-variant-modal__card">' +
+      '<h2 id="profile-style-variant-modal-title" class="booking-variant-modal__title">Choose your option</h2>' +
+      '<p class="booking-variant-modal__lead">Pick the version that fits your appointment.</p>' +
+      '<div id="profile-style-variant-modal-list" class="booking-addon-options booking-variant-modal__options" role="radiogroup"></div>' +
+      '<button type="button" id="profile-style-variant-modal-continue" class="btn btn-primary booking-variant-modal__continue">Continue to booking</button>' +
+      '</div>';
+
+    document.body.appendChild(backdrop);
+    document.body.appendChild(modal);
+  }
+
+  function closeProfileVariantModal() {
+    var modal = document.getElementById('profile-style-variant-modal');
+    var backdrop = document.getElementById('profile-style-variant-modal-backdrop');
+    if (modal) modal.hidden = true;
+    if (backdrop) {
+      backdrop.hidden = true;
+      backdrop.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('booking-variant-modal-open');
+  }
+
+  function showProfileVariantModal(style, onContinue) {
+    ensureProfileVariantModal();
+    var modal = document.getElementById('profile-style-variant-modal');
+    var backdrop = document.getElementById('profile-style-variant-modal-backdrop');
+    var list = document.getElementById('profile-style-variant-modal-list');
+    var title = document.getElementById('profile-style-variant-modal-title');
+    var continueBtn = document.getElementById('profile-style-variant-modal-continue');
+    if (!modal || !list || !continueBtn) return;
+
+    var variants = siteStyleVariantChoices(style);
+    if (!variants.length) {
+      if (typeof onContinue === 'function') onContinue('default');
+      return;
+    }
+
+    if (title) title.textContent = 'Choose your option \u2014 ' + (style.title || style.id || 'Service');
+
+    var html = '';
+    variants.forEach(function (variant, index) {
+      html +=
+        '<label class="booking-addon-option style-variant-option">' +
+        '<input type="radio" name="profile-style-variant" value="' +
+        escapeHtml(variant.id) +
+        '"' +
+        (index === 0 ? ' checked' : '') +
+        ' required />' +
+        '<span class="booking-addon-option__label">' +
+        escapeHtml(variant.label) +
+        ' (' +
+        formatMenuMoney(variant.price) +
+        ')</span>' +
+        '</label>';
+    });
+    list.innerHTML = html;
+
+    continueBtn.onclick = function () {
+      var checked = list.querySelector('input[name="profile-style-variant"]:checked');
+      var variantId = checked ? checked.value : '';
+      if (!variantId) return;
+      closeProfileVariantModal();
+      if (typeof onContinue === 'function') onContinue(variantId);
+    };
+
+    modal.hidden = false;
+    if (backdrop) {
+      backdrop.hidden = false;
+      backdrop.setAttribute('aria-hidden', 'false');
+    }
+    document.body.classList.add('booking-variant-modal-open');
+  }
+
+  function setupServiceCardBookingLinks(grid) {
+    if (!grid || grid.dataset.bookingLinksBound === '1') return;
+    grid.dataset.bookingLinksBound = '1';
+    grid.addEventListener('click', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.profile-service-card__expand-btn')) return;
+
+      var card =
+        e.target && e.target.closest
+          ? e.target.closest('a.profile-service-card[href*="/booking?style="]')
+          : null;
+      if (!card) return;
+
+      var href = card.getAttribute('href') || '';
+      var match = href.match(/[?&]style=([^&]+)/);
+      if (!match) return;
+
+      var styleId = decodeURIComponent(match[1]);
+      var style = siteStyleById(styleId);
+      if (!style || !style.variants || !style.variants.length) return;
+
+      e.preventDefault();
+      showProfileVariantModal(style, function (variantId) {
+        window.location.href =
+          '/booking?style=' +
+          encodeURIComponent(styleId) +
+          '&variant=' +
+          encodeURIComponent(variantId);
+      });
+    });
+  }
+
   function buildServiceCardWithCategory(style, cardClass, logoFallback) {
     var cat = (style.category || '').trim();
     var desc = (style.description || '').trim();
@@ -1128,6 +1266,7 @@
     if (serviceGrid) {
       serviceGrid.innerHTML = buildProfileServiceCards(styles, theme);
       setupMenuFilters(styles, serviceGrid);
+      setupServiceCardBookingLinks(serviceGrid);
       if (!serviceGrid.dataset.expandBound) {
         serviceGrid.dataset.expandBound = '1';
         serviceGrid.addEventListener('click', function (e) {

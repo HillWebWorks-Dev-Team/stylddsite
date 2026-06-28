@@ -4133,6 +4133,45 @@ ul.price-menu__policy-list {
   padding-bottom: 4rem;
 }
 
+/* Sticky footer — step-by-step booking (/booking) */
+body.page-booking {
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body.page-booking > main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+body.page-booking > main > .container {
+  flex: 1 1 auto;
+}
+
+body.page-booking > .site-footer.site-footer--home-promo {
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.booking-style-summary__label {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.booking-style-summary__card {
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(219, 39, 119, 0.25);
+  background: rgba(219, 39, 119, 0.05);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
 .booking-layout > .booking-supabase-hint,
 .booking-layout > .booking-form-section-lead {
   grid-column: 1 / -1;

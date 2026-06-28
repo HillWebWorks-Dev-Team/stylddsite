@@ -239,11 +239,20 @@
         .map(function (styleId) {
           var item = meta[styleId] || {};
           var sizeLabel = item.sizeLabel || item.variant || sizeLabelFromStyleId(styleId);
+          var basePrice = prices[styleId];
+          if (typeof basePrice !== 'number' || Number.isNaN(basePrice)) basePrice = 0;
           return {
             id: styleId,
             title: item.title || styleId,
             description: item.description || '',
-            priceLabel: formatStylePriceRange(prices[styleId], item.addons, item.variants),
+            priceLabel: formatStylePriceRange(basePrice, item.addons, item.variants),
+            base: basePrice,
+            defaultVariantLabel:
+              item.defaultVariantLabel != null ? String(item.defaultVariantLabel).trim() : '',
+            variants:
+              window.StyldTenant && window.StyldTenant.normalizeVariants
+                ? window.StyldTenant.normalizeVariants(item.variants)
+                : [],
             sizeLabel: sizeLabel || undefined,
             durationLabel: formatStyleDuration(item.durationMinutes),
             imageUrl: coverUrl(covers[styleId]) || logoFallbackUrl,

@@ -262,15 +262,13 @@ Tenant JS:
 
 Booking (`booking.js` + `booking.html`):
 
-- `getStyleVariantsForStyle(style)`: if stored extras exist, prepend `{ id: "default", label: defaultVariantLabel || "Standard", price: base }` then append extras
-- Show `#style-variant-field-wrap` / version modal only when **stored extras** exist (`style.variants.length > 0`)
-- Required radio group `name="style-variant"`; default (version 1) checked first
-- `effectiveStyleBase()` = selected variant price (default uses `style.base`)
-- `computePricing` uses `effectiveStyleBase` + add-ons
-- `buildBookingPayload`: `selected_variant_id`, `selected_variant_label`, `selected_variant_price`
-- `style_name`: `{title} — {variant.label}` when a version is chosen (+ add-on name if any)
+- Profile menu: clicking a service with extra versions opens a **version popup** before navigating to `/booking?style={id}&variant={id}`
+- `getStyleVariantsForStyle()` / `StyldTenant.getStyleVariantChoices()`: prepend version 1 from base + `defaultVariantLabel`, then extras
+- With `?style=` set, the **service step is locked** — read-only “Your service” summary; no style dropdown or version picker. Add-ons, photos, notes, and appointment steps unchanged
+- Version modal on `/booking` only when `?style=` has extras but no `?variant=` yet
+- Estimate sidebar updates from the locked style + version + add-ons
 
-HTML: `#style-variant-field-wrap` before `#style-addon-field-wrap`. CSS reuses `.booking-addon-option` for version radios.
+HTML: `#style-selection-summary` replaces `#style-select-field-wrap` when locked. `#style-variant-field-wrap` before `#style-addon-field-wrap` when not locked.
 
 **Example setup for Braids:**
 

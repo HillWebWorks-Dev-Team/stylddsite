@@ -16,11 +16,11 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=63" />
+    <link rel="stylesheet" href="/css/styles.css?v=65" />
     <!-- Vercel Web Analytics: enable in Vercel Project Settings > Analytics -->
     <script src="/js/vercel-analytics.bundle.js" defer></script>
   </head>
-  <body class="page-site">
+  <body class="page-site page-booking">
     <div id="tenant-status" hidden>Loading booking…</div>
     <nav class="profile-nav" id="profile-nav">
       <div class="container profile-nav__inner">
@@ -88,11 +88,16 @@
           <div class="booking-wizard__panel" data-booking-step="service" hidden>
             <section class="form-section">
               <h2>Service details</h2>
-              <div class="field">
+              <div class="field" id="style-select-field-wrap">
                 <label for="style-select">Choose menu item *</label>
                 <select id="style-select" name="style" required>
                   <option value="">Choose an option</option>
                 </select>
+              </div>
+
+              <div class="field booking-style-summary" id="style-selection-summary" hidden>
+                <p class="booking-style-summary__label">Your service</p>
+                <div class="booking-style-summary__card" id="style-selection-summary-text">—</div>
               </div>
 
               <div class="field booking-addon-field" id="style-variant-field-wrap" hidden>
@@ -446,9 +451,9 @@
     <script src="/js/booking-config.js?v=52"></script>
     <script src="/js/styld-tenant-config.js?v=39"></script>
     <script src="/js/styld-tenant-config.local.js?v=39"></script>
-    <script src="/js/styld-tenant-shared.js?v=68"></script>
-    <script src="/js/profile-content.js?v=39"></script>
-    <script src="/js/tenant-site.js?v=67"></script>
+    <script src="/js/styld-tenant-shared.js?v=69"></script>
+    <script src="/js/profile-content.js?v=29"></script>
+    <script src="/js/tenant-site.js?v=68"></script>
     <script src="/js/styld-tenant-booking.js?v=69"></script>
     <script src="/js/supabase-config.js?v=52"></script>
     <script src="/js/supabase-config.local.js?v=52"></script>
@@ -475,7 +480,7 @@
           'avail.src = "/js/booking-availability.js?v=4";' +
           'avail.onload = function () {' +
           'const booking = document.createElement("script");' +
-          'booking.src = "/js/booking.js?v=63";' +
+          'booking.src = "/js/booking.js?v=64";' +
           'booking.defer = true;' +
           'document.body.appendChild(booking);' +
           '};' +

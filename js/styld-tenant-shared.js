@@ -78,6 +78,22 @@
       .filter(Boolean);
   }
 
+  function getStyleVariantChoices(styleLike) {
+    if (!styleLike || typeof styleLike !== 'object') return [];
+    var extras = normalizeVariants(styleLike.variants);
+    if (!extras.length) return [];
+    var base =
+      typeof styleLike.base === 'number'
+        ? styleLike.base
+        : Number(styleLike.base);
+    if (!Number.isFinite(base)) base = 0;
+    var label =
+      styleLike.defaultVariantLabel && String(styleLike.defaultVariantLabel).trim()
+        ? String(styleLike.defaultVariantLabel).trim()
+        : 'Standard';
+    return [{ id: 'default', label: label, price: base }].concat(extras);
+  }
+
   function normalizeAddons(raw) {
     if (!Array.isArray(raw)) return [];
     return raw
@@ -812,6 +828,7 @@
     resolveCancellationPolicySummary: resolveCancellationPolicySummary,
     normalizeAddons: normalizeAddons,
     normalizeVariants: normalizeVariants,
+    getStyleVariantChoices: getStyleVariantChoices,
     formatStylePriceRange: formatStylePriceRange,
 
     loadPublishedSite: function () {

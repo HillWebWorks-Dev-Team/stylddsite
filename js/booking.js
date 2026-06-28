@@ -77,6 +77,10 @@
   var WIZARD_STEPS = ['personal', 'service', 'appointment', 'pricing'];
   var currentWizardStep = 0;
   var variantModalStyleId = '';
+  var lockedStyleSelection = false;
+  var bookingUrlParams = new URLSearchParams(window.location.search);
+  var preselectedStyleId = bookingUrlParams.get('style') || '';
+  var preselectedVariantId = bookingUrlParams.get('variant') || '';
 
   function money(n) {
     return '$' + (Math.round(Number(n) || 0)).toFixed(0);
@@ -201,6 +205,9 @@
   }
 
   function getStyleVariantsForStyle(style) {
+    if (window.StyldTenant && window.StyldTenant.getStyleVariantChoices) {
+      return window.StyldTenant.getStyleVariantChoices(style);
+    }
     if (!style) return [];
     var extras = styleExtraVariants(style);
     if (!extras.length) return [];
@@ -278,10 +285,10 @@
     if (!field || !container) return;
 
     var extras = styleExtraVariants(style);
-    if (!style || !extras.length) {
+    if (!style || !extras.length || lockedStyleSelection) {
       field.hidden = true;
       container.innerHTML = '';
-      selectedVariantId = '';
+      if (!lockedStyleSelection && extras.length === 0) selectedVariantId = '';
       return;
     }
 
@@ -376,11 +383,51 @@
           showFeedback('Choose an option to continue.', true);
           return;
         }
-        if (selectedStyle) renderVariantPicker(selectedStyle);
+        if (selectedStyle) {
+          renderVariantPicker(selectedStyle);
+          applyLockedStyleUI();
+          updateStyleSelectionSummary();
+        }
         updatePricingDisplay();
+        updateBookingVariantUrl();
         closeVariantModal();
       });
     }
+  }
+
+  function updateBookingVariantUrl() {
+    if (!lockedStyleSelection || !selectedVariantId || !window.history || !window.history.replaceState) return;
+    var params = new URLSearchParams(window.location.search);
+    params.set('style', preselectedStyleId || (selectedStyle && selectedStyle.id) || '');
+    params.set('variant', selectedVariantId);
+    var next = window.location.pathname + '?' + params.toString();
+    window.history.replaceState(null, '', next);
+    preselectedVariantId = selectedVariantId;
+  }
+
+  function applyLockedStyleUI() {
+    var selectWrap = document.getElementById('style-select-field-wrap');
+    var summary = document.getElementById('style-selection-summary');
+    if (selectWrap) selectWrap.hidden = lockedStyleSelection;
+    if (summary) summary.hidden = !lockedStyleSelection;
+    if (styleSelect) {
+      if (lockedStyleSelection) styleSelect.removeAttribute('required');
+      else styleSelect.setAttribute('required', '');
+    }
+    if (lockedStyleSelection) updateStyleSelectionSummary();
+  }
+
+  function updateStyleSelectionSummary() {
+    var textEl = document.getElementById('style-selection-summary-text');
+    if (!textEl || !selectedStyle) return;
+    var variant = getSelectedVariant(selectedStyle);
+    var name = selectedStyle.name || selectedStyle.id || '';
+    if (variant) {
+      textEl.textContent = name + ' \u2014 ' + variant.label + ' (' + money(variant.price) + ')';
+      return;
+    }
+    var base = typeof selectedStyle.base === 'number' ? selectedStyle.base : 0;
+    textEl.textContent = name + (base > 0 ? ' (' + money(base) + ')' : '');
   }
 
   function renderAddonPicker(style) {
@@ -1040,8 +1087,12 @@
       closeVariantModal();
     }
     selectedStyle = styleById(styleId);
+    if (!lockedStyleSelection) {
+      selectedVariantId = '';
+    } else if (preselectedVariantId) {
+      selectedVariantId = preselectedVariantId;
+    }
     selectedAddonId = '';
-    selectedVariantId = '';
     selectedDate = null;
     selectedSlotStart = null;
     if (startsAtInput) startsAtInput.value = '';
@@ -1059,15 +1110,22 @@
     }
 
     if (styleGate) styleGate.hidden = true;
-    renderVariantPicker(selectedStyle);
+    if (lockedStyleSelection) {
+      var variantWrap = document.getElementById('style-variant-field-wrap');
+      if (variantWrap) variantWrap.hidden = true;
+    } else {
+      renderVariantPicker(selectedStyle);
+    }
     renderAddonPicker(selectedStyle);
     updatePricingDisplay();
+    if (lockedStyleSelection) updateStyleSelectionSummary();
     refreshCalendar().then(function () {
       updateSelectedSummary();
       if (slotsContainer) slotsContainer.innerHTML = '';
     });
 
     if (
+      !lockedStyleSelection &&
       variantModalStyleId &&
       selectedStyle.id !== variantModalStyleId &&
       styleExtraVariants(selectedStyle).length > 0
@@ -1504,16 +1562,24 @@
   setupAddonPicker();
   setupVariantPicker();
   bindWizardNav();
+
+  lockedStyleSelection = !!preselectedStyleId;
+  if (preselectedVariantId) selectedVariantId = preselectedVariantId;
+
+  if (preselectedStyleId && styleSelect) {
+    styleSelect.value = preselectedStyleId;
+  }
+
   goToWizardStep(0);
   onStyleChange();
+  applyLockedStyleUI();
 
-  var preselected = new URLSearchParams(window.location.search).get('style');
-  if (preselected && styleSelect) {
-    styleSelect.value = preselected;
-    onStyleChange();
-    var preStyle = styleById(preselected);
-    if (preStyle && styleExtraVariants(preStyle).length > 0) {
+  if (preselectedStyleId) {
+    var preStyle = styleById(preselectedStyleId);
+    if (preStyle && styleExtraVariants(preStyle).length > 0 && !preselectedVariantId) {
       showVariantModal(preStyle);
+    } else {
+      updatePricingDisplay();
     }
   }
 })();
