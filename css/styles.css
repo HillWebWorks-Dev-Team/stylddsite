@@ -8869,6 +8869,34 @@ body.page-booking .booking-product-option.is-out-of-stock .booking-product-optio
   opacity: 0.72;
 }
 
+body.page-booking .booking-product-option.is-out-of-stock {
+  pointer-events: auto;
+}
+
+body.page-booking .booking-product-option.is-out-of-stock .booking-product-option__body,
+body.page-booking .booking-product-option.is-out-of-stock .booking-product-option__unavailable {
+  cursor: default;
+}
+
+body.page-booking .booking-product-option__unavailable {
+  align-self: center;
+  margin: 0;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #f87171;
+  background: color-mix(in srgb, #f87171 12%, transparent);
+  border: 1px solid color-mix(in srgb, #f87171 28%, transparent);
+  white-space: nowrap;
+}
+
+body.page-booking .booking-product-modal-qty__label--out {
+  color: #f87171;
+}
+
 body.page-booking .booking-product-option__stock {
   font-size: 0.78rem;
   font-weight: 600;

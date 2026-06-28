@@ -839,70 +839,16 @@
     return null;
   }
 
-  function readInventoryTrackFlag(item) {
-    if (!item || typeof item !== 'object') return false;
-
-    if (readInventoryBool(item.unlimitedStock) === true || readInventoryBool(item.unlimited_stock) === true) {
-      return false;
-    }
-
-    var trackKeys = [
-      'trackInventory',
-      'track_inventory',
-      'inventoryTracking',
-      'inventory_tracking',
-      'inventoryEnabled',
-      'inventory_enabled',
-      'trackStock',
-      'track_stock',
-    ];
-    var i;
-    for (i = 0; i < trackKeys.length; i++) {
-      var trackValue = readInventoryBool(item[trackKeys[i]]);
-      if (trackValue != null) return trackValue;
-    }
-
-    if (item.inventory && typeof item.inventory === 'object') {
-      var nested = readInventoryTrackFlag(item.inventory);
-      if (nested) return true;
-      if (
-        readInventoryBool(item.inventory.trackInventory) === false ||
-        readInventoryBool(item.inventory.track) === false ||
-        readInventoryBool(item.inventory.enabled) === false
-      ) {
-        return false;
-      }
-      if (
-        readInventoryBool(item.inventory.trackInventory) === true ||
-        readInventoryBool(item.inventory.track) === true ||
-        readInventoryBool(item.inventory.enabled) === true
-      ) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  function readQuantityInStock(item) {
+  function readStockQty(item) {
     if (!item || typeof item !== 'object') return 0;
 
     var keys = [
+      'stockQty',
+      'stock_qty',
       'quantityInStock',
       'quantity_in_stock',
       'stockQuantity',
       'stock_quantity',
-      'inventoryQuantity',
-      'inventory_quantity',
-      'inventoryQty',
-      'inventory_qty',
-      'stock',
-      'inStock',
-      'in_stock',
-      'inventoryCount',
-      'inventory_count',
-      'qty',
-      'count',
     ];
     var i;
     for (i = 0; i < keys.length; i++) {
@@ -912,11 +858,16 @@
       if (Number.isFinite(num) && num >= 0) return num;
     }
 
-    if (item.inventory && typeof item.inventory === 'object') {
-      return readQuantityInStock(item.inventory);
-    }
-
     return 0;
+  }
+
+  function readInventoryTrackFlag(item) {
+    if (!item || typeof item !== 'object') return false;
+    var trackValue = readInventoryBool(item.trackInventory);
+    if (trackValue != null) return trackValue;
+    trackValue = readInventoryBool(item.track_inventory);
+    if (trackValue != null) return trackValue;
+    return false;
   }
 
   function normalizeSiteProducts(raw) {
@@ -937,7 +888,7 @@
           : [];
         var storagePath = String(item.storagePath || imagePaths[0] || '').trim();
         var trackInventory = readInventoryTrackFlag(item);
-        var quantityInStock = readQuantityInStock(item);
+        var stockQty = readStockQty(item);
         return {
           id: id,
           title: title,
@@ -946,7 +897,8 @@
           storagePath: storagePath,
           imagePaths: imagePaths.length ? imagePaths : storagePath ? [storagePath] : [],
           trackInventory: trackInventory,
-          quantityInStock: quantityInStock,
+          stockQty: stockQty,
+          quantityInStock: stockQty,
         };
       })
       .filter(Boolean);
@@ -958,7 +910,8 @@
 
   function getProductQuantityInStock(product) {
     if (!product) return 0;
-    var qty = product.quantityInStock;
+    var qty = product.stockQty;
+    if (qty == null) qty = product.quantityInStock;
     if (typeof qty !== 'number') qty = parseInt(qty, 10);
     if (!Number.isFinite(qty) || qty < 0) return 0;
     return qty;

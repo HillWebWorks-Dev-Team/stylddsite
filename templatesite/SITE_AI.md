@@ -216,7 +216,7 @@ Products are managed in the Styld app (**Profile → Account → Products**). Th
 
 | record_key | field | notes |
 |------------|-------|-------|
-| `products_catalog` | array | Each product: `id`, `title`, `description`, `price`, `enabled`, `imagePaths[]`, `storagePath`, `trackInventory`, `quantityInStock` |
+| `products_catalog` | array | Each product: `id`, `title`, `description`, `price`, `enabled`, `imagePaths[]`, `storagePath`, `trackInventory`, `stockQty` |
 | `products_settings` | object | `allowPickup`, `allowShipping`, `shippingFlatRate`, `pickupInstructions`, `shippingNote` |
 | `site_content` | | `productsTitle`, `productsBlurb`; hide shop if `hiddenSections` includes `'products'` |
 
@@ -230,7 +230,7 @@ Runtime globals:
 - `StyldTenant.normalizeSiteProducts(raw)` — filters `enabled`, validates `id`/`title`/`price`, normalizes inventory fields
 - `StyldTenant.isProductOutOfStock(product)` / `getProductMaxOrderQuantity(product)` / `formatProductStockLabel(product)` — inventory helpers for shop + booking UI
 
-**Inventory:** Only when `trackInventory` is **explicitly true** (toggle on in the app) does the live site show stock or enforce limits. Missing/false/`unlimitedStock` = no inventory UI. Reads `quantityInStock` and common aliases (`quantity_in_stock`, `stockQuantity`, nested `inventory`, etc.). Stock decrements server-side via `styld_tenant_insert_booking` and `submit-product-order`.
+**Inventory:** Stored in `products_catalog` JSON (not a separate table). Each product uses **`trackInventory`** (boolean) and **`stockQty`** (number). Only when `trackInventory` is **true** does the live site show stock or enforce limits; `stockQty` is decremented server-side via `styld_apply_product_inventory()` on booking/order. Normalized client-side as `stockQty` + `quantityInStock` alias.
 
 ### Booking checkout (`booking.html` pricing step)
 
@@ -250,7 +250,7 @@ Promo codes apply to **service subtotal only**, not products.
 
 - `/products` → `tenant/products.html` (`body.page-products`)
 - `/products/order?product={id}` → `tenant/products-order.html` (`body.page-products-order`)
-- Standalone order flow via edge function `submit-product-order` — **only when `products_settings.allowShipping` is true** (shipping required; no standalone pickup — pickup is via booking `fulfillment_method: 'at_appointment'`). Request body includes `quantity`; server decrements `quantityInStock` when `trackInventory` is on.
+- Standalone order flow via edge function `submit-product-order` — **only when `products_settings.allowShipping` is true** (shipping required; no standalone pickup — pickup is via booking `fulfillment_method: 'at_appointment'`). Request body includes `quantity`; server decrements `stockQty` when `trackInventory` is on.
 - Register routes in `middleware.js` TENANT_STATIC_PAGES
 - Nav **Shop** tab from `productsTitle` when `'products'` ∉ `hiddenSections`
 
