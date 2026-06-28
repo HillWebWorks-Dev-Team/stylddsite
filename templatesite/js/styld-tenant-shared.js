@@ -199,6 +199,48 @@
     });
   }
 
+  var STYLD_SOCIAL_LINKS = {
+    instagram: 'https://www.instagram.com/styldcrm/',
+    tiktok: 'https://www.tiktok.com/@styldcrm',
+  };
+
+  var STYLD_IG_ICON =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">' +
+    '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/>' +
+    '<circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
+  var STYLD_TT_ICON =
+    '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+    '<path d="M16.6 5.82s.51.5 0 0A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V8.01a7.27 7.27 0 0 0 4.3 1.38V6.29a4.1 4.1 0 0 1-1-.47z"/></svg>';
+
+  function ensureStyldFooterSocial() {
+    document.querySelectorAll('.site-footer').forEach(function (footer) {
+      var bottom = footer.querySelector('.footer-bottom') || footer;
+      if (!bottom || bottom.querySelector('.footer-styld-social')) return;
+
+      var nav = document.createElement('nav');
+      nav.className = 'footer-styld-social';
+      nav.setAttribute('aria-label', 'Follow Styld on social media');
+      nav.innerHTML =
+        '<a href="' +
+        STYLD_SOCIAL_LINKS.instagram +
+        '" target="_blank" rel="noopener noreferrer" aria-label="Instagram @styldcrm">' +
+        STYLD_IG_ICON +
+        '</a>' +
+        '<a href="' +
+        STYLD_SOCIAL_LINKS.tiktok +
+        '" target="_blank" rel="noopener noreferrer" aria-label="TikTok @styldcrm">' +
+        STYLD_TT_ICON +
+        '</a>';
+
+      var builtBy = bottom.querySelector('.footer-built-by');
+      if (builtBy && builtBy.parentElement === bottom) {
+        bottom.insertBefore(nav, builtBy.nextSibling);
+      } else {
+        bottom.appendChild(nav);
+      }
+    });
+  }
+
   function applySiteFooter(content) {
     var brandName = content && content.brandName ? String(content.brandName).trim() : '';
     var brandEl = document.getElementById('preview-footer-brand');
@@ -210,6 +252,7 @@
       var cfg = window.__STYLD_TENANT__ || {};
       styldLink.href = cfg.marketingUrl || 'https://styldd.com';
     }
+    ensureStyldFooterSocial();
   }
 
   function normalizeWeekdayHours(raw) {
@@ -938,6 +981,7 @@
     SITE_OFFLINE_MESSAGE: SITE_OFFLINE_MESSAGE,
     getSubdomain: getSubdomain,
     applySiteFooter: applySiteFooter,
+    ensureStyldFooterSocial: ensureStyldFooterSocial,
     applySiteTheme: applySiteTheme,
     applySiteShareBranding: applySiteShareBranding,
     resolveShareImageUrl: resolveShareImageUrl,
@@ -1074,4 +1118,10 @@
         });
     },
   };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureStyldFooterSocial);
+  } else {
+    ensureStyldFooterSocial();
+  }
 })();

@@ -2319,6 +2319,41 @@ body.page-home--cover-preview .hero-landing {
   margin: 0;
 }
 
+.footer-styld-social {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.site-footer .footer-bottom .footer-styld-social a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+}
+
+.site-footer .footer-bottom .footer-styld-social a:hover,
+.site-footer .footer-bottom .footer-styld-social a:focus-visible {
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration: none;
+}
+
+.site-footer .footer-bottom .footer-styld-social svg {
+  width: 1rem;
+  height: 1rem;
+  display: block;
+}
+
+.footer-styld-social__sep {
+  color: rgba(255, 255, 255, 0.22);
+  user-select: none;
+}
+
 .footer-built-by__link {
   display: inline-flex;
   align-items: center;
