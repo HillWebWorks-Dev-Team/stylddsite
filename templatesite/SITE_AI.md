@@ -91,7 +91,7 @@ Profile CSS uses fallbacks, e.g. `color: var(--text-price, var(--ink));` — do 
 
 On **`/book`** (cover layout): if both hidden, `.profile-book-intro` is hidden and the page starts at the menu. On **split** home: `.profile-info` beside the hero hides when both are off.
 
-Other ids: `"menu"`, `"visit"`, `"reviews"`, `"portfolio"` — `[data-site-section="..."]` elements. The portfolio section manages its own `hidden` state in `populatePortfolio()` (do not drive it from the generic visibility loop).
+Other ids: `"menu"`, `"visit"`, `"reviews"`, `"portfolio"`, `"faq"` — `[data-site-section="..."]` elements. The portfolio and FAQ sections manage their own `hidden` state in `populatePortfolio()` / `populateFaq()` (do not drive them from the generic visibility loop).
 
 ## Previous work portfolio (`portfolioItems`)
 
@@ -131,7 +131,25 @@ Use `StyldTenant.resolveStyleCoverUrl(path)` when available.
 
 **CSS:** `.profile-portfolio-carousel`, `.profile-portfolio-carousel__slide`, `.profile-portfolio-view-more`, `.profile-portfolio-grid--catalog`
 
-**Section order:** Hero → Reviews → Portfolio (if above menu) → Menu → Portfolio (if below menu) → Location → Footer. Full catalog at `/portfolio`.
+**Section order:** Hero → Reviews → Portfolio (if above menu) → Menu → Portfolio (if below menu) → FAQ → Location → Footer. Full catalog at `/portfolio`.
+
+## FAQ section (`faqItems`)
+
+| Source | Fields |
+|--------|--------|
+| `site_content` | `faqTitle` (default `"FAQ"`), optional `faqBlurb`, `faqItems: { question, answer }[]` (both required per item), `hiddenSections` includes `'faq'` to hide |
+
+**Placement:** On `tenant/profile.html` and `tenant/book.html`, FAQ sits between `#profile-menu-section` and `#profile-location-section`. Do not move it above the menu. `populatePortfolio()` may reorder Previous work; FAQ stays after menu (and after portfolio when `portfolioPlacement === 'below_menu'`) via `insertBefore` on `#profile-location-section`.
+
+**JS** (`js/profile-content.js`):
+
+- `populateFaq(content)` — called from `applyStyldPreviewContent()` after `populatePortfolio()`
+- Exclude `'faq'` from the generic `[data-site-section]` visibility loop
+- Accordion: clicking `.profile-faq-item__question` toggles the answer and `aria-expanded` (`setupFaqAccordion()`)
+
+**CSS:** `.profile-faq-section`, `.profile-faq-item`, `.profile-faq-item__question`, `.profile-faq-item__answer`, `.profile-faq-item__chevron` (rotate when `.is-open`). Match menu section spacing and service card styling; support dark mode via `:root[data-surface-mode='dark']`.
+
+**Hide when:** `'faq'` in `hiddenSections`, or no `faqItems` entries with both question and answer filled in.
 
 ## Style add-ons (`style_catalog_meta`)
 

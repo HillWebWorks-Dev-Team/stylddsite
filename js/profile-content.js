@@ -462,7 +462,8 @@
         sectionId === 'visit' ||
         sectionId === 'aboutMe' ||
         sectionId === 'policies' ||
-        sectionId === 'portfolio'
+        sectionId === 'portfolio' ||
+        sectionId === 'faq'
       ) {
         return;
       }
@@ -680,6 +681,87 @@
 
     startPortfolioVideos(track);
     syncPortfolioCarouselLayout(track);
+    section.hidden = false;
+  }
+
+  function normalizeFaqItems(content) {
+    content = content && typeof content === 'object' ? content : {};
+    if (!Array.isArray(content.faqItems)) return [];
+    return content.faqItems
+      .map(function (item) {
+        if (!item || typeof item !== 'object') return null;
+        var question = String(item.question || '').trim();
+        var answer = String(item.answer || '').trim();
+        if (!question || !answer) return null;
+        return { question: question, answer: answer };
+      })
+      .filter(Boolean);
+  }
+
+  function setupFaqAccordion() {
+    if (document.documentElement.dataset.faqAccordionBound) return;
+    document.documentElement.dataset.faqAccordionBound = '1';
+    document.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('.profile-faq-item__question') : null;
+      if (!btn) return;
+      e.preventDefault();
+      var item = btn.closest('.profile-faq-item');
+      if (!item) return;
+      var answerEl = item.querySelector('.profile-faq-item__answer');
+      if (!answerEl) return;
+      var opening = answerEl.hidden;
+      answerEl.hidden = !opening;
+      btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+      item.classList.toggle('is-open', opening);
+    });
+  }
+
+  function populateFaq(content) {
+    var section = document.getElementById('profile-faq-section');
+    var titleEl = document.getElementById('profile-faq-title');
+    var blurbEl = document.getElementById('profile-faq-blurb');
+    var listEl = document.getElementById('profile-faq-list');
+    var locationSection = document.getElementById('profile-location-section');
+    if (!section || !listEl) return;
+
+    var items = normalizeFaqItems(content);
+    if (isSectionHidden(content, 'faq') || !items.length) {
+      section.hidden = true;
+      listEl.innerHTML = '';
+      return;
+    }
+
+    if (locationSection && locationSection.parentNode) {
+      locationSection.parentNode.insertBefore(section, locationSection);
+    }
+
+    if (titleEl) {
+      titleEl.textContent = String(content.faqTitle || 'FAQ').trim() || 'FAQ';
+    }
+    if (blurbEl) {
+      var blurb = String(content.faqBlurb || '').trim();
+      blurbEl.textContent = blurb;
+      blurbEl.hidden = !blurb;
+    }
+
+    listEl.innerHTML = items
+      .map(function (item) {
+        return (
+          '<div class="profile-faq-item">' +
+          '<button type="button" class="profile-faq-item__question" aria-expanded="false">' +
+          '<span class="profile-faq-item__question-text">' +
+          escapeHtml(item.question) +
+          '</span>' +
+          '<svg class="profile-faq-item__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>' +
+          '</button>' +
+          '<div class="profile-faq-item__answer" hidden>' +
+          escapeHtml(item.answer) +
+          '</div>' +
+          '</div>'
+        );
+      })
+      .join('');
+
     section.hidden = false;
   }
 
@@ -907,6 +989,7 @@
 
     applySectionVisibility(content);
     populatePortfolio(content, theme);
+    populateFaq(content);
 
     // Footer
     if (window.StyldTenant && window.StyldTenant.applySiteFooter) {
@@ -921,8 +1004,10 @@
 
   if (window.__STYLD_SITE_CONTENT__) {
     setupPortfolioLightbox();
+    setupFaqAccordion();
     window.applyStyldPreviewContent();
   } else {
     setupPortfolioLightbox();
+    setupFaqAccordion();
   }
 })();
