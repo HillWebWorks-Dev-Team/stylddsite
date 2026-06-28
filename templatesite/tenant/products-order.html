@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=77" />
+    <link rel="stylesheet" href="/css/styles.css?v=81" />
     <style>
       #tenant-status {
         position: fixed;
@@ -73,13 +73,14 @@
           <p class="product-order-unavailable__text">
             This shop is not set up for shipped orders. Pickup is available when you book an appointment — add this product during checkout.
           </p>
-          <a class="btn btn-primary" data-booking-product-link href="/booking">Book &amp; add product</a>
+          <a class="btn btn-primary" data-booking-product-link href="/">Book appointment</a>
           <a class="product-order-unavailable__shop" href="/products">← Back to shop</a>
         </div>
         <form id="product-order-form" class="product-order-form" novalidate>
           <fieldset class="product-order-fulfillment" id="product-order-fulfillment" hidden>
             <legend class="visually-hidden">Fulfillment</legend>
           </fieldset>
+          <div class="form-field" id="product-order-qty-wrap" hidden></div>
           <div class="form-field">
             <label for="product-order-name">Full name</label>
             <input id="product-order-name" name="full-name" type="text" autocomplete="name" required />
@@ -116,9 +117,9 @@
     <script src="/js/vercel-analytics.bundle.js" defer></script>
     <script src="/js/styld-tenant-config.js?v=1780530043880"></script>
     <script src="/js/styld-tenant-config.local.js?v=1780530043880"></script>
-    <script src="/js/styld-tenant-shared.js?v=74"></script>
+    <script src="/js/styld-tenant-shared.js?v=75"></script>
     <script src="/js/profile-content.js?v=31"></script>
     <script src="/js/tenant-site.js?v=70"></script>
-    <script src="/js/products-order.js?v=2" defer></script>
+    <script src="/js/products-order.js?v=4" defer></script>
   </body>
 </html>

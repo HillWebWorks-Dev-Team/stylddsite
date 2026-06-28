@@ -469,7 +469,41 @@
     return getSiteProductsSettings().allowShipping === true;
   }
 
+  function productInventoryApi() {
+    return window.StyldTenant || {};
+  }
+
+  function isProductOutOfStock(product) {
+    var fn = productInventoryApi().isProductOutOfStock;
+    if (fn) return fn(product);
+    return !!(product && product.trackInventory === true && (product.quantityInStock || 0) <= 0);
+  }
+
+  function formatProductStockLabel(product) {
+    var fn = productInventoryApi().formatProductStockLabel;
+    if (fn) return fn(product);
+    if (!product || product.trackInventory !== true) return '';
+    var stock = Number(product.quantityInStock) || 0;
+    return stock <= 0 ? 'Out of stock' : stock + ' in stock';
+  }
+
+  function buildProductStockHtml(product) {
+    var label = formatProductStockLabel(product);
+    if (!label) return '';
+    var isOut = isProductOutOfStock(product);
+    return (
+      '<p class="profile-product-card__stock' +
+      (isOut ? ' profile-product-card__stock--out' : '') +
+      '">' +
+      escapeHtml(label) +
+      '</p>'
+    );
+  }
+
   function buildProductOrderActionsHtml(product) {
+    if (isProductOutOfStock(product)) {
+      return '';
+    }
     if (!standaloneProductOrdersAllowed()) {
       return (
         '<p class="profile-product-card__booking-note">Add this product when you book your appointment.</p>'
@@ -1236,6 +1270,7 @@
       '<p class="profile-product-card__price">' +
       formatProductPrice(product.price) +
       '</p>' +
+      buildProductStockHtml(product) +
       buildProductOrderActionsHtml(product) +
       '</div>' +
       '</article>'
@@ -1330,17 +1365,20 @@
     if (prevBtn) prevBtn.hidden = !showNav;
     if (nextBtn) nextBtn.hidden = !showNav;
     if (actionsEl) {
-      if (standaloneProductOrdersAllowed()) {
+      var stockHtml = buildProductStockHtml(product);
+      if (isProductOutOfStock(product)) {
+        actionsEl.innerHTML = stockHtml;
+      } else if (standaloneProductOrdersAllowed()) {
         actionsEl.innerHTML =
+          stockHtml +
           '<a class="profile-product-card__btn profile-product-card__btn--primary" href="/products/order?product=' +
           encodeURIComponent(product.id) +
           '">Order now</a>';
       } else {
         actionsEl.innerHTML =
+          stockHtml +
           '<p class="profile-product-card__booking-note">Add this product when you book your appointment.</p>' +
-          '<a class="profile-product-card__btn profile-product-card__btn--primary" href="/booking?product=' +
-          encodeURIComponent(product.id) +
-          '">Book appointment</a>';
+          '<a class="profile-product-card__btn profile-product-card__btn--primary" href="/">Book appointment</a>';
       }
     }
   }

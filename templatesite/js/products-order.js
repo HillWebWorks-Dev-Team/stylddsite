@@ -2,6 +2,7 @@
   var cfg = window.__STYLD_TENANT__ || {};
   var params = new URLSearchParams(window.location.search);
   var productId = (params.get('product') || '').trim();
+  var orderQuantity = 1;
 
   function getSubdomain() {
     if (window.StyldTenant && window.StyldTenant.getSubdomain) {
@@ -16,6 +17,40 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  function inventoryApi() {
+    return window.StyldTenant || {};
+  }
+
+  function isProductOutOfStock(product) {
+    var fn = inventoryApi().isProductOutOfStock;
+    if (fn) return fn(product);
+    return !!(product && product.trackInventory === true && (product.quantityInStock || 0) <= 0);
+  }
+
+  function getProductMaxOrderQuantity(product) {
+    var fn = inventoryApi().getProductMaxOrderQuantity;
+    if (fn) return fn(product);
+    if (isProductOutOfStock(product)) return 0;
+    if (!product || product.trackInventory !== true) return 99;
+    return Math.min(99, Number(product.quantityInStock) || 0);
+  }
+
+  function formatProductStockLabel(product) {
+    var fn = inventoryApi().formatProductStockLabel;
+    if (fn) return fn(product);
+    if (!product || product.trackInventory !== true) return '';
+    var stock = Number(product.quantityInStock) || 0;
+    return stock <= 0 ? 'Out of stock' : stock + ' in stock';
+  }
+
+  function normalizeOrderQuantity(value, product) {
+    var qty = parseInt(value, 10);
+    if (!Number.isFinite(qty) || qty < 1) qty = 1;
+    var maxQty = product ? getProductMaxOrderQuantity(product) : 99;
+    if (maxQty <= 0) return 0;
+    return Math.min(maxQty, Math.min(99, qty));
   }
 
   function productImageUrl(path) {
@@ -112,19 +147,81 @@
     return 'shipping';
   }
 
-  function showStandaloneUnavailable(product) {
+  function showOrderBlocked(message) {
     var form = document.getElementById('product-order-form');
     var unavailable = document.getElementById('product-order-unavailable');
     var main = document.getElementById('product-order-main');
+    var textEl = unavailable ? unavailable.querySelector('.product-order-unavailable__text') : null;
     if (main) main.hidden = false;
     if (form) form.hidden = true;
-    if (unavailable) {
-      unavailable.hidden = false;
-      var bookingLink = unavailable.querySelector('[data-booking-product-link]');
-      if (bookingLink) {
-        bookingLink.href = '/booking?product=' + encodeURIComponent(product.id);
-      }
+    if (unavailable) unavailable.hidden = false;
+    if (textEl) textEl.textContent = message;
+  }
+
+  function syncOrderQuantityUi(product) {
+    var wrap = document.getElementById('product-order-qty-wrap');
+    if (!wrap) return;
+    var maxQty = getProductMaxOrderQuantity(product);
+    var minus = wrap.querySelector('[data-product-order-qty-minus]');
+    var plus = wrap.querySelector('[data-product-order-qty-plus]');
+    var input = wrap.querySelector('[data-product-order-qty-input]');
+    if (input) input.value = String(orderQuantity);
+    if (minus) minus.disabled = orderQuantity <= 1 || maxQty <= 0;
+    if (plus) plus.disabled = orderQuantity >= maxQty || maxQty <= 0;
+    if (input) input.max = String(maxQty);
+    var totalEl = document.getElementById('product-order-line-total');
+    if (totalEl) {
+      totalEl.textContent =
+        orderQuantity > 1 ? formatPrice(product.price * orderQuantity) + ' total' : '';
+      totalEl.hidden = orderQuantity <= 1;
     }
+  }
+
+  function setupOrderQuantity(product) {
+    var wrap = document.getElementById('product-order-qty-wrap');
+    if (!wrap) return;
+    var maxQty = getProductMaxOrderQuantity(product);
+    if (maxQty <= 0) {
+      wrap.hidden = true;
+      return;
+    }
+    orderQuantity = Math.min(1, maxQty);
+    wrap.hidden = false;
+    wrap.innerHTML =
+      '<label class="product-order-qty__label" for="product-order-qty-input">Quantity</label>' +
+      '<div class="booking-product-qty product-order-qty">' +
+      '<button type="button" class="booking-product-qty__btn" data-product-order-qty-minus aria-label="Decrease quantity">−</button>' +
+      '<input id="product-order-qty-input" type="number" class="booking-product-qty__input" data-product-order-qty-input min="1" max="' +
+      maxQty +
+      '" step="1" inputmode="numeric" value="' +
+      orderQuantity +
+      '" aria-label="Quantity" />' +
+      '<button type="button" class="booking-product-qty__btn" data-product-order-qty-plus aria-label="Increase quantity">+</button>' +
+      '</div>' +
+      '<p class="product-order-line-total" id="product-order-line-total" hidden></p>';
+
+    wrap.addEventListener('click', function (e) {
+      if (e.target.closest('[data-product-order-qty-minus]')) {
+        e.preventDefault();
+        orderQuantity = normalizeOrderQuantity(orderQuantity - 1, product);
+        syncOrderQuantityUi(product);
+        return;
+      }
+      if (e.target.closest('[data-product-order-qty-plus]')) {
+        e.preventDefault();
+        orderQuantity = normalizeOrderQuantity(orderQuantity + 1, product);
+        syncOrderQuantityUi(product);
+      }
+    });
+
+    wrap.addEventListener('change', function (e) {
+      var input = e.target;
+      if (!input || !input.matches('[data-product-order-qty-input]')) return;
+      orderQuantity = normalizeOrderQuantity(input.value, product);
+      syncOrderQuantityUi(product);
+    });
+
+    syncOrderQuantityUi(product);
   }
 
   function syncShippingVisibility() {
@@ -147,6 +244,7 @@
     var imagePath = product.storagePath || (product.imagePaths && product.imagePaths[0]) || '';
     var imageUrl = productImageUrl(imagePath);
     var brand = (window.__STYLD_SITE_CONTENT__ && window.__STYLD_SITE_CONTENT__.brandName) || 'Shop';
+    var stockLabel = formatProductStockLabel(product);
 
     document.title = 'Order · ' + (product.title || 'Product') + ' | ' + brand;
 
@@ -163,6 +261,13 @@
       '<p class="product-order-summary__price">' +
       formatPrice(product.price) +
       '</p>' +
+      (stockLabel
+        ? '<p class="product-order-summary__stock' +
+          (isProductOutOfStock(product) ? ' product-order-summary__stock--out' : '') +
+          '">' +
+          escapeHtml(stockLabel) +
+          '</p>'
+        : '') +
       '</div>';
 
     main.hidden = false;
@@ -197,6 +302,17 @@
         return;
       }
 
+      if (isProductOutOfStock(product)) {
+        setFeedback('This product is out of stock.', true);
+        return;
+      }
+
+      orderQuantity = normalizeOrderQuantity(orderQuantity, product);
+      if (orderQuantity <= 0) {
+        setFeedback('This product is out of stock.', true);
+        return;
+      }
+
       if (fulfillment !== 'shipping') {
         setFeedback('Shipping is required for standalone product orders.', true);
         return;
@@ -213,6 +329,7 @@
       edgeFunction('submit-product-order', {
         subdomain: subdomain,
         productId: product.id,
+        quantity: orderQuantity,
         fullName: (document.getElementById('product-order-name') || {}).value || '',
         email: (document.getElementById('product-order-email') || {}).value || '',
         phone: (document.getElementById('product-order-phone') || {}).value || '',
@@ -247,13 +364,21 @@
     var settings = getSettings();
     renderProduct(product);
 
+    if (isProductOutOfStock(product)) {
+      showOrderBlocked('This product is out of stock and cannot be ordered right now.');
+      return;
+    }
+
     if (!standaloneOrdersAllowed(settings)) {
-      showStandaloneUnavailable(product);
+      showOrderBlocked(
+        'This shop is not set up for shipped orders. Pickup is available when you book an appointment — add this product during checkout.',
+      );
       return;
     }
 
     renderFulfillmentOptions(settings);
     syncShippingVisibility();
+    setupOrderQuantity(product);
     bindForm(product);
 
     var footerBrand = document.getElementById('preview-footer-brand');

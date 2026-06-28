@@ -4682,15 +4682,9 @@ body.page-booking .booking-products-list {
 
 body.page-booking .booking-product-option {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 0.45rem 0.65rem;
   align-items: stretch;
-}
-
-body.page-booking .booking-product-option__input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
 }
 
 body.page-booking .booking-product-option__body {
@@ -4702,13 +4696,90 @@ body.page-booking .booking-product-option__body {
   border: 1px solid color-mix(in srgb, var(--text-body, var(--ink)) 18%, transparent);
   background: color-mix(in srgb, var(--text-body, var(--ink)) 4%, transparent);
   transition: border-color 0.15s, background 0.15s;
-  cursor: pointer;
   min-width: 0;
 }
 
-body.page-booking .booking-product-option__input:checked + .booking-product-option__body {
+body.page-booking .booking-product-option.is-selected .booking-product-option__body {
   border-color: var(--pink);
   background: color-mix(in srgb, var(--pink) 10%, transparent);
+}
+
+body.page-booking .booking-product-qty {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--text-body, var(--ink)) 20%, transparent);
+  background: color-mix(in srgb, var(--text-body, var(--ink)) 4%, transparent);
+  overflow: hidden;
+}
+
+body.page-booking .booking-product-qty__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-heading, var(--ink));
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+body.page-booking .booking-product-qty__btn:hover {
+  background: color-mix(in srgb, var(--pink) 12%, transparent);
+}
+
+body.page-booking .booking-product-qty__btn:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: -2px;
+}
+
+body.page-booking .booking-product-qty__input {
+  width: 2.35rem;
+  padding: 0.35rem 0.15rem;
+  border: none;
+  border-left: 1px solid color-mix(in srgb, var(--text-body, var(--ink)) 14%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--text-body, var(--ink)) 14%, transparent);
+  background: transparent;
+  color: var(--text-heading, var(--ink));
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+body.page-booking .booking-product-qty__input::-webkit-outer-spin-button,
+body.page-booking .booking-product-qty__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+body.page-booking .booking-product-qty__input:focus {
+  outline: none;
+  background: color-mix(in srgb, var(--pink) 8%, transparent);
+}
+
+body.page-booking .booking-product-modal-qty__label {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted, var(--muted));
+}
+
+body.page-booking .booking-product-option__line-total {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--pink);
 }
 
 body.page-booking .booking-product-option__thumb-btn {
@@ -4804,12 +4875,24 @@ body.page-booking .booking-product-option__details:focus-visible {
   }
 
   body.page-booking .booking-product-option {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "body body"
+      "qty details";
+  }
+
+  body.page-booking .booking-product-option__body {
+    grid-area: body;
+  }
+
+  body.page-booking .booking-product-qty {
+    grid-area: qty;
   }
 
   body.page-booking .booking-product-option__details {
-    justify-self: start;
-    margin-left: 0.9rem;
+    grid-area: details;
+    justify-self: end;
+    margin-left: 0;
   }
 }
 
@@ -8769,6 +8852,63 @@ body.profile-product-modal-open {
   font-size: 0.84rem;
   line-height: 1.45;
   color: var(--text-muted, var(--muted));
+}
+
+.profile-product-card__stock {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted, var(--muted));
+}
+
+.profile-product-card__stock--out {
+  color: #b42318;
+}
+
+body.page-booking .booking-product-option.is-out-of-stock .booking-product-option__body {
+  opacity: 0.72;
+}
+
+body.page-booking .booking-product-option__stock {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted, var(--muted));
+}
+
+body.page-booking .booking-product-option__stock--out,
+body.page-booking .booking-product-option__stock.booking-product-option__stock--out {
+  color: #f87171;
+}
+
+body.page-booking .booking-product-qty--disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.product-order-summary__stock {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted, var(--muted));
+}
+
+.product-order-summary__stock--out {
+  color: #b42318;
+}
+
+.product-order-qty__label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-heading, var(--ink));
+}
+
+.product-order-line-total {
+  margin: 0.45rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-heading, var(--ink));
 }
 
 .product-order-head {

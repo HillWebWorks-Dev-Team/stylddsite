@@ -566,10 +566,15 @@
     var prevBtn = document.querySelector('[data-booking-product-modal-prev]');
     var nextBtn = document.querySelector('[data-booking-product-modal-next]');
     var showNav = urls.length > 1;
-    var isSelected = !!selectedProductIds[product.id];
+    var quantity = getProductQuantity(product.id);
 
     if (titleEl) titleEl.textContent = product.title || 'Product';
-    if (priceEl) priceEl.textContent = money(product.price);
+    if (priceEl) {
+      priceEl.textContent =
+        quantity > 1
+          ? money(product.price) + ' each · ' + money(product.price * quantity) + ' total'
+          : money(product.price);
+    }
     if (descEl) {
       var fullDesc = String(product.description || '').trim();
       descEl.textContent = fullDesc;
@@ -586,12 +591,12 @@
     if (prevBtn) prevBtn.hidden = !showNav;
     if (nextBtn) nextBtn.hidden = !showNav;
     if (actionsEl) {
+      var stockLabel = formatProductStockLabel(product);
       actionsEl.innerHTML =
-        '<button type="button" class="profile-product-card__btn profile-product-card__btn--primary" data-booking-product-modal-toggle="' +
-        escapeHtml(product.id) +
-        '">' +
-        (isSelected ? 'Remove from booking' : 'Add to booking') +
-        '</button>';
+        (stockLabel
+          ? '<p class="booking-product-modal-qty__label">' + escapeHtml(stockLabel) + '</p>'
+          : '<p class="booking-product-modal-qty__label">Quantity</p>') +
+        buildBookingProductQtyHtml(product, quantity);
     }
   }
 
@@ -629,20 +634,6 @@
     renderBookingProductModal();
   }
 
-  function toggleBookingProductFromModal(productId) {
-    var input = null;
-    document.querySelectorAll('input[name="booking-product"]').forEach(function (el) {
-      if (el.value === productId) input = el;
-    });
-    if (input) {
-      input.checked = !input.checked;
-      if (input.checked) selectedProductIds[productId] = true;
-      else delete selectedProductIds[productId];
-      updatePricingDisplay();
-    }
-    renderBookingProductModal();
-  }
-
   function setupBookingProductModal() {
     if (document.body.dataset.bookingProductModalBound) return;
     document.body.dataset.bookingProductModalBound = '1';
@@ -670,13 +661,26 @@
         stepBookingProductModal(1);
         return;
       }
-      var toggleBtn = e.target.closest
-        ? e.target.closest('[data-booking-product-modal-toggle]')
-        : null;
-      if (toggleBtn) {
-        var toggleId = toggleBtn.getAttribute('data-booking-product-modal-toggle');
-        if (toggleId) toggleBookingProductFromModal(toggleId);
+      var minusBtn = e.target.closest ? e.target.closest('[data-booking-product-qty-minus]') : null;
+      if (minusBtn) {
+        e.preventDefault();
+        var minusId = minusBtn.getAttribute('data-product-id');
+        if (minusId) setProductQuantity(minusId, getProductQuantity(minusId) - 1);
+        return;
       }
+      var plusBtn = e.target.closest ? e.target.closest('[data-booking-product-qty-plus]') : null;
+      if (plusBtn) {
+        e.preventDefault();
+        var plusId = plusBtn.getAttribute('data-product-id');
+        if (plusId) setProductQuantity(plusId, getProductQuantity(plusId) + 1);
+      }
+    });
+
+    document.addEventListener('change', function (e) {
+      var input = e.target;
+      if (!input || !input.matches || !input.matches('[data-booking-product-qty-input]')) return;
+      var productId = input.getAttribute('data-product-id');
+      if (productId) setProductQuantity(productId, input.value);
     });
 
     document.addEventListener('keydown', function (e) {
@@ -692,15 +696,175 @@
     return 'booking-product-' + String(productId || '').replace(/[^a-zA-Z0-9_-]/g, '');
   }
 
+  function normalizeProductQuantity(value) {
+    var qty = parseInt(value, 10);
+    if (!Number.isFinite(qty) || qty < 0) return 0;
+    if (qty > 99) return 99;
+    return qty;
+  }
+
+  function productInventoryApi() {
+    return window.StyldTenant || {};
+  }
+
+  function isProductOutOfStock(product) {
+    var fn = productInventoryApi().isProductOutOfStock;
+    if (fn) return fn(product);
+    return !!(product && product.trackInventory === true && (product.quantityInStock || 0) <= 0);
+  }
+
+  function getProductMaxOrderQuantity(product) {
+    var fn = productInventoryApi().getProductMaxOrderQuantity;
+    if (fn) return fn(product);
+    if (isProductOutOfStock(product)) return 0;
+    if (!product || product.trackInventory !== true) return 99;
+    return Math.min(99, Number(product.quantityInStock) || 0);
+  }
+
+  function formatProductStockLabel(product) {
+    var fn = productInventoryApi().formatProductStockLabel;
+    if (fn) return fn(product);
+    if (!product || product.trackInventory !== true) return '';
+    var stock = Number(product.quantityInStock) || 0;
+    return stock <= 0 ? 'Out of stock' : stock + ' in stock';
+  }
+
+  function findBookingProduct(productId) {
+    return productsCatalog.find(function (item) {
+      return item && item.id === productId;
+    });
+  }
+
+  function getProductQuantity(productId) {
+    var stored = selectedProductIds[productId];
+    if (stored === true) return 1;
+    return normalizeProductQuantity(stored);
+  }
+
+  function setProductQuantity(productId, quantity) {
+    var product = findBookingProduct(productId);
+    var maxQty = product ? getProductMaxOrderQuantity(product) : 99;
+    var qty = normalizeProductQuantity(quantity);
+    if (maxQty <= 0) qty = 0;
+    else if (qty > maxQty) qty = maxQty;
+    if (qty <= 0) delete selectedProductIds[productId];
+    else selectedProductIds[productId] = qty;
+    syncBookingProductQuantityUi(productId);
+    updatePricingDisplay();
+  }
+
+  function buildBookingProductQtyHtml(product, quantity) {
+    var productId = product.id;
+    var maxQty = getProductMaxOrderQuantity(product);
+    var outOfStock = maxQty <= 0;
+    var atMax = quantity >= maxQty && maxQty > 0;
+    return (
+      '<div class="booking-product-qty' +
+      (outOfStock ? ' booking-product-qty--disabled' : '') +
+      '" data-product-id="' +
+      escapeHtml(productId) +
+      '">' +
+      '<button type="button" class="booking-product-qty__btn" data-booking-product-qty-minus data-product-id="' +
+      escapeHtml(productId) +
+      '" aria-label="Decrease quantity"' +
+      (outOfStock || quantity <= 0 ? ' disabled' : '') +
+      '>−</button>' +
+      '<input type="number" class="booking-product-qty__input" data-booking-product-qty-input data-product-id="' +
+      escapeHtml(productId) +
+      '" min="0" max="' +
+      maxQty +
+      '" step="1" inputmode="numeric" value="' +
+      quantity +
+      '" aria-label="Quantity"' +
+      (outOfStock ? ' disabled' : '') +
+      ' />' +
+      '<button type="button" class="booking-product-qty__btn" data-booking-product-qty-plus data-product-id="' +
+      escapeHtml(productId) +
+      '" aria-label="Increase quantity"' +
+      (outOfStock || atMax ? ' disabled' : '') +
+      '>+</button>' +
+      '</div>'
+    );
+  }
+
+  function validateBookingProductInventory() {
+    var invalid = null;
+    productsCatalog.forEach(function (product) {
+      if (invalid) return;
+      var qty = getProductQuantity(product.id);
+      if (qty <= 0) return;
+      if (isProductOutOfStock(product)) {
+        invalid = (product.title || 'A product') + ' is out of stock. Remove it to continue.';
+        return;
+      }
+      var maxQty = getProductMaxOrderQuantity(product);
+      if (qty > maxQty) {
+        invalid =
+          'Only ' +
+          maxQty +
+          ' of ' +
+          (product.title || 'this product') +
+          (maxQty === 1 ? ' is' : ' are') +
+          ' in stock.';
+      }
+    });
+    return invalid;
+  }
+
+  function syncBookingProductQuantityUi(productId) {
+    var qty = getProductQuantity(productId);
+    document.querySelectorAll('[data-booking-product-qty-input][data-product-id="' + productId + '"]').forEach(function (input) {
+      input.value = String(qty);
+    });
+    var product = findBookingProduct(productId);
+    document.querySelectorAll('.booking-product-option[data-product-id="' + productId + '"]').forEach(function (row) {
+      row.classList.toggle('is-selected', qty > 0);
+      row.classList.toggle('is-out-of-stock', !!(product && isProductOutOfStock(product)));
+      if (!product) return;
+      var priceWrap = row.querySelector('.booking-product-option__price');
+      if (!priceWrap) return;
+      var lineTotalEl = priceWrap.querySelector('.booking-product-option__line-total');
+      if (qty > 1) {
+        if (!lineTotalEl) {
+          lineTotalEl = document.createElement('span');
+          lineTotalEl.className = 'booking-product-option__line-total';
+          priceWrap.appendChild(lineTotalEl);
+        }
+        lineTotalEl.textContent = money(product.price * qty);
+      } else if (lineTotalEl) {
+        lineTotalEl.remove();
+      }
+    });
+    document.querySelectorAll('.booking-product-qty[data-product-id="' + productId + '"]').forEach(function (wrap) {
+      if (!product) return;
+      var maxQty = getProductMaxOrderQuantity(product);
+      var minus = wrap.querySelector('[data-booking-product-qty-minus]');
+      var plus = wrap.querySelector('[data-booking-product-qty-plus]');
+      var input = wrap.querySelector('[data-booking-product-qty-input]');
+      if (minus) minus.disabled = qty <= 0 || maxQty <= 0;
+      if (plus) plus.disabled = qty >= maxQty || maxQty <= 0;
+      if (input) {
+        input.max = String(maxQty);
+        input.disabled = maxQty <= 0;
+      }
+    });
+    if (bookingProductModalState.product && bookingProductModalState.product.id === productId) {
+      renderBookingProductModal();
+    }
+  }
+
   function getSelectedBookingProducts() {
     return productsCatalog.filter(function (product) {
-      return !!selectedProductIds[product.id];
+      return getProductQuantity(product.id) > 0;
     });
   }
 
   function getProductsSubtotal() {
-    return getSelectedBookingProducts().reduce(function (sum, product) {
-      return sum + (typeof product.price === 'number' ? product.price : 0);
+    return productsCatalog.reduce(function (sum, product) {
+      var qty = getProductQuantity(product.id);
+      if (qty <= 0) return sum;
+      var price = typeof product.price === 'number' ? product.price : 0;
+      return sum + price * qty;
     }, 0);
   }
 
@@ -718,8 +882,9 @@
     if (section) section.hidden = false;
     list.innerHTML = productsCatalog
       .map(function (product) {
-        var checked = !!selectedProductIds[product.id];
-        var inputId = bookingProductInputId(product.id);
+        var quantity = getProductQuantity(product.id);
+        var outOfStock = isProductOutOfStock(product);
+        var stockLabel = formatProductStockLabel(product);
         var imageUrl = getBookingProductImageUrls(product)[0] || '';
         var thumb = imageUrl
           ? '<button type="button" class="booking-product-option__thumb-btn" data-product-id="' +
@@ -736,31 +901,40 @@
             ' details"><span class="booking-product-option__thumb booking-product-option__thumb--empty" aria-hidden="true"></span></button>';
         var shortDesc = String(product.description || '').trim();
         if (shortDesc.length > 100) shortDesc = shortDesc.slice(0, 97) + '…';
+        var lineTotal =
+          quantity > 1
+            ? '<span class="booking-product-option__line-total">' + money(product.price * quantity) + '</span>'
+            : '';
         return (
-          '<div class="booking-product-option">' +
-          '<input type="checkbox" class="booking-product-option__input" id="' +
-          escapeHtml(inputId) +
-          '" name="booking-product" value="' +
+          '<div class="booking-product-option' +
+          (quantity > 0 ? ' is-selected' : '') +
+          (outOfStock ? ' is-out-of-stock' : '') +
+          '" data-product-id="' +
           escapeHtml(product.id) +
-          '"' +
-          (checked ? ' checked' : '') +
-          ' />' +
-          '<label class="booking-product-option__body" for="' +
-          escapeHtml(inputId) +
           '">' +
+          '<div class="booking-product-option__body">' +
           thumb +
           '<span class="booking-product-option__text">' +
           '<span class="booking-product-option__title">' +
           escapeHtml(product.title) +
           '</span>' +
+          (stockLabel
+            ? '<span class="booking-product-option__stock' +
+              (outOfStock ? ' booking-product-option__stock--out' : '') +
+              '">' +
+              escapeHtml(stockLabel) +
+              '</span>'
+            : '') +
           (shortDesc
             ? '<span class="booking-product-option__desc">' + escapeHtml(shortDesc) + '</span>'
             : '') +
           '</span>' +
           '<span class="booking-product-option__price">' +
           money(product.price) +
+          lineTotal +
           '</span>' +
-          '</label>' +
+          '</div>' +
+          buildBookingProductQtyHtml(product, quantity) +
           '<button type="button" class="booking-product-option__details" data-product-id="' +
           escapeHtml(product.id) +
           '">Details</button>' +
@@ -776,18 +950,13 @@
     list.dataset.bound = '1';
 
     if (preselectedProductId && productsCatalog.some(function (p) { return p.id === preselectedProductId; })) {
-      selectedProductIds[preselectedProductId] = true;
+      var preProduct = findBookingProduct(preselectedProductId);
+      if (preProduct && !isProductOutOfStock(preProduct)) {
+        selectedProductIds[preselectedProductId] = Math.min(1, getProductMaxOrderQuantity(preProduct));
+      }
     }
 
     renderBookingProducts();
-
-    list.addEventListener('change', function (event) {
-      var input = event.target;
-      if (!input || input.name !== 'booking-product') return;
-      if (input.checked) selectedProductIds[input.value] = true;
-      else delete selectedProductIds[input.value];
-      updatePricingDisplay();
-    });
   }
 
   function hasUnappliedPromoInput() {
@@ -1792,7 +1961,7 @@
               id: product.id,
               title: product.title,
               price: product.price,
-              quantity: 1,
+              quantity: getProductQuantity(product.id),
             };
           })
         : null,
@@ -1993,6 +2162,13 @@
     if (!bookingForm || !bookingForm.reportValidity()) return;
     if (hasUnappliedPromoInput()) {
       showFeedback('Tap Apply to use your promo code, or clear the field before continuing.', true);
+      goToWizardStep(getWizardStepIndex('pricing'));
+      return;
+    }
+
+    var inventoryError = validateBookingProductInventory();
+    if (inventoryError) {
+      showFeedback(inventoryError, true);
       goToWizardStep(getWizardStepIndex('pricing'));
       return;
     }

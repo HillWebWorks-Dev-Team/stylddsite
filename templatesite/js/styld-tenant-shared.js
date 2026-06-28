@@ -845,6 +845,15 @@
             }).filter(Boolean)
           : [];
         var storagePath = String(item.storagePath || imagePaths[0] || '').trim();
+        var trackInventory = item.trackInventory === true || item.track_inventory === true;
+        var stockRaw =
+          item.quantityInStock != null
+            ? item.quantityInStock
+            : item.quantity_in_stock != null
+              ? item.quantity_in_stock
+              : 0;
+        var quantityInStock = typeof stockRaw === 'number' ? stockRaw : parseInt(stockRaw, 10);
+        if (!Number.isFinite(quantityInStock) || quantityInStock < 0) quantityInStock = 0;
         return {
           id: id,
           title: title,
@@ -852,9 +861,40 @@
           price: price,
           storagePath: storagePath,
           imagePaths: imagePaths.length ? imagePaths : storagePath ? [storagePath] : [],
+          trackInventory: trackInventory,
+          quantityInStock: quantityInStock,
         };
       })
       .filter(Boolean);
+  }
+
+  function productTracksInventory(product) {
+    return !!(product && product.trackInventory === true);
+  }
+
+  function getProductQuantityInStock(product) {
+    if (!product) return 0;
+    var qty = product.quantityInStock;
+    if (typeof qty !== 'number') qty = parseInt(qty, 10);
+    if (!Number.isFinite(qty) || qty < 0) return 0;
+    return qty;
+  }
+
+  function isProductOutOfStock(product) {
+    return productTracksInventory(product) && getProductQuantityInStock(product) <= 0;
+  }
+
+  function getProductMaxOrderQuantity(product) {
+    if (isProductOutOfStock(product)) return 0;
+    if (!productTracksInventory(product)) return 99;
+    return Math.min(99, getProductQuantityInStock(product));
+  }
+
+  function formatProductStockLabel(product) {
+    if (!productTracksInventory(product)) return '';
+    var stock = getProductQuantityInStock(product);
+    if (stock <= 0) return 'Out of stock';
+    return stock + ' in stock';
   }
 
   window.StyldTenant = {
@@ -882,6 +922,11 @@
     getStyleVariantChoices: getStyleVariantChoices,
     formatStylePriceRange: formatStylePriceRange,
     normalizeSiteProducts: normalizeSiteProducts,
+    productTracksInventory: productTracksInventory,
+    getProductQuantityInStock: getProductQuantityInStock,
+    isProductOutOfStock: isProductOutOfStock,
+    getProductMaxOrderQuantity: getProductMaxOrderQuantity,
+    formatProductStockLabel: formatProductStockLabel,
 
     loadPublishedSite: function () {
       var cfg = window.__STYLD_TENANT__ || {};

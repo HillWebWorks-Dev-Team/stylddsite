@@ -216,7 +216,7 @@ Products are managed in the Styld app (**Profile → Account → Products**). Th
 
 | record_key | field | notes |
 |------------|-------|-------|
-| `products_catalog` | array | Each product: `id`, `title`, `description`, `price`, `enabled`, `imagePaths[]`, `storagePath` (first image, backward compat) |
+| `products_catalog` | array | Each product: `id`, `title`, `description`, `price`, `enabled`, `imagePaths[]`, `storagePath`, `trackInventory`, `quantityInStock` |
 | `products_settings` | object | `allowPickup`, `allowShipping`, `shippingFlatRate`, `pickupInstructions`, `shippingNote` |
 | `site_content` | | `productsTitle`, `productsBlurb`; hide shop if `hiddenSections` includes `'products'` |
 
@@ -227,7 +227,10 @@ Runtime globals:
 
 - `window.__STYLD_SITE_PRODUCTS__` — `{ catalog, settings }` on profile/products pages (`tenant-site.js`)
 - `window.__STYLD_BOOKING_PRODUCTS__` / `__SALON_SITE_BOOKING__.products` — catalog on booking (`styld-tenant-booking.js`)
-- `StyldTenant.normalizeSiteProducts(raw)` — filters `enabled`, validates `id`/`title`/`price`
+- `StyldTenant.normalizeSiteProducts(raw)` — filters `enabled`, validates `id`/`title`/`price`, normalizes inventory fields
+- `StyldTenant.isProductOutOfStock(product)` / `getProductMaxOrderQuantity(product)` / `formatProductStockLabel(product)` — inventory helpers for shop + booking UI
+
+**Inventory:** When `trackInventory` is true, live site caps quantity selectors and blocks orders at `quantityInStock`. Existing products default to `trackInventory: false` until enabled in the app. Stock decrements server-side via `styld_tenant_insert_booking` (booking add-ons) and `submit-product-order` (standalone orders).
 
 ### Booking checkout (`booking.html` pricing step)
 
@@ -236,7 +239,7 @@ Runtime globals:
 - Price summary row `#line-products-row` when products selected
 - Deep link: `/booking?product={id}` pre-selects a product
 - On submit, save:
-  - `order_products`: `[{ id, title, price, quantity: 1 }]`
+  - `order_products`: `[{ id, title, price, quantity }]`
   - `products_subtotal` (dollars)
   - `fulfillment_method: 'at_appointment'`
   - `estimated_total` = service (after promo) + products
@@ -247,7 +250,7 @@ Promo codes apply to **service subtotal only**, not products.
 
 - `/products` → `tenant/products.html` (`body.page-products`)
 - `/products/order?product={id}` → `tenant/products-order.html` (`body.page-products-order`)
-- Standalone order flow via edge function `submit-product-order` — **only when `products_settings.allowShipping` is true** (shipping required; no standalone pickup — pickup is via booking `fulfillment_method: 'at_appointment'`)
+- Standalone order flow via edge function `submit-product-order` — **only when `products_settings.allowShipping` is true** (shipping required; no standalone pickup — pickup is via booking `fulfillment_method: 'at_appointment'`). Request body includes `quantity`; server decrements `quantityInStock` when `trackInventory` is on.
 - Register routes in `middleware.js` TENANT_STATIC_PAGES
 - Nav **Shop** tab from `productsTitle` when `'products'` ∉ `hiddenSections`
 
