@@ -16,7 +16,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=65" />
+    <link rel="stylesheet" href="/css/styles.css?v=66" />
     <!-- Vercel Web Analytics: enable in Vercel Project Settings > Analytics -->
     <script src="/js/vercel-analytics.bundle.js" defer></script>
   </head>
@@ -67,15 +67,13 @@
                 <label for="full-name">Full name *</label>
                 <input id="full-name" name="full-name" type="text" autocomplete="name" required />
               </div>
-              <div class="field-row">
-                <div class="field">
-                  <label for="phone">Phone number *</label>
-                  <input id="phone" name="phone" type="tel" autocomplete="tel" required />
-                </div>
-                <div class="field">
-                  <label for="email">Email *</label>
-                  <input id="email" name="email" type="email" autocomplete="email" required />
-                </div>
+              <div class="field">
+                <label for="phone">Phone number *</label>
+                <input id="phone" name="phone" type="tel" autocomplete="tel" required />
+              </div>
+              <div class="field">
+                <label for="email">Email *</label>
+                <input id="email" name="email" type="email" autocomplete="email" required />
               </div>
             </section>
             <div class="booking-wizard__nav">
@@ -371,53 +369,6 @@
             </button>
           </div>
         </div>
-
-        <aside class="pricing-sidebar" aria-label="Estimate summary">
-          <h3>Your estimate</h3>
-          <div class="price-line">
-            <span id="side-subtotal-label">Service price</span>
-            <span id="side-subtotal">$0.00</span>
-          </div>
-          <div class="price-line" id="side-addon-wrap" hidden>
-            <span id="side-addon-label">Add-on</span>
-            <span id="side-addon">$0.00</span>
-          </div>
-          <div class="price-line" id="side-service-total-wrap" hidden>
-            <span>Service total</span>
-            <span id="side-service-total">$0.00</span>
-          </div>
-          <div class="price-line total" id="side-estimated-total-wrap">
-            <span id="side-total-label">Pay in person</span>
-            <span id="side-total">$0.00</span>
-          </div>
-          <p class="deposit-note pricing-sidebar__pay-note" id="side-pay-note" hidden></p>
-          <div id="side-deposit-pricing" class="booking-deposit-pricing" hidden>
-            <div class="price-line" id="side-balance-wrap" hidden>
-              <span>Balance at appointment</span>
-              <span id="side-balance-due">$0.00</span>
-            </div>
-            <p class="deposit-note booking-deposit-separate-note" id="side-deposit-separate-note" hidden></p>
-          </div>
-          <div id="side-due-breakdown" class="booking-due-breakdown" hidden>
-            <div class="price-line">
-              <span id="side-deposit-label">Deposit</span>
-              <span id="side-deposit-amount">$0.00</span>
-            </div>
-            <div class="price-line">
-              <span>Service fee</span>
-              <span id="side-service-fee">$0.00</span>
-            </div>
-            <div class="price-line deposit booking-due-breakdown__total">
-              <span>Total due now</span>
-              <span id="side-total-due">$0.00</span>
-            </div>
-          </div>
-          <p class="deposit-note" id="side-deposit-note" hidden>All deposits non-refundable.</p>
-          <div id="side-cancellation-policy" class="pricing-sidebar-policy hidden" aria-hidden="true">
-            <h4 class="pricing-sidebar-policy__title">Cancellation policy</h4>
-            <p id="side-cancellation-policy-text" class="pricing-sidebar-policy__text"></p>
-          </div>
-        </aside>
       </div>
     </main>
 

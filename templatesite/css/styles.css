@@ -4133,6 +4133,87 @@ ul.price-menu__policy-list {
   padding-bottom: 4rem;
 }
 
+body.page-booking .booking-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 42rem;
+  margin-inline: auto;
+  padding-bottom: 1.5rem;
+}
+
+body.page-booking .booking-form-main.booking-wizard {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
+body.page-booking .booking-wizard__panel {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+body.page-booking .booking-wizard__panel .form-section {
+  flex: 1 1 auto;
+  margin-bottom: 0;
+}
+
+body.page-booking .booking-wizard__panel[data-booking-step="pricing"] .form-section {
+  flex: 0 0 auto;
+}
+
+body.page-booking .booking-wizard__nav {
+  margin-top: auto;
+  padding-top: 1.25rem;
+}
+
+body.page-booking .booking-wizard__nav .btn-primary,
+body.page-booking .booking-wizard__nav .btn-secondary {
+  width: 100%;
+}
+
+body.page-booking .field-row,
+body.page-booking .house-address-grid {
+  grid-template-columns: 1fr;
+}
+
+body.page-booking .form-section .field input[type="text"],
+body.page-booking .form-section .field input[type="tel"],
+body.page-booking .form-section .field input[type="email"],
+body.page-booking .form-section .field select,
+body.page-booking .form-section .field textarea {
+  width: 100%;
+  padding: 0.75rem 0;
+  font-size: 1.05rem;
+}
+
+body.page-booking .booking-wizard__progress {
+  flex-shrink: 0;
+  margin-bottom: 1.25rem;
+}
+
+body.page-booking [data-booking-step="pricing"] p,
+body.page-booking [data-booking-step="pricing"] .booking-due-breakdown p {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.65rem 0;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+body.page-booking [data-booking-step="pricing"] .booking-due-breakdown__total {
+  font-size: 1.15rem;
+  font-weight: 700;
+  padding-top: 0.5rem;
+  border-top: 1px dashed rgba(184, 134, 11, 0.35);
+}
+
 /* Sticky footer — step-by-step booking (/booking) */
 body.page-booking {
   min-height: 100dvh;
@@ -4149,6 +4230,8 @@ body.page-booking > main {
 
 body.page-booking > main > .container {
   flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 body.page-booking > .site-footer.site-footer--home-promo {
