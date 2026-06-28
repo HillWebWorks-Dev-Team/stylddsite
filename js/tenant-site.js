@@ -221,6 +221,7 @@
         heroCoverBlur: !!theme.heroCoverBlur,
         portfolioItems: Array.isArray(theme.portfolioItems) ? theme.portfolioItems : [],
         galleryImagePaths: Array.isArray(theme.galleryImagePaths) ? theme.galleryImagePaths : [],
+        certificationItems: Array.isArray(theme.certificationItems) ? theme.certificationItems : [],
       };
 
       if (window.StyldTenant && window.StyldTenant.applySiteTheme) {

@@ -29,6 +29,7 @@ const TENANT_STATIC_PAGES = {
   '/styles-catalog': '/styles-catalog.html',
   '/gallery': '/gallery.html',
   '/portfolio': '/tenant/portfolio.html',
+  '/certifications': '/tenant/certifications.html',
   '/review': '/review.html',
 };
 

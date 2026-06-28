@@ -166,6 +166,46 @@ Use `StyldTenant.resolveStyleCoverUrl(path)` when available.
 
 **Hide when:** `'faq'` in `hiddenSections`, or no `faqItems` entries with both question and answer filled in.
 
+## Header nav
+
+**Pages:** `tenant/profile.html`, `tenant/book.html`, `tenant/portfolio.html`, `tenant/certifications.html`
+
+Sticky `.profile-nav` with brand (home), optional section tabs, and Book Now.
+
+| Breakpoint | Behavior |
+|------------|----------|
+| Desktop (≥768px) | `.profile-nav__links` shows pill tabs inline between brand and Book Now |
+| Mobile | `.profile-nav__menu-btn` hamburger opens `.profile-nav__drawer` below nav |
+
+**JS** (`js/profile-content.js`):
+
+- `populateSiteNav(content)` — visibility, labels, `.is-active` when `body.page-certifications`
+- `bindSiteNavMenu()` — drawer toggle (once per page load)
+- For now one tab: Certifications → `/certifications` (`data-nav-page="certifications"`)
+- Hide nav tab + drawer link when `hiddenSections` includes `'certifications'`
+
+**Future tabs:** Add matching `<a class="profile-nav__link">` in `.profile-nav__links` and `.profile-nav__drawer-link` in drawer; add `body.page-*` per route; register in `middleware.js` `TENANT_STATIC_PAGES`.
+
+## Certifications (`certificationItems`)
+
+App path: **Site editor → Content → Certifications**
+
+| Source | Fields |
+|--------|--------|
+| `site_content` | `certificationsTitle`, `certificationsBlurb`, `hiddenSections` includes `'certifications'` to hide |
+| `site_theme` | `certificationItems: { storagePath, mediaType: 'image' }[]` (max 24). Storage: `style-covers/{userId}/certifications/` |
+
+**Route:** `/certifications` → `tenant/certifications.html` (`body.page-certifications`)
+
+**Page:** `#certifications-catalog-grid` gallery; tap image → `#profile-portfolio-lightbox` (shared with portfolio).
+
+**JS:**
+
+- `populateCertificationsCatalog(content, theme)` — full grid on `/certifications`; early return from `applyStyldPreviewContent()` like portfolio
+- `tenant-site.js` exposes `certificationItems` on `window.__STYLD_SITE_THEME__`
+
+**Hide when:** `'certifications'` in `hiddenSections`, or no valid `certificationItems`.
+
 ## Style add-ons (`style_catalog_meta`)
 
 Optional add-ons per style in `site_setting` → `style_catalog_meta`:

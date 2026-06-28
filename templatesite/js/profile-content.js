@@ -298,6 +298,70 @@
     return document.body.classList.contains('page-portfolio');
   }
 
+  function isCertificationsPage() {
+    return document.body.classList.contains('page-certifications');
+  }
+
+  function populateSiteNav(content) {
+    var hidden = isSectionHidden(content, 'certifications');
+    var label = String(content.certificationsTitle || 'Certifications').trim() || 'Certifications';
+    var linksWrap = document.getElementById('profile-nav-links');
+    var linkDesktop = document.getElementById('profile-nav-link-certifications');
+    var linkDrawer = document.getElementById('profile-nav-drawer-certifications');
+    var menuBtn = document.getElementById('profile-nav-menu-btn');
+    var drawer = document.getElementById('profile-nav-drawer');
+    var isActive = isCertificationsPage();
+
+    if (linksWrap) linksWrap.hidden = hidden;
+    if (menuBtn) menuBtn.hidden = hidden;
+
+    [linkDesktop, linkDrawer].forEach(function (el) {
+      if (!el) return;
+      el.textContent = label;
+      el.hidden = hidden;
+      el.classList.toggle('is-active', !hidden && isActive);
+    });
+
+    if (hidden && drawer) {
+      drawer.hidden = true;
+      if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('profile-nav-drawer-open');
+    }
+  }
+
+  function bindSiteNavMenu() {
+    if (document.body.dataset.siteNavMenuBound) return;
+    document.body.dataset.siteNavMenuBound = '1';
+
+    var menuBtn = document.getElementById('profile-nav-menu-btn');
+    var drawer = document.getElementById('profile-nav-drawer');
+    if (!menuBtn || !drawer) return;
+
+    menuBtn.addEventListener('click', function () {
+      if (menuBtn.hidden) return;
+      var opening = drawer.hidden;
+      drawer.hidden = !opening;
+      menuBtn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+      document.body.classList.toggle('profile-nav-drawer-open', opening);
+    });
+
+    drawer.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', function () {
+        drawer.hidden = true;
+        menuBtn.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('profile-nav-drawer-open');
+      });
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && drawer && !drawer.hidden) {
+        drawer.hidden = true;
+        menuBtn.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('profile-nav-drawer-open');
+      }
+    });
+  }
+
   function isSplashPage() {
     return document.body.classList.contains('page-home') && !isBookPage();
   }
@@ -512,6 +576,24 @@
         .filter(Boolean);
     }
     return [];
+  }
+
+  function normalizeCertificationItems(theme) {
+    theme = theme && typeof theme === 'object' ? theme : {};
+    if (!Array.isArray(theme.certificationItems)) return [];
+    return theme.certificationItems
+      .slice(0, 24)
+      .map(function (item) {
+        if (!item || typeof item !== 'object') return null;
+        var path = item.storagePath || item.storage_path || '';
+        path = String(path || '').trim();
+        if (!path) return null;
+        return {
+          storagePath: path,
+          mediaType: 'image',
+        };
+      })
+      .filter(Boolean);
   }
 
   function buildPortfolioItemHtml(item, index) {
@@ -835,6 +917,39 @@
     startPortfolioVideos(grid);
   }
 
+  function populateCertificationsCatalog(content, theme) {
+    var main = document.getElementById('certifications-catalog-main');
+    var titleEl = document.getElementById('certifications-catalog-title');
+    var blurbEl = document.getElementById('certifications-catalog-blurb');
+    var grid = document.getElementById('certifications-catalog-grid');
+    if (!grid) return;
+
+    var items = normalizeCertificationItems(theme);
+    var title = String(content.certificationsTitle || 'Certifications').trim() || 'Certifications';
+    var brand = content.brandName || 'Your Brand';
+    document.title = title + ' | ' + brand;
+
+    if (isSectionHidden(content, 'certifications') || !items.length) {
+      if (main) main.hidden = true;
+      grid.innerHTML = '';
+      return;
+    }
+
+    if (main) main.hidden = false;
+    if (titleEl) titleEl.textContent = title;
+    if (blurbEl) {
+      var blurb = String(content.certificationsBlurb || '').trim();
+      blurbEl.textContent = blurb;
+      blurbEl.hidden = !blurb;
+    }
+
+    grid.innerHTML = items
+      .map(function (item, index) {
+        return buildPortfolioItemHtml(item, index);
+      })
+      .join('');
+  }
+
   window.applyStyldPreviewContent = function applyStyldPreviewContent() {
     var content = window.__STYLD_SITE_CONTENT__;
     if (!content || typeof content !== 'object') return;
@@ -860,6 +975,27 @@
         logoImg.decoding = 'async';
         logoPlaceholder.replaceWith(logoImg);
       }
+    }
+
+    populateSiteNav(content);
+
+    if (isCertificationsPage()) {
+      updateNavBookLink('/booking');
+      if (theme.hideBookNowButton) {
+        document.querySelectorAll('.profile-nav .profile-book-btn').forEach(function (btn) {
+          btn.style.display = 'none';
+        });
+      }
+      populateCertificationsCatalog(content, theme);
+      if (window.StyldTenant && window.StyldTenant.applySiteFooter) {
+        window.StyldTenant.applySiteFooter(content);
+      } else {
+        var certFooterBrand = document.getElementById('preview-footer-brand');
+        if (certFooterBrand && content.brandName) {
+          certFooterBrand.textContent = '\u00A9 ' + content.brandName;
+        }
+      }
+      return;
     }
 
     if (isPortfolioPage()) {
@@ -1020,9 +1156,11 @@
   if (window.__STYLD_SITE_CONTENT__) {
     setupPortfolioLightbox();
     setupFaqAccordion();
+    bindSiteNavMenu();
     window.applyStyldPreviewContent();
   } else {
     setupPortfolioLightbox();
     setupFaqAccordion();
+    bindSiteNavMenu();
   }
 })();
