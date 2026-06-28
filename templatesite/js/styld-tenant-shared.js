@@ -828,6 +828,97 @@
     return req;
   }
 
+  function readInventoryBool(value) {
+    if (value === true || value === 1) return true;
+    if (value === false || value === 0) return false;
+    if (typeof value === 'string') {
+      var normalized = value.trim().toLowerCase();
+      if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') return true;
+      if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') return false;
+    }
+    return null;
+  }
+
+  function readInventoryTrackFlag(item) {
+    if (!item || typeof item !== 'object') return false;
+
+    if (readInventoryBool(item.unlimitedStock) === true || readInventoryBool(item.unlimited_stock) === true) {
+      return false;
+    }
+
+    var trackKeys = [
+      'trackInventory',
+      'track_inventory',
+      'inventoryTracking',
+      'inventory_tracking',
+      'inventoryEnabled',
+      'inventory_enabled',
+      'trackStock',
+      'track_stock',
+    ];
+    var i;
+    for (i = 0; i < trackKeys.length; i++) {
+      var trackValue = readInventoryBool(item[trackKeys[i]]);
+      if (trackValue != null) return trackValue;
+    }
+
+    if (item.inventory && typeof item.inventory === 'object') {
+      var nested = readInventoryTrackFlag(item.inventory);
+      if (nested) return true;
+      if (
+        readInventoryBool(item.inventory.trackInventory) === false ||
+        readInventoryBool(item.inventory.track) === false ||
+        readInventoryBool(item.inventory.enabled) === false
+      ) {
+        return false;
+      }
+      if (
+        readInventoryBool(item.inventory.trackInventory) === true ||
+        readInventoryBool(item.inventory.track) === true ||
+        readInventoryBool(item.inventory.enabled) === true
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function readQuantityInStock(item) {
+    if (!item || typeof item !== 'object') return 0;
+
+    var keys = [
+      'quantityInStock',
+      'quantity_in_stock',
+      'stockQuantity',
+      'stock_quantity',
+      'inventoryQuantity',
+      'inventory_quantity',
+      'inventoryQty',
+      'inventory_qty',
+      'stock',
+      'inStock',
+      'in_stock',
+      'inventoryCount',
+      'inventory_count',
+      'qty',
+      'count',
+    ];
+    var i;
+    for (i = 0; i < keys.length; i++) {
+      var raw = item[keys[i]];
+      if (raw == null || raw === '') continue;
+      var num = typeof raw === 'number' ? raw : parseInt(String(raw), 10);
+      if (Number.isFinite(num) && num >= 0) return num;
+    }
+
+    if (item.inventory && typeof item.inventory === 'object') {
+      return readQuantityInStock(item.inventory);
+    }
+
+    return 0;
+  }
+
   function normalizeSiteProducts(raw) {
     if (!Array.isArray(raw)) return [];
     return raw
@@ -845,15 +936,8 @@
             }).filter(Boolean)
           : [];
         var storagePath = String(item.storagePath || imagePaths[0] || '').trim();
-        var trackInventory = item.trackInventory === true || item.track_inventory === true;
-        var stockRaw =
-          item.quantityInStock != null
-            ? item.quantityInStock
-            : item.quantity_in_stock != null
-              ? item.quantity_in_stock
-              : 0;
-        var quantityInStock = typeof stockRaw === 'number' ? stockRaw : parseInt(stockRaw, 10);
-        if (!Number.isFinite(quantityInStock) || quantityInStock < 0) quantityInStock = 0;
+        var trackInventory = readInventoryTrackFlag(item);
+        var quantityInStock = readQuantityInStock(item);
         return {
           id: id,
           title: title,
@@ -869,7 +953,7 @@
   }
 
   function productTracksInventory(product) {
-    return !!(product && product.trackInventory === true);
+    return readInventoryBool(product && product.trackInventory) === true;
   }
 
   function getProductQuantityInStock(product) {

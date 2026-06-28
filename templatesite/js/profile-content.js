@@ -453,11 +453,11 @@
 
   function getSiteProductsCatalog() {
     var data = window.__STYLD_SITE_PRODUCTS__ || {};
-    if (Array.isArray(data.catalog)) return data.catalog;
+    var raw = Array.isArray(data.catalog) ? data.catalog : [];
     if (window.StyldTenant && window.StyldTenant.normalizeSiteProducts) {
-      return window.StyldTenant.normalizeSiteProducts(data.catalog || []);
+      return window.StyldTenant.normalizeSiteProducts(raw);
     }
-    return [];
+    return raw;
   }
 
   function getSiteProductsSettings() {

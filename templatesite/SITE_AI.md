@@ -230,7 +230,7 @@ Runtime globals:
 - `StyldTenant.normalizeSiteProducts(raw)` — filters `enabled`, validates `id`/`title`/`price`, normalizes inventory fields
 - `StyldTenant.isProductOutOfStock(product)` / `getProductMaxOrderQuantity(product)` / `formatProductStockLabel(product)` — inventory helpers for shop + booking UI
 
-**Inventory:** When `trackInventory` is true, live site caps quantity selectors and blocks orders at `quantityInStock`. Existing products default to `trackInventory: false` until enabled in the app. Stock decrements server-side via `styld_tenant_insert_booking` (booking add-ons) and `submit-product-order` (standalone orders).
+**Inventory:** Only when `trackInventory` is **explicitly true** (toggle on in the app) does the live site show stock or enforce limits. Missing/false/`unlimitedStock` = no inventory UI. Reads `quantityInStock` and common aliases (`quantity_in_stock`, `stockQuantity`, nested `inventory`, etc.). Stock decrements server-side via `styld_tenant_insert_booking` and `submit-product-order`.
 
 ### Booking checkout (`booking.html` pricing step)
 

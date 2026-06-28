@@ -71,7 +71,11 @@
 
   function getCatalog() {
     var data = window.__STYLD_SITE_PRODUCTS__ || {};
-    return Array.isArray(data.catalog) ? data.catalog : [];
+    var raw = Array.isArray(data.catalog) ? data.catalog : [];
+    if (window.StyldTenant && window.StyldTenant.normalizeSiteProducts) {
+      return window.StyldTenant.normalizeSiteProducts(raw);
+    }
+    return raw;
   }
 
   function getSettings() {
