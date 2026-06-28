@@ -70,8 +70,13 @@
   var selectedSlotStart = null;
   var selectedStyle = null;
   var selectedAddonId = '';
+  var selectedVariantId = '';
   var stripeCard = null;
   var stripeElements = null;
+
+  var WIZARD_STEPS = ['personal', 'service', 'appointment', 'pricing'];
+  var currentWizardStep = 0;
+  var variantModalStyleId = '';
 
   function money(n) {
     return '$' + (Math.round(Number(n) || 0)).toFixed(0);
@@ -191,6 +196,34 @@
     return val !== false;
   }
 
+  function styleVariants(style) {
+    return style && Array.isArray(style.variants) ? style.variants : [];
+  }
+
+  function getSelectedVariant(style) {
+    var variants = styleVariants(style);
+    if (!variants.length) return null;
+    var id = selectedVariantId;
+    if (!id) {
+      var checked = document.querySelector('input[name="style-variant"]:checked');
+      if (checked) id = checked.value;
+    }
+    for (var i = 0; i < variants.length; i++) {
+      if (variants[i].id === id) return variants[i];
+    }
+    return variants[0] || null;
+  }
+
+  function effectiveStyleBase(style) {
+    if (!style) return 0;
+    var variant = getSelectedVariant(style);
+    if (variant && typeof variant.price === 'number') {
+      if (variant.price > 0) return variant.price;
+      return typeof style.base === 'number' ? style.base : 0;
+    }
+    return typeof style.base === 'number' ? style.base : 0;
+  }
+
   function getSelectedAddon(style) {
     if (!style || !selectedAddonId) return null;
     var addons = Array.isArray(style.addons) ? style.addons : [];
@@ -202,12 +235,143 @@
 
   function styleDisplayName(style, addon) {
     if (!style) return '';
-    if (!addon) return style.name || style.id || '';
-    return (style.name || style.id || '') + ' + ' + addon.name;
+    var variant = getSelectedVariant(style);
+    var base = style.name || style.id || '';
+    if (variant) base = base + ' \u2014 ' + variant.label;
+    if (!addon) return base;
+    return base + ' + ' + addon.name;
+  }
+
+  function buildVariantOptionHtml(variant, index, checkedId) {
+    var checked = checkedId === variant.id || (!checkedId && index === 0);
+    return (
+      '<label class="booking-addon-option style-variant-option">' +
+      '<input type="radio" name="style-variant" value="' +
+      escapeHtml(variant.id) +
+      '"' +
+      (checked ? ' checked' : '') +
+      ' required />' +
+      '<span class="booking-addon-option__label">' +
+      escapeHtml(variant.label) +
+      ' (' +
+      money(variant.price) +
+      ')</span>' +
+      '</label>'
+    );
+  }
+
+  function renderVariantPicker(style) {
+    var field = document.getElementById('style-variant-field-wrap');
+    var container = document.getElementById('style-variant-list');
+    if (!field || !container) return;
+
+    var variants = styleVariants(style);
+    if (!style || variants.length <= 1) {
+      field.hidden = true;
+      container.innerHTML = '';
+      if (variants.length === 1) selectedVariantId = variants[0].id;
+      else if (!variants.length) selectedVariantId = '';
+      return;
+    }
+
+    if (!selectedVariantId || !variants.some(function (v) { return v.id === selectedVariantId; })) {
+      selectedVariantId = variants[0].id;
+    }
+
+    field.hidden = false;
+    var html = '';
+    variants.forEach(function (variant, index) {
+      html += buildVariantOptionHtml(variant, index, selectedVariantId);
+    });
+    container.innerHTML = html;
+  }
+
+  function showVariantModal(style) {
+    var modal = document.getElementById('style-variant-modal');
+    var backdrop = document.getElementById('style-variant-modal-backdrop');
+    if (!modal || !style) return;
+
+    var variants = styleVariants(style);
+    if (variants.length <= 1) return;
+
+    variantModalStyleId = style.id;
+    var title = document.getElementById('style-variant-modal-title');
+    if (title) title.textContent = 'Choose your option — ' + (style.name || style.id);
+
+    var list = document.getElementById('style-variant-modal-list');
+    if (list) {
+      var html = '';
+      variants.forEach(function (variant, index) {
+        html += buildVariantOptionHtml(variant, index, selectedVariantId);
+      });
+      list.innerHTML = html;
+    }
+
+    modal.hidden = false;
+    if (backdrop) {
+      backdrop.hidden = false;
+      backdrop.setAttribute('aria-hidden', 'false');
+    }
+    document.body.classList.add('booking-variant-modal-open');
+  }
+
+  function closeVariantModal() {
+    var modal = document.getElementById('style-variant-modal');
+    var backdrop = document.getElementById('style-variant-modal-backdrop');
+    if (modal) modal.hidden = true;
+    if (backdrop) {
+      backdrop.hidden = true;
+      backdrop.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('booking-variant-modal-open');
+    variantModalStyleId = '';
+  }
+
+  function syncVariantSelectionFromDom() {
+    var checked = document.querySelector('input[name="style-variant"]:checked');
+    if (checked) selectedVariantId = checked.value || '';
+  }
+
+  function setupVariantPicker() {
+    var container = document.getElementById('style-variant-list');
+    if (container && container.dataset.bound !== '1') {
+      container.dataset.bound = '1';
+      container.addEventListener('change', function (e) {
+        var input = e.target;
+        if (!input || input.name !== 'style-variant') return;
+        selectedVariantId = input.value || '';
+        updatePricingDisplay();
+      });
+    }
+
+    var modalList = document.getElementById('style-variant-modal-list');
+    if (modalList && modalList.dataset.bound !== '1') {
+      modalList.dataset.bound = '1';
+      modalList.addEventListener('change', function (e) {
+        var input = e.target;
+        if (!input || input.name !== 'style-variant') return;
+        selectedVariantId = input.value || '';
+      });
+    }
+
+    var modalContinue = document.getElementById('style-variant-modal-continue');
+    if (modalContinue && modalContinue.dataset.bound !== '1') {
+      modalContinue.dataset.bound = '1';
+      modalContinue.addEventListener('click', function () {
+        syncVariantSelectionFromDom();
+        if (!selectedVariantId) {
+          showFeedback('Choose an option to continue.', true);
+          return;
+        }
+        if (selectedStyle) renderVariantPicker(selectedStyle);
+        updatePricingDisplay();
+        closeVariantModal();
+      });
+    }
   }
 
   function renderAddonPicker(style) {
-    var field = document.getElementById('booking-addon-field');
+    var field = document.getElementById('style-addon-field-wrap');
     var container = document.getElementById('booking-addon-options');
     selectedAddonId = '';
     if (!field || !container) return;
@@ -256,7 +420,7 @@
   }
 
   function computePricing(style) {
-    var base = typeof style.base === 'number' ? style.base : 0;
+    var base = effectiveStyleBase(style);
     var addon = getSelectedAddon(style);
     var addonPrice = addon && typeof addon.price === 'number' ? addon.price : 0;
     var duration = durationMinutesForStyle(style);
@@ -392,6 +556,122 @@
     var content = window.__STYLD_SITE_CONTENT__ || {};
     if (content.bookingPolicy) return String(content.bookingPolicy).trim();
     return '';
+  }
+
+  function getWizardStepIndex(stepId) {
+    return WIZARD_STEPS.indexOf(stepId);
+  }
+
+  function goToWizardStep(index) {
+    if (index < 0 || index >= WIZARD_STEPS.length) return;
+    currentWizardStep = index;
+    var stepId = WIZARD_STEPS[index];
+
+    document.querySelectorAll('[data-booking-step]').forEach(function (panel) {
+      var isActive = panel.getAttribute('data-booking-step') === stepId;
+      panel.hidden = !isActive;
+      panel.classList.toggle('booking-wizard__panel--active', isActive);
+    });
+
+    document.querySelectorAll('[data-wizard-label]').forEach(function (label) {
+      var labelStep = label.getAttribute('data-wizard-label');
+      var labelIndex = getWizardStepIndex(labelStep);
+      label.classList.toggle('booking-wizard__step-label--active', labelIndex === index);
+      label.classList.toggle('booking-wizard__step-label--complete', labelIndex >= 0 && labelIndex < index);
+    });
+
+    if (bookingForm) {
+      bookingForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function fieldsInWizardStep(stepId) {
+    var panel = document.querySelector('[data-booking-step="' + stepId + '"]');
+    if (!panel) return [];
+    return Array.prototype.slice.call(panel.querySelectorAll('input, select, textarea')).filter(function (el) {
+      return !el.disabled && el.type !== 'hidden' && el.offsetParent !== null;
+    });
+  }
+
+  function validateWizardStep(stepId) {
+    if (stepId === 'personal') {
+      var personalFields = ['full-name', 'phone', 'email'];
+      for (var i = 0; i < personalFields.length; i++) {
+        var el = document.getElementById(personalFields[i]);
+        if (el && !el.checkValidity()) {
+          el.reportValidity();
+          return false;
+        }
+      }
+      return true;
+    }
+
+    if (stepId === 'service') {
+      if (!styleSelect || !styleSelect.value) {
+        showFeedback('Choose a menu item to continue.', true);
+        if (styleSelect) styleSelect.focus();
+        return false;
+      }
+      var variants = styleVariants(selectedStyle);
+      if (variants.length > 1 && !getSelectedVariant(selectedStyle)) {
+        showFeedback('Choose your service option to continue.', true);
+        return false;
+      }
+      var serviceFields = fieldsInWizardStep('service');
+      for (var j = 0; j < serviceFields.length; j++) {
+        var field = serviceFields[j];
+        if (field.required && !field.checkValidity()) {
+          field.reportValidity();
+          return false;
+        }
+      }
+      return true;
+    }
+
+    if (stepId === 'appointment') {
+      if (!selectedStyle) {
+        showFeedback('Choose a menu item before picking a time.', true);
+        return false;
+      }
+      if (!selectedSlotStart) {
+        showFeedback('Select a date and time for your appointment.', true);
+        return false;
+      }
+      return true;
+    }
+
+    return true;
+  }
+
+  function bindWizardNav() {
+    document.querySelectorAll('[data-next-step]').forEach(function (btn) {
+      if (btn.dataset.wizardBound === '1') return;
+      btn.dataset.wizardBound = '1';
+      btn.addEventListener('click', function () {
+        var currentStepId = WIZARD_STEPS[currentWizardStep];
+        if (!validateWizardStep(currentStepId)) return;
+        var nextStep = btn.getAttribute('data-next-step');
+        var nextIndex = getWizardStepIndex(nextStep);
+        if (nextIndex >= 0) {
+          if (nextStep === 'pricing' && selectedStyle) updatePricingDisplay();
+          goToWizardStep(nextIndex);
+          if (feedbackEl) feedbackEl.hidden = true;
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-prev-step]').forEach(function (btn) {
+      if (btn.dataset.wizardBound === '1') return;
+      btn.dataset.wizardBound = '1';
+      btn.addEventListener('click', function () {
+        var prevStep = btn.getAttribute('data-prev-step');
+        var prevIndex = getWizardStepIndex(prevStep);
+        if (prevIndex >= 0) {
+          goToWizardStep(prevIndex);
+          if (feedbackEl) feedbackEl.hidden = true;
+        }
+      });
+    });
   }
 
   function updateCancellationPolicyDisplay() {
@@ -676,13 +956,19 @@
 
   function onStyleChange() {
     var styleId = styleSelect ? styleSelect.value : '';
+    var modalEl = document.getElementById('style-variant-modal');
+    if (modalEl && !modalEl.hidden && (!styleId || styleId !== variantModalStyleId)) {
+      closeVariantModal();
+    }
     selectedStyle = styleById(styleId);
     selectedAddonId = '';
+    selectedVariantId = '';
     selectedDate = null;
     selectedSlotStart = null;
     if (startsAtInput) startsAtInput.value = '';
 
     if (!selectedStyle) {
+      renderVariantPicker(null);
       renderAddonPicker(null);
       if (styleGate) styleGate.hidden = false;
       if (durationStrip) durationStrip.textContent = 'Estimated duration: TBD';
@@ -694,12 +980,21 @@
     }
 
     if (styleGate) styleGate.hidden = true;
+    renderVariantPicker(selectedStyle);
     renderAddonPicker(selectedStyle);
     updatePricingDisplay();
     refreshCalendar().then(function () {
       updateSelectedSummary();
       if (slotsContainer) slotsContainer.innerHTML = '';
     });
+
+    if (
+      variantModalStyleId &&
+      selectedStyle.id !== variantModalStyleId &&
+      styleVariants(selectedStyle).length > 1
+    ) {
+      showVariantModal(selectedStyle);
+    }
   }
 
   function setupStripe() {
@@ -842,6 +1137,7 @@
     }
     var pricing = computePricing(selectedStyle);
     var addon = getSelectedAddon(selectedStyle);
+    var variant = getSelectedVariant(selectedStyle);
     var name = (document.getElementById('full-name') || {}).value || '';
     var email = (document.getElementById('email') || {}).value || '';
     var phone = (document.getElementById('phone') || {}).value || '';
@@ -855,6 +1151,9 @@
       phone: phone.trim(),
       style_id: selectedStyle.id,
       style_name: styleDisplayName(selectedStyle, addon),
+      selected_variant_id: variant ? variant.id : null,
+      selected_variant_label: variant ? variant.label : null,
+      selected_variant_price: variant ? variant.price : null,
       selected_addon_id: addon ? addon.id : null,
       selected_addon_name: addon ? addon.name : null,
       selected_addon_price: addon ? addon.price : null,
@@ -1040,6 +1339,11 @@
 
   function handleSubmit(event) {
     event.preventDefault();
+    if (!validateWizardStep('service') || !validateWizardStep('appointment')) {
+      if (!selectedStyle) goToWizardStep(getWizardStepIndex('service'));
+      else if (!selectedSlotStart) goToWizardStep(getWizardStepIndex('appointment'));
+      return;
+    }
     if (!selectedStyle) {
       showFeedback('Choose a menu item to continue.', true);
       return;
@@ -1119,11 +1423,18 @@
 
   initStripeIfNeeded();
   setupAddonPicker();
+  setupVariantPicker();
+  bindWizardNav();
+  goToWizardStep(0);
   onStyleChange();
 
   var preselected = new URLSearchParams(window.location.search).get('style');
   if (preselected && styleSelect) {
     styleSelect.value = preselected;
     onStyleChange();
+    var preStyle = styleById(preselected);
+    if (preStyle && styleVariants(preStyle).length > 1) {
+      showVariantModal(preStyle);
+    }
   }
 })();

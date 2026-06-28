@@ -193,11 +193,13 @@ App path: **Site editor → Content → Certifications**
 | Source | Fields |
 |--------|--------|
 | `site_content` | `certificationsTitle`, `certificationsBlurb`, `hiddenSections` includes `'certifications'` to hide |
-| `site_theme` | `certificationItems: { storagePath, mediaType: 'image' }[]` (max 24). Storage: `style-covers/{userId}/certifications/` |
+| `site_theme` | `certificationItems: { storagePath, mediaType: 'image', caption?: string }[]` (max 24). Storage: `style-covers/{userId}/certifications/` |
 
 **Route:** `/certifications` → `tenant/certifications.html` (`body.page-certifications`)
 
-**Page:** `#certifications-catalog-grid` gallery; tap image → `#profile-portfolio-lightbox` (shared with portfolio).
+**Layout:** Vertical stack (`.certifications-catalog-list` > `.profile-certification-item` cards). Each image uses `object-fit: contain` so the full license/certificate is visible (not cropped). Optional **caption** centered below the image (`certificationItems[].caption`).
+
+**Page:** `#certifications-catalog-grid`; tap image → `#profile-portfolio-lightbox` (shared with portfolio).
 
 **JS:**
 
@@ -224,12 +226,54 @@ Optional add-ons per style in `site_setting` → `style_catalog_meta`:
 
 Base price stays in `style_price_overrides`. Menu display in `tenant-site.js` / `styld-tenant-shared.js`:
 
-- No add-ons → `$35`
-- With add-ons → `$35–$55` (base through base + highest add-on price, en-dash)
+- No add-ons, no variants → `$35`
+- With add-ons only → `$35–$55` (base through base + highest add-on price, en-dash)
+- With variants → min–max from variant prices (en-dash)
 
-Helpers: `normalizeAddons(raw)`, `formatStylePriceRange(basePrice, addons)`. `buildBookingStyles` passes `addons` on each style.
+Helpers: `normalizeAddons(raw)`, `normalizeVariants(raw)`, `formatStylePriceRange(basePrice, addons, variants)`. `buildBookingStyles` passes `variants` and `addons` on each style.
 
-**Booking page (`/booking`):** After selecting a service with add-ons, an **Optional add-on** radio group appears. Pricing shows service base, optional add-on line, and total (base + selected add-on). Deposit recalculates from total. Saved on booking: `style_name` (e.g. `Skin Fade + Beard trim`), `selected_addon_id`, `selected_addon_name`, `selected_addon_price`.
+**Booking page (`/booking`):** Multi-step onboarding-style flow: **Personal** → **Service** → **Appointment** → **Pricing** (with payment on the last step when enabled). Deep links with `?style=` open a **version picker modal** when the service has multiple variants.
+
+After selecting a service:
+
+1. **Choose your version** (if `variants.length > 1`) — required radio options with full prices; modal on menu deep link, inline `#style-variant-field-wrap` on the service step when changing style in-form.
+2. **Optional add-on** radio group (`#style-addon-field-wrap`) when add-ons exist.
+3. Pricing uses **variant price** (or base when no variants) + selected add-on.
+
+Saved on booking: `style_name` (e.g. `Knotless Braids — With hair provided + Beard trim`), `selected_variant_id`, `selected_variant_label`, `selected_variant_price`, plus existing `selected_addon_*` fields.
+
+## Style versions (service options)
+
+Data — `styld_site_records` → `site_setting.style_catalog_meta` per `styleId`:
+
+- `variants`: `{ id: string, label: string, price: number }[]` — mutually exclusive; `price` is the **full** price for that version
+- `addons`: `{ id, name, price }[]` — optional extras **on top of** the chosen version (unchanged)
+- `durationMinutes`: default slot length
+
+App: Profile → Styles & Services → edit style → **Versions** section (`StyleVariantsEditor`). Base price in `style_price_overrides` is used when no variants; with variants, menu/catalog shows min–max from variant prices via `formatStylePriceRange(base, addons, variants)`.
+
+Tenant JS:
+
+- `buildBookingStyles()` in `styld-tenant-shared.js` includes `variants[]` on each style
+- `tenant-site.js` / `__STYLD_SITE_STYLES__` passes variants into `formatStylePriceRange` for profile menu `priceLabel`
+- `normalizeVariants(raw)` — same shape as app `normalizeStyleVariants`
+
+Booking (`booking.js` + `booking.html`):
+
+- After `#style-select`, if `style.variants.length > 1` → show `#style-variant-field-wrap` / `#style-variant-list`
+- Required radio group `name="style-variant"`; first option checked by default
+- `effectiveStyleBase()` = selected `variant.price` (or `style.base` if variant price is 0)
+- `computePricing` uses `effectiveStyleBase` + add-ons
+- `buildBookingPayload`: `selected_variant_id`, `selected_variant_label`, `selected_variant_price`
+- `style_name`: `{title} — {variant.label}` (+ add-on name if any)
+
+HTML: `#style-variant-field-wrap` inserted **before** `#style-addon-field-wrap` in `booking.html`. CSS reuses `.booking-addon-option` for version radios.
+
+**Example setup for Braids:**
+
+- Title: Knotless Braids · Base price: $180 (fallback)
+- Version 1: “Without hair” · $180
+- Version 2: “With hair provided” · $250
 
 ## Subscription-gated domains
 

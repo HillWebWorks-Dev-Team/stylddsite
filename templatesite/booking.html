@@ -16,7 +16,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=50" />
+    <link rel="stylesheet" href="/css/styles.css?v=62" />
     <!-- Vercel Web Analytics: enable in Vercel Project Settings > Analytics -->
     <script src="/js/vercel-analytics.bundle.js" defer></script>
   </head>
@@ -38,42 +38,78 @@
           anon key in <code>js/supabase-config.local.js</code>. Follow
           <a href="supabase/SETUP.md">supabase/SETUP.md</a>.
         </p>
-        <form id="booking-form" class="booking-form-main" novalidate>
-          <section class="form-section">
-            <h2>Personal information</h2>
-            <div class="field">
-              <label for="full-name">Full name *</label>
-              <input id="full-name" name="full-name" type="text" autocomplete="name" required />
-            </div>
-            <div class="field-row">
+        <form id="booking-form" class="booking-form-main booking-wizard" novalidate>
+          <nav class="booking-wizard__progress" aria-label="Booking progress">
+            <ol class="booking-wizard__steps">
+              <li class="booking-wizard__step-label booking-wizard__step-label--active" data-wizard-label="personal">
+                <span class="booking-wizard__step-num">1</span>
+                <span class="booking-wizard__step-text">Personal</span>
+              </li>
+              <li class="booking-wizard__step-label" data-wizard-label="service">
+                <span class="booking-wizard__step-num">2</span>
+                <span class="booking-wizard__step-text">Service</span>
+              </li>
+              <li class="booking-wizard__step-label" data-wizard-label="appointment">
+                <span class="booking-wizard__step-num">3</span>
+                <span class="booking-wizard__step-text">Appointment</span>
+              </li>
+              <li class="booking-wizard__step-label" data-wizard-label="pricing">
+                <span class="booking-wizard__step-num">4</span>
+                <span class="booking-wizard__step-text">Pricing</span>
+              </li>
+            </ol>
+          </nav>
+
+          <div class="booking-wizard__panel booking-wizard__panel--active" data-booking-step="personal">
+            <section class="form-section">
+              <h2>Personal information</h2>
               <div class="field">
-                <label for="phone">Phone number *</label>
-                <input id="phone" name="phone" type="tel" autocomplete="tel" required />
+                <label for="full-name">Full name *</label>
+                <input id="full-name" name="full-name" type="text" autocomplete="name" required />
               </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="phone">Phone number *</label>
+                  <input id="phone" name="phone" type="tel" autocomplete="tel" required />
+                </div>
+                <div class="field">
+                  <label for="email">Email *</label>
+                  <input id="email" name="email" type="email" autocomplete="email" required />
+                </div>
+              </div>
+            </section>
+            <div class="booking-wizard__nav">
+              <button type="button" class="btn btn-primary booking-wizard__next" data-next-step="service">
+                Continue
+              </button>
+            </div>
+          </div>
+
+          <div class="booking-wizard__panel" data-booking-step="service" hidden>
+            <section class="form-section">
+              <h2>Service details</h2>
               <div class="field">
-                <label for="email">Email *</label>
-                <input id="email" name="email" type="email" autocomplete="email" required />
+                <label for="style-select">Choose menu item *</label>
+                <select id="style-select" name="style" required>
+                  <option value="">Choose an option</option>
+                </select>
               </div>
-            </div>
-          </section>
 
-          <section class="form-section">
-            <h2>Service details</h2>
-            <div class="field">
-              <label for="style-select">Choose menu item *</label>
-              <select id="style-select" name="style" required>
-                <option value="">Choose an option</option>
-              </select>
-            </div>
+              <div class="field booking-addon-field" id="style-variant-field-wrap" hidden>
+                <fieldset class="booking-addon-picker">
+                  <legend class="booking-addon-picker__legend">Choose your option *</legend>
+                  <div id="style-variant-list" class="booking-addon-options" role="radiogroup" aria-label="Service option"></div>
+                </fieldset>
+              </div>
 
-            <div class="field booking-addon-field" id="booking-addon-field" hidden>
-              <fieldset class="booking-addon-picker">
-                <legend class="booking-addon-picker__legend">Optional add-on</legend>
-                <div id="booking-addon-options" class="booking-addon-options" role="radiogroup" aria-label="Optional add-on"></div>
-              </fieldset>
-            </div>
+              <div class="field booking-addon-field" id="style-addon-field-wrap" hidden>
+                <fieldset class="booking-addon-picker">
+                  <legend class="booking-addon-picker__legend">Optional add-on</legend>
+                  <div id="booking-addon-options" class="booking-addon-options" role="radiogroup" aria-label="Optional add-on"></div>
+                </fieldset>
+              </div>
 
-            <div class="field house-address-block" id="house-address-field-wrap" hidden>
+              <div class="field house-address-block" id="house-address-field-wrap" hidden>
               <fieldset class="house-address-fields">
                 <legend class="house-address-legend">House-call service address <span aria-hidden="true">*</span></legend>
                 <div class="field">
@@ -162,9 +198,15 @@
               <label for="notes">Additional notes (optional)</label>
               <textarea id="notes" name="notes" placeholder="Allergies, part preferences, timing…"></textarea>
             </div>
-          </section>
+            </section>
+            <div class="booking-wizard__nav">
+              <button type="button" class="btn btn-secondary booking-wizard__back" data-prev-step="personal">Back</button>
+              <button type="button" class="btn btn-primary booking-wizard__next" data-next-step="appointment">Continue</button>
+            </div>
+          </div>
 
-          <section class="form-section form-section--appointment" id="book-time">
+          <div class="booking-wizard__panel" data-booking-step="appointment" hidden>
+            <section class="form-section form-section--appointment" id="book-time">
             <h2 class="form-section__title-with-icon" data-booking-appointment-heading>
               <span class="form-section__title-icon" aria-hidden="true">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -220,9 +262,15 @@
 
             <input type="hidden" id="appointment-starts-at" name="appointment-starts-at" value="" />
             <input type="hidden" id="duration-minutes-input" name="duration-minutes" value="" />
-          </section>
+            </section>
+            <div class="booking-wizard__nav">
+              <button type="button" class="btn btn-secondary booking-wizard__back" data-prev-step="service">Back</button>
+              <button type="button" class="btn btn-primary booking-wizard__next" data-next-step="pricing">Continue</button>
+            </div>
+          </div>
 
-          <section class="form-section">
+          <div class="booking-wizard__panel" data-booking-step="pricing" hidden>
+            <section class="form-section">
             <h2>Pricing</h2>
             <p>
               <strong>Service price:</strong> <span id="line-subtotal">$0.00</span>
@@ -287,11 +335,34 @@
 
           <section class="form-section">
             <div id="booking-feedback" class="booking-feedback" role="status" aria-live="polite" hidden></div>
-            <button type="submit" id="booking-submit-btn" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.05rem">
-              Confirm payment
-            </button>
+            <div class="booking-wizard__nav booking-wizard__nav--submit">
+              <button type="button" class="btn btn-secondary booking-wizard__back" data-prev-step="appointment">Back</button>
+              <button type="submit" id="booking-submit-btn" class="btn btn-primary" style="flex: 1; padding: 1rem; font-size: 1.05rem">
+                Confirm payment
+              </button>
+            </div>
           </section>
+          </div>
         </form>
+
+        <div id="style-variant-modal-backdrop" class="booking-variant-modal__backdrop" hidden aria-hidden="true"></div>
+        <div
+          id="style-variant-modal"
+          class="booking-variant-modal"
+          hidden
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="style-variant-modal-title"
+        >
+          <div class="booking-variant-modal__card">
+            <h2 id="style-variant-modal-title" class="booking-variant-modal__title">Choose your option</h2>
+            <p class="booking-variant-modal__lead">Pick the version that fits your appointment.</p>
+            <div id="style-variant-modal-list" class="booking-addon-options booking-variant-modal__options" role="radiogroup"></div>
+            <button type="button" id="style-variant-modal-continue" class="btn btn-primary booking-variant-modal__continue">
+              Continue to booking
+            </button>
+          </div>
+        </div>
 
         <aside class="pricing-sidebar" aria-label="Estimate summary">
           <h3>Your estimate</h3>
@@ -396,7 +467,7 @@
           'avail.src = "/js/booking-availability.js?v=4";' +
           'avail.onload = function () {' +
           'const booking = document.createElement("script");' +
-          'booking.src = "/js/booking.js?v=60";' +
+          'booking.src = "/js/booking.js?v=61";' +
           'booking.defer = true;' +
           'document.body.appendChild(booking);' +
           '};' +

@@ -64,6 +64,20 @@
     return '$' + Math.round(amount);
   }
 
+  function normalizeVariants(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map(function (entry, index) {
+        if (!entry || typeof entry !== 'object') return null;
+        var id = entry.id != null ? String(entry.id).trim() : 'variant-' + index;
+        var label = entry.label != null ? String(entry.label).trim() : '';
+        var price = typeof entry.price === 'number' ? entry.price : Number(entry.price);
+        if (!label || !Number.isFinite(price) || price < 0) return null;
+        return { id: id, label: label, price: Math.round(price) };
+      })
+      .filter(Boolean);
+  }
+
   function normalizeAddons(raw) {
     if (!Array.isArray(raw)) return [];
     return raw
@@ -78,7 +92,20 @@
       .filter(Boolean);
   }
 
-  function formatStylePriceRange(basePrice, addons) {
+  function formatStylePriceRange(basePrice, addons, variants) {
+    var normalizedVariants = normalizeVariants(variants);
+    if (normalizedVariants.length) {
+      var prices = normalizedVariants.map(function (variant) {
+        return variant.price;
+      });
+      var minPrice = Math.min.apply(null, prices);
+      var maxPrice = Math.max.apply(null, prices);
+      var minLabel = formatPriceAmount(minPrice);
+      var maxLabel = formatPriceAmount(maxPrice);
+      if (minLabel && maxLabel && minLabel !== maxLabel) return minLabel + '\u2013' + maxLabel;
+      return minLabel || maxLabel || 'Price TBD';
+    }
+
     var base = typeof basePrice === 'number' ? basePrice : Number(basePrice);
     var normalized = normalizeAddons(addons);
     if (!Number.isFinite(base) || base <= 0) return 'Price TBD';
@@ -108,14 +135,14 @@
     return Object.keys(styleIds)
       .map(function (styleId) {
         var item = meta[styleId] || {};
-        var name = styleBookingName(item, styleId);
         var base = prices[styleId];
         if (typeof base !== 'number' || Number.isNaN(base)) base = 0;
         return {
           id: styleId,
-          name: name,
+          name: item.title || styleBookingName(item, styleId),
           base: base,
           durationMinutes: normalizeDurationMinutes(item.durationMinutes),
+          variants: normalizeVariants(item.variants),
           addons: normalizeAddons(item.addons),
         };
       })
@@ -146,7 +173,7 @@
         title: item.title || styleId,
         sizeLabel: variant || '',
         durationLabel: formatStyleDuration(item.durationMinutes),
-        priceLabel: formatStylePriceRange(prices[styleId], item.addons),
+        priceLabel: formatStylePriceRange(prices[styleId], item.addons, item.variants),
         imageUrl: coverUrl(covers[styleId], supabaseUrl) || logoFallbackUrl,
       };
     });
@@ -780,6 +807,7 @@
     applyBookingFormSettings: applyBookingFormSettings,
     resolveCancellationPolicySummary: resolveCancellationPolicySummary,
     normalizeAddons: normalizeAddons,
+    normalizeVariants: normalizeVariants,
     formatStylePriceRange: formatStylePriceRange,
 
     loadPublishedSite: function () {

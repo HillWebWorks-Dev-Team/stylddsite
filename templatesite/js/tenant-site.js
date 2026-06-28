@@ -71,9 +71,9 @@
     return cfg.supabaseUrl.replace(/\/$/, '') + '/storage/v1/object/public/style-covers/' + objectPath;
   }
 
-  function formatStylePriceRange(basePrice, addons) {
+  function formatStylePriceRange(basePrice, addons, variants) {
     if (window.StyldTenant && window.StyldTenant.formatStylePriceRange) {
-      return window.StyldTenant.formatStylePriceRange(basePrice, addons);
+      return window.StyldTenant.formatStylePriceRange(basePrice, addons, variants);
     }
     if (typeof basePrice !== 'number' || Number.isNaN(basePrice) || basePrice <= 0) return 'Price TBD';
     return '$' + Math.round(basePrice);
@@ -243,7 +243,7 @@
             id: styleId,
             title: item.title || styleId,
             description: item.description || '',
-            priceLabel: formatStylePriceRange(prices[styleId], item.addons),
+            priceLabel: formatStylePriceRange(prices[styleId], item.addons, item.variants),
             sizeLabel: sizeLabel || undefined,
             durationLabel: formatStyleDuration(item.durationMinutes),
             imageUrl: coverUrl(covers[styleId]) || logoFallbackUrl,

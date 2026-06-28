@@ -4221,6 +4221,148 @@ ul.price-menu__policy-list {
   color: var(--ink);
 }
 
+.booking-wizard__progress {
+  margin-bottom: 1.5rem;
+}
+
+.booking-wizard__steps {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0.35rem;
+}
+
+.booking-wizard__step-label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.35rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--text-muted, #737373);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.booking-wizard__step-num {
+  display: grid;
+  place-items: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 0.82rem;
+}
+
+.booking-wizard__step-label--active {
+  background: rgba(219, 39, 119, 0.08);
+  color: var(--ink);
+}
+
+.booking-wizard__step-label--active .booking-wizard__step-num {
+  background: var(--pink, #db2777);
+  color: #fff;
+}
+
+.booking-wizard__step-label--complete {
+  color: var(--ink);
+}
+
+.booking-wizard__step-label--complete .booking-wizard__step-num {
+  background: rgba(219, 39, 119, 0.2);
+  color: var(--pink, #db2777);
+}
+
+.booking-wizard__panel[hidden] {
+  display: none !important;
+}
+
+.booking-wizard__nav {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.booking-wizard__nav .btn {
+  min-width: 7rem;
+}
+
+.booking-wizard__nav--submit .btn-primary {
+  min-width: 0;
+}
+
+.booking-variant-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(10, 10, 10, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.booking-variant-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.booking-variant-modal[hidden],
+.booking-variant-modal__backdrop[hidden] {
+  display: none !important;
+}
+
+.booking-variant-modal__card {
+  width: min(100%, 28rem);
+  background: var(--white, #fff);
+  border-radius: var(--radius, 16px);
+  padding: 1.75rem;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(184, 134, 11, 0.15);
+}
+
+.booking-variant-modal__title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  margin: 0 0 0.35rem;
+}
+
+.booking-variant-modal__lead {
+  margin: 0 0 1rem;
+  color: var(--text-muted, #737373);
+  font-size: 0.92rem;
+}
+
+.booking-variant-modal__options {
+  margin-bottom: 1.25rem;
+}
+
+.booking-variant-modal__continue {
+  width: 100%;
+  padding: 0.9rem 1rem;
+}
+
+body.booking-variant-modal-open {
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .booking-wizard__step-text {
+    display: none;
+  }
+
+  .booking-wizard__step-label {
+    padding: 0.55rem 0.2rem;
+  }
+}
+
 .field label {
   display: block;
   font-weight: 600;
@@ -7116,6 +7258,61 @@ body.profile-portfolio-lightbox-open {
 
 .page-certifications .certifications-catalog-head {
   margin-bottom: 1.35rem;
+}
+
+.certifications-catalog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.profile-certification-item {
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--cream, #fff);
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.profile-certification-item__media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  background: rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.profile-certification-item__media:focus-visible {
+  outline: 2px solid var(--text-accent, var(--pink));
+  outline-offset: -2px;
+}
+
+.profile-certification-item__media img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: min(70vh, 520px);
+  object-fit: contain;
+  margin: 0 auto;
+  pointer-events: none;
+}
+
+.profile-certification-item__caption {
+  margin: 0;
+  padding: 0.85rem 1rem 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-muted, var(--muted));
 }
 
 /* Menu */

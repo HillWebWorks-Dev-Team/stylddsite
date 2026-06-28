@@ -591,6 +591,7 @@
         return {
           storagePath: path,
           mediaType: 'image',
+          caption: String(item.caption || '').trim(),
         };
       })
       .filter(Boolean);
@@ -624,6 +625,29 @@
       '">' +
       inner +
       '</button>'
+    );
+  }
+
+  function buildCertificationItemHtml(item, index) {
+    var url = resolvePortfolioMediaUrl(item.storagePath);
+    if (!url) return '';
+    var caption = String(item.caption || '').trim();
+    var label = caption || 'View certification ' + (index + 1);
+    return (
+      '<article class="profile-certification-item">' +
+      '<button type="button" class="profile-certification-item__media profile-portfolio-item-btn" data-portfolio-url="' +
+      escapeHtml(url) +
+      '" data-portfolio-type="image" aria-label="' +
+      escapeHtml(label) +
+      '">' +
+      '<img src="' +
+      escapeHtml(url) +
+      '" alt="" loading="lazy" decoding="async" />' +
+      '</button>' +
+      (caption
+        ? '<p class="profile-certification-item__caption">' + escapeHtml(caption) + '</p>'
+        : '') +
+      '</article>'
     );
   }
 
@@ -945,7 +969,7 @@
 
     grid.innerHTML = items
       .map(function (item, index) {
-        return buildPortfolioItemHtml(item, index);
+        return buildCertificationItemHtml(item, index);
       })
       .join('');
   }

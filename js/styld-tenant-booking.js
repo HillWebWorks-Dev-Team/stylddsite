@@ -25,7 +25,7 @@
       var label = style.name || style.id;
       var base = typeof style.base === 'number' ? style.base : 0;
       if (window.StyldTenant && window.StyldTenant.formatStylePriceRange) {
-        label += ' — ' + window.StyldTenant.formatStylePriceRange(base, style.addons);
+        label += ' — ' + window.StyldTenant.formatStylePriceRange(base, style.addons, style.variants);
       } else if (base > 0) {
         label += ' — $' + Math.round(base);
       }
@@ -42,7 +42,7 @@
     availability.src = '/js/booking-availability.js?v=4';
     availability.onload = function () {
       var script = document.createElement('script');
-      script.src = '/js/booking.js?v=60';
+      script.src = '/js/booking.js?v=61';
       script.defer = true;
       document.body.appendChild(script);
     };
