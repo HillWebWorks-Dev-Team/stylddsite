@@ -73,6 +73,8 @@
   var selectedVariantId = '';
   var stripeCard = null;
   var stripeElements = null;
+  var appliedPromo = null;
+  var lastValidatedSubtotalCents = null;
 
   var WIZARD_STEPS = ['personal', 'service', 'appointment', 'pricing'];
   var currentWizardStep = 0;
@@ -360,6 +362,7 @@
         var input = e.target;
         if (!input || input.name !== 'style-variant') return;
         selectedVariantId = input.value || '';
+        maybeInvalidateAppliedPromo();
         updatePricingDisplay();
       });
     }
@@ -388,6 +391,7 @@
           applyLockedStyleUI();
           updateStyleSelectionSummary();
         }
+        maybeInvalidateAppliedPromo();
         updatePricingDisplay();
         updateBookingVariantUrl();
         closeVariantModal();
@@ -475,8 +479,134 @@
       var input = e.target;
       if (!input || input.name !== 'booking-addon') return;
       selectedAddonId = input.value || '';
+      maybeInvalidateAppliedPromo();
       updatePricingDisplay();
     });
+  }
+
+  function getRawSubtotal(style) {
+    var base = effectiveStyleBase(style);
+    var addon = getSelectedAddon(style);
+    var addonPrice = addon && typeof addon.price === 'number' ? addon.price : 0;
+    return base + addonPrice;
+  }
+
+  function getRawSubtotalCents(style) {
+    return Math.round(getRawSubtotal(style || selectedStyle) * 100);
+  }
+
+  function setPromoFeedback(message, isError) {
+    var el = document.getElementById('promo-code-feedback');
+    if (!el) return;
+    var text = message ? String(message).trim() : '';
+    el.hidden = !text;
+    el.textContent = text;
+    el.classList.toggle('booking-promo-feedback--error', !!isError);
+    el.classList.toggle('booking-promo-feedback--success', !!text && !isError);
+  }
+
+  function clearAppliedPromo(message, isError) {
+    appliedPromo = null;
+    lastValidatedSubtotalCents = null;
+    setPromoFeedback(message || '', isError);
+    updatePricingDisplay();
+  }
+
+  function maybeInvalidateAppliedPromo() {
+    if (!appliedPromo) return;
+    if (getRawSubtotalCents() !== lastValidatedSubtotalCents) {
+      clearAppliedPromo('Your service changed — re-apply your promo code.', true);
+    }
+  }
+
+  function hasUnappliedPromoInput() {
+    var input = document.getElementById('promo-code-input');
+    if (!input) return false;
+    var typed = String(input.value || '').trim();
+    if (!typed) return false;
+    if (!appliedPromo) return true;
+    return typed.toUpperCase() !== String(appliedPromo.code || '').toUpperCase();
+  }
+
+  function validatePromoCode(code) {
+    var normalized = String(code || '').trim().toUpperCase();
+    if (!normalized) {
+      return Promise.reject(new Error('Enter a promo code.'));
+    }
+    var subtotalCents = getRawSubtotalCents();
+    return edgeFunction('validate-booking-promo', {
+      subdomain: subdomain,
+      code: normalized,
+      subtotalCents: subtotalCents,
+    }).then(function (result) {
+      if (!result || result.valid === false) {
+        throw new Error(
+          (result && (result.message || result.error)) || 'This promo code is not valid.',
+        );
+      }
+      var discountCents = result.discountCents;
+      if (discountCents == null) discountCents = result.discountAmountCents;
+      if (discountCents == null && result.discountAmount != null) {
+        discountCents = Math.round(Number(result.discountAmount) * 100);
+      }
+      discountCents = Math.max(0, Math.min(subtotalCents, Number(discountCents) || 0));
+      appliedPromo = {
+        code: String(result.code || normalized).toUpperCase(),
+        discountCents: discountCents,
+        label: result.label || '',
+      };
+      lastValidatedSubtotalCents = subtotalCents;
+      var input = document.getElementById('promo-code-input');
+      if (input) input.value = appliedPromo.code;
+      setPromoFeedback(
+        appliedPromo.label
+          ? appliedPromo.label + ' applied.'
+          : 'Promo code applied.',
+        false,
+      );
+      updatePricingDisplay();
+      return appliedPromo;
+    });
+  }
+
+  function setupPromoCode() {
+    var applyBtn = document.getElementById('promo-code-apply');
+    var input = document.getElementById('promo-code-input');
+    if (!applyBtn || applyBtn.dataset.bound === '1') return;
+    applyBtn.dataset.bound = '1';
+
+    applyBtn.addEventListener('click', function () {
+      if (!selectedStyle) {
+        setPromoFeedback('Choose a service before applying a promo code.', true);
+        return;
+      }
+      applyBtn.disabled = true;
+      setPromoFeedback('Checking code…', false);
+      validatePromoCode(input ? input.value : '')
+        .catch(function (err) {
+          clearAppliedPromo(err && err.message ? err.message : 'Could not apply promo code.', true);
+        })
+        .then(function () {
+          applyBtn.disabled = false;
+        });
+    });
+
+    if (input) {
+      input.addEventListener('input', function () {
+        if (appliedPromo && hasUnappliedPromoInput()) {
+          appliedPromo = null;
+          lastValidatedSubtotalCents = null;
+          setPromoFeedback('', false);
+          updatePricingDisplay();
+        }
+      });
+      input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          applyBtn.click();
+        }
+      });
+    }
   }
 
   function computePricing(style) {
@@ -484,7 +614,13 @@
     var addon = getSelectedAddon(style);
     var addonPrice = addon && typeof addon.price === 'number' ? addon.price : 0;
     var duration = durationMinutesForStyle(style);
-    var total = base + addonPrice;
+    var rawSubtotal = base + addonPrice;
+    var promoDiscount =
+      appliedPromo && typeof appliedPromo.discountCents === 'number'
+        ? appliedPromo.discountCents / 100
+        : 0;
+    promoDiscount = Math.min(rawSubtotal, Math.max(0, promoDiscount));
+    var total = Math.max(0, rawSubtotal - promoDiscount);
     var mode = paymentSettings.mode || 'none';
     var deposit = 0;
 
@@ -515,6 +651,9 @@
       base: base,
       addon: addon,
       addonPrice: addonPrice,
+      rawSubtotal: rawSubtotal,
+      promoDiscount: promoDiscount,
+      promoCode: appliedPromo ? appliedPromo.code : null,
       total: total,
       duration: duration,
       deposit: deposit,
@@ -572,8 +711,20 @@
     if (serviceTotalWrap) serviceTotalWrap.hidden = !showServiceTotal;
     if (lineServiceTotalWrap) lineServiceTotalWrap.hidden = !showServiceTotal;
     if (showServiceTotal) {
-      setText('side-service-total', money(p.total));
-      setText('line-service-total', money(p.total));
+      setText('side-service-total', money(p.rawSubtotal));
+      setText('line-service-total', money(p.rawSubtotal));
+    }
+
+    var linePromoRow = document.getElementById('line-promo-row');
+    var sidePromoRow = document.getElementById('side-promo-row');
+    var showPromo = p.promoDiscount > 0 && !!p.promoCode;
+    if (linePromoRow) linePromoRow.hidden = !showPromo;
+    if (sidePromoRow) sidePromoRow.hidden = !showPromo;
+    if (showPromo) {
+      setText('line-promo-code', p.promoCode);
+      setText('line-promo-discount', '\u2212' + money(p.promoDiscount));
+      setText('side-promo-code', p.promoCode);
+      setText('side-promo-discount', '\u2212' + money(p.promoDiscount));
     }
 
     setText('side-total-label', summaryLabel);
@@ -1097,6 +1248,7 @@
     selectedDate = null;
     selectedSlotStart = null;
     if (startsAtInput) startsAtInput.value = '';
+    clearAppliedPromo();
 
     if (!selectedStyle) {
       renderVariantPicker(null);
@@ -1153,11 +1305,30 @@
     setupStripe();
   }
 
-  function redirectSuccess(bookingId, pricing) {
+  function requiresBookingApprovalSetting() {
+    if (window.StyldTenant && window.StyldTenant.requiresBookingApproval) {
+      return window.StyldTenant.requiresBookingApproval(paymentSettings);
+    }
+    var v = paymentSettings.requireBookingApproval;
+    if (v == null) v = paymentSettings.require_booking_approval;
+    return v === true;
+  }
+
+  function resolveBookingStatus(awaitingPayment) {
+    if (window.StyldTenant && window.StyldTenant.resolveBookingStatus) {
+      return window.StyldTenant.resolveBookingStatus(paymentSettings, !!awaitingPayment);
+    }
+    if (awaitingPayment) return 'pending';
+    return requiresBookingApprovalSetting() ? 'pending_approval' : 'confirmed';
+  }
+
+  function redirectSuccess(bookingId, pricing, contactEmail) {
     var url = '/booking-success?confirmed=1';
+    if (requiresBookingApprovalSetting()) url += '&pending_approval=1';
     if (bookingId) url += '&booking_id=' + encodeURIComponent(bookingId);
     if (pricing && pricing.deposit > 0) url += '&deposit=1';
     if (subdomain) url += '&subdomain=' + encodeURIComponent(subdomain);
+    if (contactEmail) url += '&contact=' + encodeURIComponent(contactEmail);
     window.location.href = url;
   }
 
@@ -1301,7 +1472,10 @@
       duration_minutes: pricing.duration,
       estimated_total: pricing.total,
       deposit_amount: pricing.deposit,
-      booking_status: 'pending',
+      subtotal_before_promo: pricing.rawSubtotal,
+      promo_code: pricing.promoCode || null,
+      promo_discount_amount: pricing.promoDiscount > 0 ? pricing.promoDiscount : null,
+      booking_status: resolveBookingStatus(awaitingPayment),
       payment_status: awaitingPayment ? 'unpaid' : pricing.deposit > 0 ? 'unpaid' : 'none',
       stripe_payment_intent_id: null,
       current_hair_photo_path: options.hairPath || null,
@@ -1354,6 +1528,7 @@
       p_booking_id: requireBookingUuid(bookingId, 'Booking id'),
       p_payment_status: paymentStatus || 'deposit_paid',
       p_unit_payment_id: paymentIntentId,
+      p_booking_status: resolveBookingStatus(false),
     });
   }
 
@@ -1385,19 +1560,21 @@
   }
 
   function runStripePayment(bookingId, pricing, email, paymentStatus) {
-    var amountCents = Math.round(pricing.deposit * 100);
     var paymentIntentId = null;
     var ids = stripeIds(bookingId);
+    var payBody = {
+      email: email,
+      subtotalCents: Math.round(pricing.rawSubtotal * 100),
+    };
+    if (pricing.promoCode) {
+      payBody.promoCode = pricing.promoCode;
+    } else {
+      payBody.amountCents = Math.round(pricing.deposit * 100);
+    }
 
     return edgeFunction(
       'stripe-booking-pay',
-      Object.assign(
-        {
-          amountCents: amountCents,
-          email: email,
-        },
-        ids,
-      ),
+      Object.assign(payBody, ids),
     )
       .then(function (payResult) {
         var payBookingId = requireBookingUuid(payResult.bookingId || bookingId, 'Payment booking id');
@@ -1491,6 +1668,11 @@
       return;
     }
     if (!bookingForm || !bookingForm.reportValidity()) return;
+    if (hasUnappliedPromoInput()) {
+      showFeedback('Tap Apply to use your promo code, or clear the field before continuing.', true);
+      goToWizardStep(getWizardStepIndex('pricing'));
+      return;
+    }
 
     var pricing = computePricing(selectedStyle);
     var slotStart = selectedSlotStart;
@@ -1518,13 +1700,13 @@
         showFeedback('Saving your booking…', false);
         return insertBookingRecord(payload).then(function (savedId) {
           if (!needsPayment) {
-            redirectSuccess(savedId, pricing);
+            redirectSuccess(savedId, pricing, payload.email);
             return null;
           }
 
           showFeedback('Processing payment…', false);
           return runStripePayment(savedId, pricing, payload.email, paymentStatus).then(function () {
-            redirectSuccess(savedId, pricing);
+            redirectSuccess(savedId, pricing, payload.email);
           });
         });
       })
@@ -1563,6 +1745,7 @@
   setupAddonPicker();
   setupVariantPicker();
   bindWizardNav();
+  setupPromoCode();
 
   lockedStyleSelection = !!preselectedStyleId;
   if (preselectedVariantId) selectedVariantId = preselectedVariantId;

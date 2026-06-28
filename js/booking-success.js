@@ -1,6 +1,7 @@
 (function () {
   var params = new URLSearchParams(window.location.search);
   var paidDeposit = params.get('deposit') === '1';
+  var pendingApproval = params.get('pending_approval') === '1';
 
   function applySuccessCopy() {
     var content = window.__STYLD_SITE_CONTENT__ || {};
@@ -8,6 +9,28 @@
     var eyebrow = document.getElementById('success-eyebrow');
     var title = document.getElementById('success-title');
     var lead = document.getElementById('success-lead');
+    var note = document.getElementById('success-note');
+
+    if (pendingApproval) {
+      if (eyebrow) eyebrow.textContent = 'Request received';
+      if (title) title.textContent = 'Request received';
+      if (lead) {
+        lead.textContent =
+          'Your booking request went through. We\u2019ll email you whether your request is approved or denied.';
+      }
+      if (note) {
+        if (paidDeposit) {
+          note.hidden = false;
+          note.textContent =
+            'If your deposit was collected, it will be handled according to the salon\u2019s cancellation policy if your request is declined.';
+        } else {
+          note.hidden = true;
+          note.textContent = '';
+        }
+      }
+      document.title = brand ? 'Request received | ' + brand : 'Request received';
+      return;
+    }
 
     if (eyebrow) {
       eyebrow.textContent = paidDeposit ? 'Payment received' : 'Booking confirmed';
@@ -26,10 +49,12 @@
           (brand ? ' from ' + brand : '') +
           '.';
     }
-
-    if (brand) {
-      document.title = 'Booking confirmed | ' + brand;
+    if (note) {
+      note.hidden = true;
+      note.textContent = '';
     }
+
+    document.title = brand ? 'Booking confirmed | ' + brand : 'Booking confirmed';
   }
 
   function whenTenantReady() {

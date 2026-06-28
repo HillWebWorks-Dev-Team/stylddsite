@@ -333,3 +333,141 @@ Redeploy this Vercel project after changing tenant JS or offline copy so `*.styl
 
 If someone cancels and never opens the app, unpublish runs on next app open. For instant takedown without opening the app, add a RevenueCat webhook later.
 
+## Manual booking approval (`requireBookingApproval`)
+
+When **Require booking approval** is on in the app (`styld_site_settings` → `booking_payment.requireBookingApproval === true`), the booking site must **not** treat the client as confirmed on submit.
+
+### Site behavior (`js/booking.js`)
+
+- `PAYMENT.requireBookingApproval` is loaded in `styld-tenant-booking.js`.
+- `resolveBookingStatus()` → `pending_approval` after deposit paid or pay-in-person submit when approval is required; `confirmed` only when approval is off.
+- Success redirect adds `?pending_approval=1` when approval is required.
+- **Do not call `booking-client-email` from the site on submit when approval is required.** Confirmation email is sent only after the stylist accepts (app + edge function + DB trigger). Pay-in-person and deposit paths both skip client email on submit.
+- `stripe-booking-confirm` already skips client email when approval is required — rely on that for Stripe deposits; do not add a duplicate site-side email invoke after payment.
+
+### Client copy
+
+**`booking-success.html` / `booking-success.js`** when `pending_approval=1`:
+
+- Title: **Request received** (not “Booking confirmed”)
+- Body: request received; we’ll email when approved or declined
+- Optional deposit policy line if deposit was collected
+
+**`booking-details.html` / `booking-details.js`** when `booking_status === "pending_approval"`:
+
+- Status pill: **Pending approval**
+- Messaging: awaiting approval; email when approved or declined
+- Do not use confirmed/deposit-ok styling
+
+### Emails (backend — coordinate, do not duplicate in browser)
+
+| When | Client email |
+|------|----------------|
+| Submit with `pending_approval` | **None** (no premature “Booking confirmed”) |
+| Stylist **Accept** | `booking-client-email` with `force: true` → “✓ Booking confirmed – {Business name}” |
+| Status → `confirmed` (DB trigger backup) | `booking-client-email` if not already sent (`client_confirmation_email_sent_at`) |
+| Stylist **Decline** | Decline email (app/backend) |
+| Submit without approval required | `booking-client-email` / `stripe-booking-confirm` as today |
+
+**`booking-client-email` rules:**
+
+- Sends only when `booking_status` is `confirmed` or `completed`
+- Supports `force: true` to resend after approval (ignores `already_sent`)
+- Tracks `client_confirmation_email_sent_at` (not legacy `client_email_sent_at` alone)
+
+**Deploy (backend):**
+
+```bash
+supabase db push   # includes 20260629120000_booking_confirmation_client_email.sql
+supabase functions deploy booking-client-email
+```
+
+**Do not change** slot blocking or `resolveBookingStatus()` unless fixing a bug. Accept/decline stays in the mobile app.
+
+## Promo codes (booking checkout)
+
+Stylists manage promo codes in the mobile app: **Profile → Payments → Booking → Promos** tab. Codes are stored in Supabase as `site_setting` → `booking_promo_codes` on `styld_site_records`. **Never load the full promo list in the browser.**
+
+### Data shape (`booking_promo_codes`)
+
+Array of objects (managed in app, validated server-side only):
+
+```json
+[
+  {
+    "code": "SUMMER10",
+    "kind": "percent",
+    "value": 10,
+    "label": "Summer sale",
+    "expiresAt": "2026-09-01",
+    "maxUses": 100,
+    "enabled": true
+  },
+  {
+    "code": "SAVE20",
+    "kind": "fixed",
+    "value": 20,
+    "enabled": true
+  }
+]
+```
+
+- `kind`: `percent` (off subtotal) or `fixed` (dollar amount off)
+- `value`: percent 0–100 or fixed dollars
+- Optional: `label`, `expiresAt` (ISO date), `maxUses`, `enabled`
+
+### Booking page UI (`booking.html`)
+
+On the **Pricing** step, `#promo-code-section` sits after the price summary and before payment:
+
+- `#promo-code-input` + `#promo-code-apply` (Apply button)
+- `#promo-code-feedback` — success/error after Apply
+- `#line-promo-row` in the price summary when a code is applied (`#line-promo-code`, `#line-promo-discount`)
+
+Legacy sidebar IDs (`#side-promo-row`, etc.) are updated in JS if present but the sidebar was removed — pricing step rows are canonical.
+
+### Client flow (`js/booking.js`)
+
+1. **Apply only** — On Apply, POST edge function `validate-booking-promo`:
+
+   ```json
+   { "subdomain": "trial", "code": "SUMMER10", "subtotalCents": 20000 }
+   ```
+
+   `subtotalCents` = service total **before** discount (base + add-on, cents). Do not include deposit/service fee.
+
+2. **Valid response** (example — field names may vary; normalize in JS):
+
+   ```json
+   { "valid": true, "code": "SUMMER10", "discountCents": 2000, "label": "Summer sale" }
+   ```
+
+3. **`computePricing()`** — `rawSubtotal = base + addonPrice`; `total = rawSubtotal - discount`. Deposit/full payment amounts are recalculated from the **discounted** total.
+
+4. **Submit** — Block if the user typed a code but did not tap Apply (`hasUnappliedPromoInput()`).
+
+5. **Booking row** — On insert, save:
+   - `promo_code`
+   - `promo_discount_amount` (dollars)
+   - `subtotal_before_promo` (dollars, pre-discount service total)
+   - `estimated_total` (discounted service total)
+
+6. **Stripe** — POST `stripe-booking-pay` with `{ subdomain, bookingId, email, subtotalCents, promoCode }`. Server recomputes deposit/charge; do not trust client `amountCents` when `promoCode` is set. Without a promo, pass `amountCents` as before.
+
+7. **Invalidation** — Clear applied promo when service/variant/add-on changes (subtotal no longer matches validated cents).
+
+### Edge functions (deploy separately)
+
+```bash
+supabase functions deploy validate-booking-promo
+supabase functions deploy stripe-booking-pay
+```
+
+No DB migration — promos use existing `styld_site_records` `site_setting` rows.
+
+### Do not
+
+- Fetch or expose `booking_promo_codes` to the client for local validation.
+- Apply discounts without calling `validate-booking-promo`.
+- Skip saving promo fields on the booking record when a code was applied.
+

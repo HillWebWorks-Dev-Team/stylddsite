@@ -146,6 +146,7 @@
   function bookingStatusLabel(status) {
     var normalized = String(status || '').toLowerCase();
     if (normalized === 'cancelled' || normalized === 'canceled') return 'Cancelled';
+    if (normalized === 'pending_approval') return 'Pending approval';
     if (normalized === 'confirmed') return 'Confirmed';
     if (normalized === 'pending') return 'Pending';
     if (normalized === 'completed') return 'Completed';

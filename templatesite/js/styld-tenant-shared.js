@@ -328,6 +328,18 @@
     };
   }
 
+  function requiresBookingApproval(bookingPayment) {
+    var settings = bookingPayment && typeof bookingPayment === 'object' ? bookingPayment : {};
+    var requireApproval = settings.requireBookingApproval;
+    if (requireApproval == null) requireApproval = settings.require_booking_approval;
+    return requireApproval === true;
+  }
+
+  function resolveBookingStatus(bookingPayment, awaitingPayment) {
+    if (awaitingPayment) return 'pending';
+    return requiresBookingApproval(bookingPayment) ? 'pending_approval' : 'confirmed';
+  }
+
   function resolveCancellationPolicySummary(cancellationPolicy, siteContent) {
     var policy =
       cancellationPolicy && typeof cancellationPolicy === 'object' ? cancellationPolicy : {};
@@ -831,6 +843,8 @@
     normalizeBookingHours: normalizeBookingHours,
     normalizeWeekdayHours: normalizeWeekdayHours,
     getBookingFormRequirements: getBookingFormRequirements,
+    requiresBookingApproval: requiresBookingApproval,
+    resolveBookingStatus: resolveBookingStatus,
     resolveEffectiveBookingPayment: resolveEffectiveBookingPayment,
     applyBookingFormSettings: applyBookingFormSettings,
     resolveCancellationPolicySummary: resolveCancellationPolicySummary,
