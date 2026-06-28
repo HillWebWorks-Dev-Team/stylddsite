@@ -653,8 +653,8 @@ async function fetchRevenueCatStatus(userId: string) {
   }
 }
 
-const STYLD_SUB_MONTHLY_PRICE = () => Number(Deno.env.get('STYLD_SUB_MONTHLY_PRICE') || 9.99);
-const STYLD_SUB_YEARLY_PRICE = () => Number(Deno.env.get('STYLD_SUB_YEARLY_PRICE') || 99.99);
+const STYLD_SUB_MONTHLY_PRICE = () => Number(Deno.env.get('STYLD_SUB_MONTHLY_PRICE') || 24.99);
+const STYLD_SUB_YEARLY_PRICE = () => Number(Deno.env.get('STYLD_SUB_YEARLY_PRICE') || 199.99);
 
 function monthKeyFromIso(iso: string) {
   if (!iso || iso.length < 7) return '';

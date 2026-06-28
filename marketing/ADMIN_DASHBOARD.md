@@ -150,8 +150,8 @@ Filters: `{ "range": "month"|"year"|"all", "month": "2026-06", "year": "2026" }`
     "errors": 0,
     "new_in_period": 0,
     "estimated_mrr": 0,
-    "monthly_price": 9.99,
-    "yearly_price": 99.99,
+    "monthly_price": 24.99,
+    "yearly_price": 199.99,
     "plans": { "monthly": {}, "yearly": {}, "other": {}, "total_mrr": 0 },
     "revenuecat_overview": null,
     "subscribers": [{ "user_id": "uuid", "brand_name": "", "email": "", "status": "active", "plan_label": "Pro Monthly" }]

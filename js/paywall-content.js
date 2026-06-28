@@ -6,16 +6,16 @@ export const PAYWALL_PLANS = {
   monthly: {
     id: 'styld_monthly',
     label: 'Monthly',
-    price: '$49.99',
+    price: '$24.99',
     period: '/mo',
     badge: null,
   },
   yearly: {
     id: 'styld_yearly',
     label: 'Yearly',
-    price: '$299.99',
+    price: '$199.99',
     period: '/yr',
-    badge: 'Save 50%',
+    badge: 'Save $100',
   },
 };
 

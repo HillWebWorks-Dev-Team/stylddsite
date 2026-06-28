@@ -1251,7 +1251,7 @@
       '<p class="admin-revenue-plan-card__meta">' +
       fmtCount(monthlyPlan.count || 0) +
       ' paying · ' +
-      fmtMoney(monthlyPlan.price || subs.monthly_price || 9.99) +
+      fmtMoney(monthlyPlan.price || subs.monthly_price || 24.99) +
       ' each · MRR ' +
       fmtMoney(monthlyPlan.mrr || 0) +
       '</p></button>' +
@@ -1267,7 +1267,7 @@
       '<p class="admin-revenue-plan-card__meta">' +
       fmtCount(yearlyPlan.count || 0) +
       ' paying · ' +
-      fmtMoney(yearlyPlan.price || subs.yearly_price || 99.99) +
+      fmtMoney(yearlyPlan.price || subs.yearly_price || 199.99) +
       ' each · MRR ' +
       fmtMoney(yearlyPlan.mrr || 0) +
       '</p></button>' +
