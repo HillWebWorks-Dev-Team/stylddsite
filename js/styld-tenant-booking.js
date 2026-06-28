@@ -42,7 +42,7 @@
     availability.src = '/js/booking-availability.js?v=4';
     availability.onload = function () {
       var script = document.createElement('script');
-      script.src = '/js/booking.js?v=67';
+      script.src = '/js/booking.js?v=68';
       script.defer = true;
       document.body.appendChild(script);
     };
@@ -95,6 +95,7 @@
           : '') || '';
       window.__STYLD_BOOKING_HOURS__ = site.bookingHours || {};
       window.__STYLD_BOOKING_STYLES__ = site.bookingStyles || [];
+      window.__STYLD_BOOKING_PRODUCTS__ = site.productsCatalog || [];
       window.__STYLD_BOOKING_FORM__ = window.StyldTenant.applyBookingFormSettings(site.bookingPayment);
       window.__SALON_SITE_BOOKING__ = {
         subdomain: site.subdomain,
@@ -102,6 +103,7 @@
         bookingHours: site.bookingHours || {},
         weekdayHours: (site.bookingHours && site.bookingHours.weekdayHours) || {},
         strictNoOverlap: true,
+        products: site.productsCatalog || [],
       };
       window.__STYLD_TENANT_BOOKING__ = window.__SALON_SITE_BOOKING__;
 

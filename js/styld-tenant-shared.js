@@ -828,6 +828,35 @@
     return req;
   }
 
+  function normalizeSiteProducts(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map(function (item) {
+        if (!item || typeof item !== 'object') return null;
+        if (item.enabled === false) return null;
+        var id = String(item.id || '').trim();
+        var title = String(item.title || '').trim();
+        if (!id || !title) return null;
+        var price = typeof item.price === 'number' ? item.price : Number(item.price);
+        if (!Number.isFinite(price) || price < 0) price = 0;
+        var imagePaths = Array.isArray(item.imagePaths)
+          ? item.imagePaths.map(function (p) {
+              return String(p || '').trim();
+            }).filter(Boolean)
+          : [];
+        var storagePath = String(item.storagePath || imagePaths[0] || '').trim();
+        return {
+          id: id,
+          title: title,
+          description: String(item.description || '').trim(),
+          price: price,
+          storagePath: storagePath,
+          imagePaths: imagePaths.length ? imagePaths : storagePath ? [storagePath] : [],
+        };
+      })
+      .filter(Boolean);
+  }
+
   window.StyldTenant = {
     SITE_OFFLINE_MESSAGE: SITE_OFFLINE_MESSAGE,
     getSubdomain: getSubdomain,
@@ -852,6 +881,7 @@
     normalizeVariants: normalizeVariants,
     getStyleVariantChoices: getStyleVariantChoices,
     formatStylePriceRange: formatStylePriceRange,
+    normalizeSiteProducts: normalizeSiteProducts,
 
     loadPublishedSite: function () {
       var cfg = window.__STYLD_TENANT__ || {};
@@ -901,6 +931,8 @@
             var bookingHours = null;
             var bookingPayment = null;
             var cancellationPolicy = null;
+            var productsCatalog = [];
+            var productsSettings = {};
 
             records.forEach(function (record) {
               var value = settingValue(record);
@@ -926,6 +958,12 @@
               if (record.record_type === 'site_setting' && record.record_key === 'cancellation_policy') {
                 cancellationPolicy = value;
               }
+              if (record.record_type === 'site_setting' && record.record_key === 'products_catalog') {
+                productsCatalog = normalizeSiteProducts(value);
+              }
+              if (record.record_type === 'site_setting' && record.record_key === 'products_settings') {
+                productsSettings = value && typeof value === 'object' ? value : {};
+              }
               if (record.record_type === 'style_cover_image' && record.record_key) {
                 var coverPath = coverStoragePath(value);
                 if (typeof coverPath === 'string') covers[record.record_key] = coverPath;
@@ -947,6 +985,8 @@
               cancellationPolicy: cancellationPolicy,
               bookingStyles: buildBookingStyles(meta, prices),
               catalogCards: buildCatalogCards(meta, prices, covers, cfg.supabaseUrl, theme.logoImagePath),
+              productsCatalog: productsCatalog,
+              productsSettings: productsSettings,
             };
           });
         });

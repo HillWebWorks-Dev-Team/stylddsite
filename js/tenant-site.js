@@ -160,6 +160,8 @@
       var covers = {};
       var reviewsSettings = { enabled: true };
       var reviews = [];
+      var productsCatalog = [];
+      var productsSettings = {};
 
       records.forEach(function (record) {
         var value = settingValue(record);
@@ -169,6 +171,17 @@
         if (record.record_type === 'site_setting' && record.record_key === 'style_price_overrides') prices = value || {};
         if (record.record_type === 'site_setting' && record.record_key === 'reviews_settings') {
           reviewsSettings = value || reviewsSettings;
+        }
+        if (record.record_type === 'site_setting' && record.record_key === 'products_catalog') {
+          productsCatalog =
+            window.StyldTenant && window.StyldTenant.normalizeSiteProducts
+              ? window.StyldTenant.normalizeSiteProducts(value)
+              : Array.isArray(value)
+                ? value
+                : [];
+        }
+        if (record.record_type === 'site_setting' && record.record_key === 'products_settings') {
+          productsSettings = value && typeof value === 'object' ? value : {};
         }
         if (record.record_type === 'review') {
           var reviewData = record.data && typeof record.data === 'object' ? record.data : value;
@@ -195,6 +208,10 @@
       var templateId = 'profile';
 
       window.__STYLD_SITE_CONTENT__ = content;
+      window.__STYLD_SITE_PRODUCTS__ = {
+        catalog: productsCatalog,
+        settings: productsSettings,
+      };
       var heroStackImagePaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
       var heroStackImageFocus = Array.isArray(theme.heroStackImageFocus) ? theme.heroStackImageFocus : [];
       window.__STYLD_SITE_THEME__ = {

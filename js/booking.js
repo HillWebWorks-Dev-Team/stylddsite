@@ -75,6 +75,10 @@
   var stripeElements = null;
   var appliedPromo = null;
   var lastValidatedSubtotalCents = null;
+  var productsCatalog =
+    window.__STYLD_BOOKING_PRODUCTS__ || tenantBooking.products || [];
+  var selectedProductIds = {};
+  var preselectedProductId = new URLSearchParams(window.location.search).get('product') || '';
 
   var WIZARD_STEPS = ['personal', 'service', 'appointment', 'pricing'];
   var currentWizardStep = 0;
@@ -519,6 +523,99 @@
     }
   }
 
+  function productImageUrl(path) {
+    if (!path) return '';
+    if (window.StyldTenant && window.StyldTenant.resolveStyleCoverUrl) {
+      return window.StyldTenant.resolveStyleCoverUrl(path) || '';
+    }
+    var base = (cfg.supabaseUrl || '').replace(/\/$/, '');
+    if (!base) return '';
+    var objectPath = String(path).replace(/^\/+/, '').replace(/^style-covers\//, '');
+    return base + '/storage/v1/object/public/style-covers/' + objectPath;
+  }
+
+  function getSelectedBookingProducts() {
+    return productsCatalog.filter(function (product) {
+      return !!selectedProductIds[product.id];
+    });
+  }
+
+  function getProductsSubtotal() {
+    return getSelectedBookingProducts().reduce(function (sum, product) {
+      return sum + (typeof product.price === 'number' ? product.price : 0);
+    }, 0);
+  }
+
+  function renderBookingProducts() {
+    var section = document.getElementById('booking-products-section');
+    var list = document.getElementById('booking-products-list');
+    if (!list) return;
+
+    if (!productsCatalog.length) {
+      if (section) section.hidden = true;
+      list.innerHTML = '';
+      return;
+    }
+
+    if (section) section.hidden = false;
+    list.innerHTML = productsCatalog
+      .map(function (product) {
+        var checked = !!selectedProductIds[product.id];
+        var imageUrl = productImageUrl(product.storagePath || product.imagePaths[0]);
+        var thumb = imageUrl
+          ? '<img class="booking-product-option__thumb" src="' +
+            escapeHtml(imageUrl) +
+            '" alt="" loading="lazy" decoding="async" />'
+          : '<span class="booking-product-option__thumb booking-product-option__thumb--empty" aria-hidden="true"></span>';
+        return (
+          '<label class="booking-product-option">' +
+          '<input type="checkbox" name="booking-product" value="' +
+          escapeHtml(product.id) +
+          '"' +
+          (checked ? ' checked' : '') +
+          ' />' +
+          '<span class="booking-product-option__body">' +
+          thumb +
+          '<span class="booking-product-option__text">' +
+          '<span class="booking-product-option__title">' +
+          escapeHtml(product.title) +
+          '</span>' +
+          (product.description
+            ? '<span class="booking-product-option__desc">' +
+              escapeHtml(product.description.length > 120 ? product.description.slice(0, 117) + '…' : product.description) +
+              '</span>'
+            : '') +
+          '</span>' +
+          '<span class="booking-product-option__price">' +
+          money(product.price) +
+          '</span>' +
+          '</span>' +
+          '</label>'
+        );
+      })
+      .join('');
+  }
+
+  function setupBookingProducts() {
+    var list = document.getElementById('booking-products-list');
+    if (!list || list.dataset.bound === '1') return;
+    list.dataset.bound = '1';
+
+    if (preselectedProductId && productsCatalog.some(function (p) { return p.id === preselectedProductId; })) {
+      selectedProductIds[preselectedProductId] = true;
+    }
+
+    renderBookingProducts();
+
+    list.addEventListener('change', function (event) {
+      var input = event.target;
+      if (!input || input.name !== 'booking-product') return;
+      if (input.checked) selectedProductIds[input.value] = true;
+      else delete selectedProductIds[input.value];
+      updatePricingDisplay();
+    });
+  }
+
   function hasUnappliedPromoInput() {
     var input = document.getElementById('promo-code-input');
     if (!input) return false;
@@ -621,6 +718,8 @@
         : 0;
     promoDiscount = Math.min(rawSubtotal, Math.max(0, promoDiscount));
     var total = Math.max(0, rawSubtotal - promoDiscount);
+    var productsSubtotal = getProductsSubtotal();
+    var grandTotal = total + productsSubtotal;
     var mode = paymentSettings.mode || 'none';
     var deposit = 0;
 
@@ -655,6 +754,8 @@
       promoDiscount: promoDiscount,
       promoCode: appliedPromo ? appliedPromo.code : null,
       total: total,
+      productsSubtotal: productsSubtotal,
+      grandTotal: grandTotal,
       duration: duration,
       deposit: deposit,
       serviceFee: serviceFee,
@@ -692,10 +793,12 @@
     var payNote;
 
     if (isInPerson) {
-      summaryLabel = 'Pay in person';
-      summaryAmount = money(p.total);
+      summaryLabel = p.productsSubtotal > 0 ? 'Estimated total' : 'Pay in person';
+      summaryAmount = money(p.grandTotal);
       payNote =
-        'No payment is required now. Pay your stylist in person when you arrive for your appointment.';
+        p.productsSubtotal > 0
+          ? 'No payment is required now. Pay your stylist in person when you arrive — service plus any products you selected.'
+          : 'No payment is required now. Pay your stylist in person when you arrive for your appointment.';
     } else if (isDepositMode) {
       summaryLabel = 'Deposit due now';
       summaryAmount = moneyPrecise(p.deposit);
@@ -725,6 +828,12 @@
       setText('line-promo-discount', '\u2212' + money(p.promoDiscount));
       setText('side-promo-code', p.promoCode);
       setText('side-promo-discount', '\u2212' + money(p.promoDiscount));
+    }
+
+    var lineProductsRow = document.getElementById('line-products-row');
+    if (lineProductsRow) lineProductsRow.hidden = !(p.productsSubtotal > 0);
+    if (p.productsSubtotal > 0) {
+      setText('line-products-total', money(p.productsSubtotal));
     }
 
     setText('side-total-label', summaryLabel);
@@ -1447,6 +1556,7 @@
     var pricing = computePricing(selectedStyle);
     var addon = getSelectedAddon(selectedStyle);
     var variant = getSelectedVariant(selectedStyle);
+    var selectedProducts = getSelectedBookingProducts();
     var name = (document.getElementById('full-name') || {}).value || '';
     var email = (document.getElementById('email') || {}).value || '';
     var phone = (document.getElementById('phone') || {}).value || '';
@@ -1470,11 +1580,23 @@
       appointment_date: selectedSlotStart.toISODate(),
       appointment_slot: selectedSlotStart.toFormat('h:mm a'),
       duration_minutes: pricing.duration,
-      estimated_total: pricing.total,
+      estimated_total: pricing.grandTotal,
       deposit_amount: pricing.deposit,
       subtotal_before_promo: pricing.rawSubtotal,
       promo_code: pricing.promoCode || null,
       promo_discount_amount: pricing.promoDiscount > 0 ? pricing.promoDiscount : null,
+      order_products: selectedProducts.length
+        ? selectedProducts.map(function (product) {
+            return {
+              id: product.id,
+              title: product.title,
+              price: product.price,
+              quantity: 1,
+            };
+          })
+        : null,
+      products_subtotal: pricing.productsSubtotal > 0 ? pricing.productsSubtotal : null,
+      fulfillment_method: pricing.productsSubtotal > 0 ? 'at_appointment' : null,
       booking_status: resolveBookingStatus(awaitingPayment),
       payment_status: awaitingPayment ? 'unpaid' : pricing.deposit > 0 ? 'unpaid' : 'none',
       stripe_payment_intent_id: null,
@@ -1746,6 +1868,7 @@
   setupVariantPicker();
   bindWizardNav();
   setupPromoCode();
+  setupBookingProducts();
 
   lockedStyleSelection = !!preselectedStyleId;
   if (preselectedVariantId) selectedVariantId = preselectedVariantId;

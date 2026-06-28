@@ -16,7 +16,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=74" />
+    <link rel="stylesheet" href="/css/styles.css?v=75" />
     <!-- Vercel Web Analytics: enable in Vercel Project Settings > Analytics -->
     <script src="/js/vercel-analytics.bundle.js" defer></script>
   </head>
@@ -320,6 +320,10 @@
                     <span class="booking-pricing__label">Promo · <span id="line-promo-code"></span></span>
                     <span class="booking-pricing__value booking-pricing__value--discount" id="line-promo-discount">−$0.00</span>
                   </div>
+                  <div class="booking-pricing__row" id="line-products-row" hidden>
+                    <span class="booking-pricing__label">Products</span>
+                    <span class="booking-pricing__value" id="line-products-total">$0.00</span>
+                  </div>
                 </div>
 
                 <div class="booking-pricing__hero" id="line-estimated-total-wrap">
@@ -354,23 +358,25 @@
               </div>
             </section>
 
-            <section class="form-section booking-wizard__block" id="promo-code-section">
-              <h3 class="booking-block__title">Promo code</h3>
-              <div class="booking-promo-field">
-                <div class="booking-promo-field__row">
-                  <input
-                    id="promo-code-input"
-                    name="promo-code"
-                    type="text"
-                    autocomplete="off"
-                    autocapitalize="characters"
-                    spellcheck="false"
-                    placeholder="Enter code"
-                  />
-                  <button type="button" class="btn btn-secondary" id="promo-code-apply">Apply</button>
-                </div>
-                <p id="promo-code-feedback" class="booking-promo-feedback" role="status" aria-live="polite" hidden></p>
-              </div>
+            <div class="booking-promo-inline" id="promo-code-section">
+              <label class="booking-promo-inline__label" for="promo-code-input">Promo code</label>
+              <input
+                id="promo-code-input"
+                name="promo-code"
+                type="text"
+                autocomplete="off"
+                autocapitalize="characters"
+                spellcheck="false"
+                placeholder="Enter code"
+              />
+              <button type="button" class="btn btn-secondary booking-promo-inline__apply" id="promo-code-apply">Apply</button>
+            </div>
+            <p id="promo-code-feedback" class="booking-promo-feedback" role="status" aria-live="polite" hidden></p>
+
+            <section class="form-section booking-wizard__block" id="booking-products-section" hidden>
+              <h3 class="booking-block__title">Add products to your visit</h3>
+              <p class="booking-block__lead">Optional — pick up at your appointment.</p>
+              <div class="booking-products-list" id="booking-products-list" role="group" aria-label="Products"></div>
             </section>
 
             <section class="form-section booking-wizard__block hidden" id="cancellation-policy-section" aria-hidden="true">
@@ -468,10 +474,10 @@
     <script src="/js/booking-config.js?v=52"></script>
     <script src="/js/styld-tenant-config.js?v=39"></script>
     <script src="/js/styld-tenant-config.local.js?v=39"></script>
-    <script src="/js/styld-tenant-shared.js?v=71"></script>
+    <script src="/js/styld-tenant-shared.js?v=72"></script>
     <script src="/js/profile-content.js?v=29"></script>
     <script src="/js/tenant-site.js?v=68"></script>
-    <script src="/js/styld-tenant-booking.js?v=71"></script>
+    <script src="/js/styld-tenant-booking.js?v=72"></script>
     <script src="/js/supabase-config.js?v=52"></script>
     <script src="/js/supabase-config.local.js?v=52"></script>
     <script id="booking-fallback-bootstrap">
@@ -497,7 +503,7 @@
           'avail.src = "/js/booking-availability.js?v=4";' +
           'avail.onload = function () {' +
           'const booking = document.createElement("script");' +
-          'booking.src = "/js/booking.js?v=67";' +
+          'booking.src = "/js/booking.js?v=68";' +
           'booking.defer = true;' +
           'document.body.appendChild(booking);' +
           '};' +

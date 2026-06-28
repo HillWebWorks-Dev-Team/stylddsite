@@ -208,6 +208,54 @@ App path: **Site editor → Content → Certifications**
 
 **Hide when:** `'certifications'` in `hiddenSections`, or no valid `certificationItems`.
 
+## Products shop
+
+Products are managed in the Styld app (**Profile → Account → Products**). The live site reads them from Supabase `styld_site_records` — **never hard-code product lists in HTML**.
+
+### Data (loaded automatically)
+
+| record_key | field | notes |
+|------------|-------|-------|
+| `products_catalog` | array | Each product: `id`, `title`, `description`, `price`, `enabled`, `imagePaths[]`, `storagePath` (first image, backward compat) |
+| `products_settings` | object | `allowPickup`, `allowShipping`, `shippingFlatRate`, `pickupInstructions`, `shippingNote` |
+| `site_content` | | `productsTitle`, `productsBlurb`; hide shop if `hiddenSections` includes `'products'` |
+
+Product images: public URL = `{supabaseUrl}/storage/v1/object/public/style-covers/{storagePath}`  
+Paths look like `{userId}/products/{filename}`.
+
+Runtime globals:
+
+- `window.__STYLD_SITE_PRODUCTS__` — `{ catalog, settings }` on profile/products pages (`tenant-site.js`)
+- `window.__STYLD_BOOKING_PRODUCTS__` / `__SALON_SITE_BOOKING__.products` — catalog on booking (`styld-tenant-booking.js`)
+- `StyldTenant.normalizeSiteProducts(raw)` — filters `enabled`, validates `id`/`title`/`price`
+
+### Booking checkout (`booking.html` pricing step)
+
+- `#booking-products-section` — checkbox list when catalog has enabled products
+- `#booking-products-list` — rendered by `setupBookingProducts()` / `renderBookingProducts()`
+- Price summary row `#line-products-row` when products selected
+- Deep link: `/booking?product={id}` pre-selects a product
+- On submit, save:
+  - `order_products`: `[{ id, title, price, quantity: 1 }]`
+  - `products_subtotal` (dollars)
+  - `fulfillment_method: 'at_appointment'`
+  - `estimated_total` = service (after promo) + products
+
+Promo codes apply to **service subtotal only**, not products.
+
+### Required pages & routes (shop — when implemented)
+
+- `/products` → `tenant/products.html` (`body.page-products`)
+- `/products/order?product={id}` → standalone order flow via `submit-product-order`
+- Register routes in `middleware.js` TENANT_STATIC_PAGES
+- Nav **Shop** tab from `productsTitle` when `'products'` ∉ `hiddenSections`
+
+### Do NOT
+
+- Hard-code products in HTML/JS
+- Skip loading `products_catalog` from `styld_site_records`
+- Apply promo discounts to product subtotals
+
 ## Style add-ons (`style_catalog_meta`)
 
 Optional add-ons per style in `site_setting` → `style_catalog_meta`:
@@ -418,10 +466,10 @@ Array of objects (managed in app, validated server-side only):
 
 ### Booking page UI (`booking.html`)
 
-On the **Pricing** step, `#promo-code-section` sits after the price summary and before payment:
+On the **Pricing** step, `#promo-code-section` is a single inline row (label + input + Apply):
 
-- `#promo-code-input` + `#promo-code-apply` (Apply button)
-- `#promo-code-feedback` — success/error after Apply
+- `.booking-promo-inline` with `#promo-code-input` + `#promo-code-apply`
+- `#promo-code-feedback` — success/error below the row
 - `#line-promo-row` in the price summary when a code is applied (`#line-promo-code`, `#line-promo-discount`)
 
 Legacy sidebar IDs (`#side-promo-row`, etc.) are updated in JS if present but the sidebar was removed — pricing step rows are canonical.
