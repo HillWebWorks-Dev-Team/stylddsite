@@ -4233,6 +4233,19 @@ body.page-booking .booking-wizard__block {
   border: 1px solid color-mix(in srgb, var(--text-body, var(--ink)) 12%, transparent);
 }
 
+body.page-booking .booking-wizard__block--lined {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+body.page-booking .booking-wizard__block--lined > .field + .field {
+  margin-top: 1.35rem;
+  padding-top: 1.35rem;
+  border-top: 1px solid color-mix(in srgb, var(--text-body, var(--ink)) 16%, transparent);
+}
+
 body.page-booking .booking-wizard__block + .booking-wizard__block,
 body.page-booking .booking-wizard__panel[data-booking-step="pricing"] .form-section + .form-section {
   margin-top: 0;
