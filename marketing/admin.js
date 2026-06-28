@@ -33,6 +33,11 @@
     if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) {
       return Promise.reject(new Error('Supabase not configured.'));
     }
+    filters = filters || {};
+    var hidden = readHiddenProIds();
+    if (hidden.length) {
+      filters = Object.assign({}, filters, { exclude_user_ids: hidden });
+    }
     return fetch(cfg.supabaseUrl.replace(/\/$/, '') + '/functions/v1/styld-admin-dashboard', {
       method: 'POST',
       headers: {
@@ -69,8 +74,27 @@
 
   var HIDDEN_SALON_USER_IDS = ['f8e75013-9e0f-4377-9076-8ca1b0d0d529'];
   var HIDDEN_SALON_EMAILS = ['admin@styld.app'];
+  var HIDDEN_PRO_IDS_KEY = 'styld_admin_hidden_pro_ids';
 
-  function isHiddenSalonUser(row) {
+  function readHiddenProIds() {
+    try {
+      var raw = localStorage.getItem(HIDDEN_PRO_IDS_KEY);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map(String).filter(Boolean);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function writeHiddenProIds(ids) {
+    try {
+      localStorage.setItem(HIDDEN_PRO_IDS_KEY, JSON.stringify(ids || []));
+    } catch (e) {}
+  }
+
+  function isHardcodedHiddenSalonUser(row) {
     if (!row) return false;
     var uid = String(row.user_id || row.id || '');
     if (HIDDEN_SALON_USER_IDS.indexOf(uid) >= 0) return true;
@@ -78,10 +102,93 @@
     return HIDDEN_SALON_EMAILS.indexOf(email) >= 0;
   }
 
+  function isHiddenSalonUser(row) {
+    if (isHardcodedHiddenSalonUser(row)) return true;
+    var uid = String((row && (row.user_id || row.id)) || '').trim();
+    if (!uid) return false;
+    return readHiddenProIds().indexOf(uid) >= 0;
+  }
+
   function visibleSalonUsers(users) {
     return (users || []).filter(function (u) {
       return !isHiddenSalonUser(u);
     });
+  }
+
+  function hidePro(userId) {
+    var uid = String(userId || '').trim();
+    if (!uid || isHardcodedHiddenSalonUser({ user_id: uid })) return;
+    var ids = readHiddenProIds();
+    if (ids.indexOf(uid) < 0) ids.push(uid);
+    writeHiddenProIds(ids);
+    updateHiddenProsUI();
+    loadTab(state.tab);
+  }
+
+  function unhidePro(userId) {
+    var uid = String(userId || '').trim();
+    if (!uid) return;
+    var ids = readHiddenProIds().filter(function (id) {
+      return id !== uid;
+    });
+    writeHiddenProIds(ids);
+    updateHiddenProsUI();
+    loadTab(state.tab);
+  }
+
+  function findProLabel(userId) {
+    var uid = String(userId || '');
+    var pools = [state.allUsers, state.users, state.overview && state.overview.top_salons_by_collected];
+    for (var i = 0; i < pools.length; i++) {
+      var pool = pools[i];
+      if (!pool || !pool.length) continue;
+      var match = pool.find(function (u) {
+        return String(u.user_id || u.id || '') === uid;
+      });
+      if (match) return match.brand_name || match.business_name || match.email || uid;
+    }
+    return uid;
+  }
+
+  function renderHiddenProsPanel() {
+    if (!els.hiddenProsPanel) return;
+    var ids = readHiddenProIds();
+    if (!ids.length) {
+      els.hiddenProsPanel.innerHTML =
+        '<p class="admin-muted">No hidden pros. Click <strong>Hide</strong> on a pro row to exclude them from dashboard totals.</p>';
+      return;
+    }
+    els.hiddenProsPanel.innerHTML =
+      '<ul class="admin-hidden-pros-list">' +
+      ids
+        .map(function (id) {
+          return (
+            '<li class="admin-hidden-pros-item"><span>' +
+            esc(findProLabel(id)) +
+            '</span><button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-unhide-pro="' +
+            esc(id) +
+            '">Show again</button></li>'
+          );
+        })
+        .join('') +
+      '</ul>';
+  }
+
+  function updateHiddenProsUI() {
+    var count = readHiddenProIds().length;
+    if (els.hiddenProsBtn) {
+      els.hiddenProsBtn.textContent = count ? 'Hidden pros (' + count + ')' : 'Hidden pros';
+      els.hiddenProsBtn.classList.toggle('is-active', count > 0);
+      els.hiddenProsBtn.setAttribute('aria-pressed', count > 0 ? 'true' : 'false');
+    }
+    renderHiddenProsPanel();
+  }
+
+  function toggleHiddenProsPanel(force) {
+    if (!els.hiddenProsPanel) return;
+    var open = typeof force === 'boolean' ? force : els.hiddenProsPanel.hidden;
+    els.hiddenProsPanel.hidden = !open;
+    if (open) renderHiddenProsPanel();
   }
 
   function fmtDate(v) {
@@ -2643,6 +2750,7 @@
     var name = u.brand_name || u.business_name || u.full_name || 'Pro';
     var img = renderSalonThumb(salonLogoUrl(u), name, 'admin-salon-row__media-inner');
     return (
+      '<article class="admin-salon-row-wrap">' +
       '<button type="button" class="admin-salon-row" data-open-user="' +
       esc(u.user_id) +
       '">' +
@@ -2692,7 +2800,13 @@
       subscriptionPill(u.subscription) +
       '</div>' +
       '<span class="admin-salon-row__arrow" aria-hidden="true">→</span>' +
-      '</button>'
+      '</button>' +
+      '<button type="button" class="admin-salon-row__hide" data-hide-pro="' +
+      esc(u.user_id) +
+      '" title="Hide from dashboard stats" aria-label="Hide ' +
+      esc(name) +
+      ' from dashboard stats">Hide</button>' +
+      '</article>'
     );
   }
 
@@ -3468,6 +3582,14 @@
         els.salonViewLink.hidden = true;
       }
     }
+    if (els.salonHideBtn) {
+      var uid = String(data.user_id || data.profile && data.profile.id || '');
+      var hidden = isHiddenSalonUser({ user_id: uid, email: data.email });
+      els.salonHideBtn.hidden = isHardcodedHiddenSalonUser({ user_id: uid, email: data.email });
+      els.salonHideBtn.textContent = hidden ? 'Show in dashboard' : 'Hide from dashboard';
+      els.salonHideBtn.setAttribute('data-hide-pro', uid);
+      els.salonHideBtn.setAttribute('data-pro-hidden', hidden ? '1' : '0');
+    }
     renderSalonDashboard(data);
     if (els.salonView) {
       els.salonView.hidden = false;
@@ -3541,7 +3663,8 @@
       case 'salons':
       case 'users':
         promise = api('users', { search: search }, state.pin).then(function (data) {
-          state.users = visibleSalonUsers(data.users || []);
+          state.allUsers = data.users || [];
+          state.users = visibleSalonUsers(state.allUsers);
           renderUsersTable(state.users);
         });
         break;
@@ -3651,6 +3774,18 @@
       });
     }
 
+    if (els.hiddenProsBtn) {
+      els.hiddenProsBtn.addEventListener('click', function () {
+        toggleHiddenProsPanel();
+      });
+    }
+
+    document.addEventListener('click', function (e) {
+      if (!els.hiddenProsPanel || els.hiddenProsPanel.hidden) return;
+      if (e.target.closest('#admin-hidden-pros-wrap')) return;
+      toggleHiddenProsPanel(false);
+    });
+
     document.querySelectorAll('[data-revenue-range]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var range = btn.getAttribute('data-revenue-range') || 'month';
@@ -3705,6 +3840,30 @@
     }
 
     document.body.addEventListener('click', function (e) {
+      var hideBtn = e.target.closest('[data-hide-pro]');
+      if (hideBtn && !hideBtn.closest('[data-open-user]')) {
+        e.preventDefault();
+        e.stopPropagation();
+        var hideId = hideBtn.getAttribute('data-hide-pro');
+        if (hideBtn.getAttribute('data-pro-hidden') === '1') {
+          unhidePro(hideId);
+          if (state.salonData && String(state.salonData.user_id || '') === String(hideId)) {
+            closeSalonDashboard();
+          }
+        } else {
+          hidePro(hideId);
+          if (state.salonData && String(state.salonData.user_id || '') === String(hideId)) {
+            closeSalonDashboard();
+          }
+        }
+        return;
+      }
+      var unhideBtn = e.target.closest('[data-unhide-pro]');
+      if (unhideBtn) {
+        e.preventDefault();
+        unhidePro(unhideBtn.getAttribute('data-unhide-pro'));
+        return;
+      }
       var userBtn = e.target.closest('[data-open-user]');
       if (userBtn) {
         closeDrawer();
@@ -3832,6 +3991,9 @@
       salonsGrid: $('admin-salons-grid'),
       salonSort: $('admin-salon-sort'),
       salonCount: $('admin-salon-count'),
+      hiddenProsBtn: $('admin-hidden-pros-btn'),
+      hiddenProsPanel: $('admin-hidden-pros-panel'),
+      salonHideBtn: $('admin-salon-hide-btn'),
       salonView: $('admin-salon-view'),
       salonViewTitle: $('admin-salon-view-title'),
       salonViewThumb: $('admin-salon-view-thumb'),
@@ -3870,6 +4032,7 @@
     setSalonTypeFilter(state.salonTypeFilter || 'all');
     setHideMoneyUI(state.hideMoney);
     setRevenueRangeUI(state.revenueRange || 'month');
+    updateHiddenProsUI();
     loadTab('overview');
   }
 

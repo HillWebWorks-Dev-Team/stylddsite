@@ -22,20 +22,60 @@ const HIDDEN_SALON_USER_IDS = new Set([
 ]);
 const HIDDEN_SALON_EMAILS = new Set(['admin@styld.app']);
 
-function isHiddenSalonUser(userId: string, email?: unknown) {
-  if (HIDDEN_SALON_USER_IDS.has(userId)) return true;
+function buildExcludeUserIdSet(filters: Record<string, unknown> = {}) {
+  const set = new Set(HIDDEN_SALON_USER_IDS);
+  const extra = filters.exclude_user_ids;
+  if (Array.isArray(extra)) {
+    for (const id of extra) {
+      const normalized = String(id || '').trim();
+      if (normalized) set.add(normalized);
+    }
+  }
+  return set;
+}
+
+function isExcludedSalonUser(userId: string, email: unknown, excludeIds: Set<string>) {
+  if (excludeIds.has(userId)) return true;
   const normalized = String(email || '')
     .toLowerCase()
     .trim();
   return normalized.length > 0 && HIDDEN_SALON_EMAILS.has(normalized);
 }
 
-function filterHiddenSalonProfiles<T extends { id?: unknown; email?: unknown }>(profiles: T[]) {
-  return profiles.filter((p) => !isHiddenSalonUser(String(p.id), p.email));
+function filterHiddenSalonProfiles<T extends { id?: unknown; email?: unknown }>(
+  profiles: T[],
+  excludeIds: Set<string>,
+) {
+  return profiles.filter((p) => !isExcludedSalonUser(String(p.id), p.email, excludeIds));
 }
 
-function filterHiddenSalonRows<T extends { user_id?: unknown; email?: unknown }>(rows: T[]) {
-  return rows.filter((row) => !isHiddenSalonUser(String(row.user_id || ''), row.email));
+function filterHiddenSalonRows<T extends { user_id?: unknown; email?: unknown }>(
+  rows: T[],
+  excludeIds: Set<string>,
+) {
+  return rows.filter((row) => !isExcludedSalonUser(String(row.user_id || ''), row.email, excludeIds));
+}
+
+function filterExcludedBookingRows<T extends { user_id?: unknown }>(rows: T[], excludeIds: Set<string>) {
+  return rows.filter((row) => !excludeIds.has(String(row.user_id || '')));
+}
+
+async function excludedSubdomainSet(
+  supabase: ReturnType<typeof adminClient>,
+  excludeIds: Set<string>,
+) {
+  if (!excludeIds.size) return new Set<string>();
+  const rows = await safeTable<{ user_id: string; subdomain: string }>(supabase, 'styld_site_subdomains', (q) =>
+    q.select('user_id,subdomain'),
+  );
+  const set = new Set<string>();
+  for (const row of rows) {
+    if (excludeIds.has(String(row.user_id))) {
+      const sub = String(row.subdomain || '').trim();
+      if (sub) set.add(sub);
+    }
+  }
+  return set;
 }
 
 const wrongPinAttempts = new Map<string, { count: number; resetAt: number }>();
@@ -855,6 +895,7 @@ function buildSubscriptionPlans(
 
 async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
   const period = resolveRevenuePeriod(filters);
+  const excludeIds = buildExcludeUserIdSet(filters);
 
   const [profiles, bookingRows] = await Promise.all([
     safeTable<Record<string, unknown>>(supabase, 'profiles', (q) =>
@@ -865,11 +906,11 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
     ),
   ]);
 
-  const visibleProfiles = filterHiddenSalonProfiles(profiles);
+  const visibleProfiles = filterHiddenSalonProfiles(profiles, excludeIds);
   const userIds = visibleProfiles.map((p) => String(p.id));
   const metaByUser = await loadSalonMetaForUsers(supabase, userIds);
 
-  const timelineAll = aggregatePlatformFeesTimeline(bookingRows);
+  const timelineAll = aggregatePlatformFeesTimeline(filterExcludedBookingRows(bookingRows, excludeIds));
   const timelineFiltered = filterTimelineByPeriod(timelineAll, period);
   const platformTotals = sumPlatformTimeline(timelineFiltered);
   const platformTotalsRounded = {
@@ -1052,7 +1093,8 @@ async function loadAuthUsers(supabase: ReturnType<typeof adminClient>) {
   return map;
 }
 
-async function actionOverview(supabase: ReturnType<typeof adminClient>) {
+async function actionOverview(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const excludeIds = buildExcludeUserIdSet(filters);
   const [
     profiles,
     userSites,
@@ -1074,18 +1116,30 @@ async function actionOverview(supabase: ReturnType<typeof adminClient>) {
     safeTable<{ user_id: string; data: unknown }>(supabase, 'styld_site_records', (q) =>
       q.select('user_id,data').eq('record_type', 'booking'),
     ),
-    safeTable(supabase, 'styld_site_records', (q) => q.select('id').eq('record_type', 'inquiry')),
-    safeTable(supabase, 'styld_site_records', (q) => q.select('id').eq('record_type', 'review')),
+    safeTable<{ user_id: string }>(supabase, 'styld_site_records', (q) =>
+      q.select('user_id').eq('record_type', 'inquiry'),
+    ),
+    safeTable<{ user_id: string }>(supabase, 'styld_site_records', (q) =>
+      q.select('user_id').eq('record_type', 'review'),
+    ),
     safeTable<Record<string, unknown>>(supabase, 'styld_stripe_accounts', (q) => q.select('*')),
   ]);
 
-  const publishedSites = userSites.filter((s) => s.published_at).length;
-  const stripeConnect = aggregateStripeConnect(stripeAccounts);
-  const payments = aggregatePaymentMetrics(bookings);
+  const visibleProfiles = filterHiddenSalonProfiles(profiles, excludeIds);
+  const visibleUserSites = userSites.filter((s) => !excludeIds.has(String(s.user_id)));
+  const visibleBookings = filterExcludedBookingRows(bookings, excludeIds);
+  const visibleInquiries = filterExcludedBookingRows(inquiries, excludeIds);
+  const visibleReviews = filterExcludedBookingRows(reviews, excludeIds);
+  const visibleStripeAccounts = stripeAccounts.filter((s) => !excludeIds.has(String(s.user_id || '')));
+
+  const publishedSites = visibleUserSites.filter((s) => s.published_at).length;
+  const stripeConnect = aggregateStripeConnect(visibleStripeAccounts);
+  const payments = aggregatePaymentMetrics(visibleBookings);
 
   const subMap = new Map(subdomains.map((s) => [String(s.user_id), s.subdomain]));
 
   const topSalonRows = [...payments.revenue_by_user.entries()]
+    .filter(([userId]) => !excludeIds.has(String(userId)))
     .map(([userId, rev]) => ({
       user_id: userId,
       gross: roundMoney(rev.gross),
@@ -1113,7 +1167,7 @@ async function actionOverview(supabase: ReturnType<typeof adminClient>) {
 
   const clientKeys = new Set<string>();
   const globalClients = new Set<string>();
-  for (const b of bookings) {
+  for (const b of visibleBookings) {
     const d = pickData(b) as Record<string, unknown> | null;
     const email = String(d?.email || '').toLowerCase().trim();
     const phone = String(d?.phone || '').trim();
@@ -1126,14 +1180,14 @@ async function actionOverview(supabase: ReturnType<typeof adminClient>) {
   const { revenue_by_user: _revenueByUser, ...paymentsPublic } = payments;
 
   return {
-    total_stylists: profiles.length,
+    total_stylists: visibleProfiles.length,
     published_sites: publishedSites,
-    draft_sites: Math.max(0, profiles.length - publishedSites),
-    total_bookings: bookings.length,
+    draft_sites: Math.max(0, visibleProfiles.length - publishedSites),
+    total_bookings: visibleBookings.length,
     unique_clients_per_stylist: clientKeys.size,
     unique_clients_global: globalClients.size,
-    total_inquiries: inquiries.length,
-    total_reviews: reviews.length,
+    total_inquiries: visibleInquiries.length,
+    total_reviews: visibleReviews.length,
     stripe_merchants_live: stripeConnect.merchants_live,
     subscriptions_note: Deno.env.get('REVENUECAT_SECRET_API_KEY')
       ? 'RevenueCat configured — see Salons tab for per-account plans'
@@ -1150,6 +1204,7 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
   const search = String(filters.search || '')
     .toLowerCase()
     .trim();
+  const excludeIds = buildExcludeUserIdSet(filters);
 
   const [profiles, userSites, subdomains, stripeRows, settingsRows, bookingRows, recordCounts, pushRows, pageViews, authMap, reviewRatingRows] =
     await Promise.all([
@@ -1253,7 +1308,7 @@ async function actionUsers(supabase: ReturnType<typeof adminClient>, filters: Re
     if (now - t <= ms30) viewsBySub30.set(sub, (viewsBySub30.get(sub) || 0) + 1);
   }
 
-  let users = filterHiddenSalonProfiles(profiles).map((p) => {
+  let users = filterHiddenSalonProfiles(profiles, excludeIds).map((p) => {
     const uid = String(p.id);
     const site = siteByUser.get(uid) || subByUser.get(uid) || {};
     const subdomain = String(site.subdomain || '');
@@ -2072,6 +2127,7 @@ async function actionEmailDetail(supabase: ReturnType<typeof adminClient>, filte
 async function actionBookings(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
   const search = String(filters.search || '').toLowerCase().trim();
   const limit = Math.min(Number(filters.limit) || 500, 1000);
+  const excludeIds = buildExcludeUserIdSet(filters);
 
   const rows = await safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
     q
@@ -2081,7 +2137,9 @@ async function actionBookings(supabase: ReturnType<typeof adminClient>, filters:
       .limit(limit),
   );
 
-  let bookings = rows.map((b) => ({
+  let bookings = rows
+    .filter((b) => !excludeIds.has(String(b.user_id || '')))
+    .map((b) => ({
     row_id: b.id,
     user_id: b.user_id,
     created_at: b.created_at,
@@ -2179,9 +2237,12 @@ async function actionBookingDetail(supabase: ReturnType<typeof adminClient>, fil
 
 async function actionClients(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
   const search = String(filters.search || '').toLowerCase().trim();
+  const excludeIds = buildExcludeUserIdSet(filters);
   const rows = await safeTable<{ user_id: string; data: unknown }>(supabase, 'styld_site_records', (q) =>
     q.select('user_id,data').eq('record_type', 'booking'),
   );
+
+  const visibleRows = filterExcludedBookingRows(rows, excludeIds);
 
   const map = new Map<
     string,
@@ -2196,7 +2257,7 @@ async function actionClients(supabase: ReturnType<typeof adminClient>, filters: 
     }
   >();
 
-  for (const row of rows) {
+  for (const row of visibleRows) {
     const d = pickData(row) as Record<string, unknown> | null;
     const email = String(d?.email || '').trim();
     const phone = String(d?.phone || '').trim();
@@ -2236,20 +2297,25 @@ async function actionClients(supabase: ReturnType<typeof adminClient>, filters: 
   return { clients: enriched };
 }
 
-async function actionCancellations(supabase: ReturnType<typeof adminClient>) {
+async function actionCancellations(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const excludeIds = buildExcludeUserIdSet(filters);
   const rows = await safeTable<Record<string, unknown>>(supabase, 'styld_cancellation_events', (q) =>
     q.select('*').order('created_at', { ascending: false }).limit(500),
   );
-  const enriched = await enrichRowsWithSalonMeta(supabase, rows);
+  const visibleRows = filterHiddenSalonRows(rows, excludeIds);
+  const enriched = await enrichRowsWithSalonMeta(supabase, visibleRows);
   return { cancellations: enriched };
 }
 
 async function actionInquiries(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
   const search = String(filters.search || '').toLowerCase().trim();
+  const excludeIds = buildExcludeUserIdSet(filters);
   const rows = await safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
     q.select('id,user_id,created_at,data').eq('record_type', 'inquiry').order('created_at', { ascending: false }).limit(500),
   );
-  let inquiries = rows.map((r) => ({
+  let inquiries = rows
+    .filter((r) => !excludeIds.has(String(r.user_id || '')))
+    .map((r) => ({
     id: r.id,
     user_id: r.user_id,
     created_at: r.created_at,
@@ -2262,11 +2328,14 @@ async function actionInquiries(supabase: ReturnType<typeof adminClient>, filters
   return { inquiries };
 }
 
-async function actionReviews(supabase: ReturnType<typeof adminClient>) {
+async function actionReviews(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const excludeIds = buildExcludeUserIdSet(filters);
   const rows = await safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
     q.select('id,user_id,created_at,data').eq('record_type', 'review').order('created_at', { ascending: false }).limit(500),
   );
-  const reviews = rows.map((r) => ({
+  const reviews = rows
+    .filter((r) => !excludeIds.has(String(r.user_id || '')))
+    .map((r) => ({
     id: r.id,
     user_id: r.user_id,
     created_at: r.created_at,
@@ -2276,7 +2345,8 @@ async function actionReviews(supabase: ReturnType<typeof adminClient>) {
   return { reviews: enriched };
 }
 
-async function actionOnboarding(supabase: ReturnType<typeof adminClient>) {
+async function actionOnboarding(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const excludeIds = buildExcludeUserIdSet(filters);
   const rows = await safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
     q
       .select('id,user_id,created_at,data')
@@ -2284,7 +2354,9 @@ async function actionOnboarding(supabase: ReturnType<typeof adminClient>) {
       .eq('record_key', 'onboarding_responses')
       .order('created_at', { ascending: false }),
   );
-  const responses = rows.map((r) => ({
+  const responses = rows
+    .filter((r) => !excludeIds.has(String(r.user_id || '')))
+    .map((r) => ({
     id: r.id,
     user_id: r.user_id,
     created_at: r.created_at,
@@ -2294,7 +2366,10 @@ async function actionOnboarding(supabase: ReturnType<typeof adminClient>) {
   return { responses: enriched };
 }
 
-async function actionAnalytics(supabase: ReturnType<typeof adminClient>) {
+async function actionAnalytics(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const excludeIds = buildExcludeUserIdSet(filters);
+  const excludedSubs = await excludedSubdomainSet(supabase, excludeIds);
+
   const events = await safeTable<Record<string, unknown>>(supabase, 'styld_analytics_events', (q) =>
     q.select('subdomain,path,referrer,device_type,session_id,created_at').order('created_at', { ascending: false }).limit(5000),
   );
@@ -2303,8 +2378,11 @@ async function actionAnalytics(supabase: ReturnType<typeof adminClient>) {
     const bySub = new Map<string, number>();
     const byPath = new Map<string, number>();
     const byDevice = new Map<string, number>();
+    let totalEvents = 0;
     for (const e of events) {
       const sub = String(e.subdomain || '(unknown)');
+      if (excludedSubs.has(sub)) continue;
+      totalEvents += 1;
       bySub.set(sub, (bySub.get(sub) || 0) + 1);
       const path = String(e.path || '/');
       byPath.set(path, (byPath.get(path) || 0) + 1);
@@ -2313,7 +2391,7 @@ async function actionAnalytics(supabase: ReturnType<typeof adminClient>) {
     }
     return {
       source: 'styld_analytics_events',
-      total_events: events.length,
+      total_events: totalEvents,
       by_subdomain: [...bySub.entries()].map(([subdomain, views]) => ({ subdomain, views })).sort((a, b) => b.views - a.views),
       top_paths: [...byPath.entries()].map(([path, views]) => ({ path, views })).sort((a, b) => b.views - a.views).slice(0, 20),
       by_device: [...byDevice.entries()].map(([device_type, views]) => ({ device_type, views })),
@@ -2325,15 +2403,18 @@ async function actionAnalytics(supabase: ReturnType<typeof adminClient>) {
   );
   const bySub = new Map<string, number>();
   const byPath = new Map<string, number>();
+  let totalEvents = 0;
   for (const v of views) {
     const sub = String(v.subdomain || '(unknown)');
+    if (excludedSubs.has(sub)) continue;
+    totalEvents += 1;
     bySub.set(sub, (bySub.get(sub) || 0) + 1);
     const path = String(v.path || '/');
     byPath.set(path, (byPath.get(path) || 0) + 1);
   }
   return {
     source: 'styld_site_page_views',
-    total_events: views.length,
+    total_events: totalEvents,
     by_subdomain: [...bySub.entries()].map(([subdomain, views]) => ({ subdomain, views })).sort((a, b) => b.views - a.views),
     top_paths: [...byPath.entries()].map(([path, views]) => ({ path, views })).sort((a, b) => b.views - a.views).slice(0, 20),
     by_device: [],
@@ -2343,7 +2424,7 @@ async function actionAnalytics(supabase: ReturnType<typeof adminClient>) {
 async function actionExport(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
   const type = String(filters.type || 'bookings');
   if (type === 'onboarding') {
-    const data = await actionOnboarding(supabase);
+    const data = await actionOnboarding(supabase, filters);
     return data;
   }
   return actionBookings(supabase, { ...filters, limit: 2000 });
@@ -2398,7 +2479,7 @@ Deno.serve(async (req) => {
   try {
     switch (action) {
       case 'overview':
-        return json(await actionOverview(supabase));
+        return json(await actionOverview(supabase, filters));
       case 'styld_revenue':
         return json(await actionStyldRevenue(supabase, filters));
       case 'users':
@@ -2418,15 +2499,15 @@ Deno.serve(async (req) => {
       case 'clients':
         return json(await actionClients(supabase, filters));
       case 'cancellations':
-        return json(await actionCancellations(supabase));
+        return json(await actionCancellations(supabase, filters));
       case 'inquiries':
         return json(await actionInquiries(supabase, filters));
       case 'reviews':
-        return json(await actionReviews(supabase));
+        return json(await actionReviews(supabase, filters));
       case 'onboarding':
-        return json(await actionOnboarding(supabase));
+        return json(await actionOnboarding(supabase, filters));
       case 'analytics':
-        return json(await actionAnalytics(supabase));
+        return json(await actionAnalytics(supabase, filters));
       case 'export':
         return json(await actionExport(supabase, filters));
       default:

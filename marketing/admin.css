@@ -805,6 +805,71 @@ body.admin-drawer-open {
   gap: 0.55rem;
 }
 
+.admin-salon-row-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.admin-salon-row-wrap .admin-salon-row {
+  min-width: 0;
+}
+
+.admin-salon-row__hide {
+  align-self: center;
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--admin-muted);
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.admin-salon-row__hide:hover {
+  color: var(--admin-text);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.admin-hidden-pros-wrap {
+  position: relative;
+}
+
+.admin-hidden-pros-panel {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  z-index: 40;
+  min-width: 280px;
+  max-width: min(360px, 92vw);
+  padding: 0.85rem;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-lg);
+}
+
+.admin-hidden-pros-list {
+  list-style: none;
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-hidden-pros-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  font-size: 0.8125rem;
+}
+
 .admin-salon-row {
   appearance: none;
   width: 100%;

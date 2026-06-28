@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/marketing/admin.css?v=27">
+  <link rel="stylesheet" href="/marketing/admin.css?v=28">
 </head>
 <body class="admin-page">
   <div class="admin-shell">
@@ -32,6 +32,10 @@
               <button type="button" class="admin-pref-btn" data-num-format="compact">Compact</button>
             </div>
             <button type="button" id="admin-hide-money" class="admin-pref-btn admin-pref-btn--toggle" aria-pressed="false" title="Replace dollar amounts with ***">Hide money</button>
+            <div id="admin-hidden-pros-wrap" class="admin-hidden-pros-wrap">
+              <button type="button" id="admin-hidden-pros-btn" class="admin-pref-btn admin-pref-btn--toggle" aria-pressed="false" title="Manage pros excluded from dashboard totals">Hidden pros</button>
+              <div id="admin-hidden-pros-panel" class="admin-hidden-pros-panel" hidden></div>
+            </div>
           </div>
           <div class="admin-toolbar__actions">
             <button type="button" id="admin-refresh" class="admin-btn">Refresh</button>
@@ -207,6 +211,7 @@
         </div>
       </div>
       <a id="admin-salon-view-link" class="admin-btn admin-btn--ghost" href="#" target="_blank" rel="noopener noreferrer" hidden>Open site</a>
+      <button type="button" id="admin-salon-hide-btn" class="admin-btn admin-btn--ghost" hidden>Hide from dashboard</button>
     </header>
     <nav class="admin-salon-view__tabs" id="admin-salon-tabs" role="tablist" aria-label="Pro sections">
       <button type="button" class="admin-salon-tab is-active" data-salon-tab="analytics" role="tab" aria-selected="true">Analytics</button>
@@ -234,6 +239,6 @@
 
   <script src="/js/marketing-config.js?v=2"></script>
   <script src="/js/marketing-config.local.js?v=2"></script>
-  <script src="/marketing/admin.js?v=31"></script>
+  <script src="/marketing/admin.js?v=32"></script>
 </body>
 </html>

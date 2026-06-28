@@ -8062,24 +8062,24 @@ body.page-cover-splash .profile-below-hero {
 
 @media (min-width: 701px) {
   .profile-hero--stack {
-    padding: 1.25rem 0 0.75rem;
+    padding: 1rem 0 0.5rem;
   }
 
   .profile-hero-stack--wide {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.45rem;
-    padding: 0 1rem;
-    max-width: 920px;
+    gap: 0.4rem;
+    padding: 0 1.25rem;
+    max-width: 880px;
     margin: 0 auto;
   }
 
   .profile-hero-stack--wide .profile-hero-stack__img {
     aspect-ratio: auto;
     width: 100%;
-    height: clamp(132px, 16vh, 188px);
-    max-height: 188px;
+    height: clamp(120px, 14vh, 168px);
+    max-height: 168px;
     border-radius: 12px;
   }
 
@@ -8095,8 +8095,8 @@ body.page-cover-splash .profile-below-hero {
 
   .profile-hero-stack--tall .profile-hero-stack__img {
     width: auto;
-    height: clamp(200px, 30vh, 280px);
-    max-width: min(148px, 13vw);
+    height: clamp(200px, 28vh, 260px);
+    max-width: min(140px, 12vw);
     aspect-ratio: 4 / 9;
     border-radius: 12px;
   }
