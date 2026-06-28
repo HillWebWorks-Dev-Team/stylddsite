@@ -247,7 +247,7 @@ Promo codes apply to **service subtotal only**, not products.
 
 - `/products` → `tenant/products.html` (`body.page-products`)
 - `/products/order?product={id}` → `tenant/products-order.html` (`body.page-products-order`)
-- Standalone order flow via edge function `submit-product-order`
+- Standalone order flow via edge function `submit-product-order` — **only when `products_settings.allowShipping` is true** (shipping required; no standalone pickup — pickup is via booking `fulfillment_method: 'at_appointment'`)
 - Register routes in `middleware.js` TENANT_STATIC_PAGES
 - Nav **Shop** tab from `productsTitle` when `'products'` ∉ `hiddenSections`
 

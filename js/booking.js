@@ -534,6 +534,164 @@
     return base + '/storage/v1/object/public/style-covers/' + objectPath;
   }
 
+  function getBookingProductImageUrls(product) {
+    if (!product || typeof product !== 'object') return [];
+    var paths = [];
+    if (Array.isArray(product.imagePaths) && product.imagePaths.length) {
+      paths = product.imagePaths.slice();
+    } else if (product.storagePath) {
+      paths = [product.storagePath];
+    }
+    return paths.map(productImageUrl).filter(Boolean);
+  }
+
+  var bookingProductModalState = { product: null, imageIndex: 0 };
+
+  function renderBookingProductModal() {
+    var product = bookingProductModalState.product;
+    if (!product) return;
+
+    var urls = getBookingProductImageUrls(product);
+    var index = bookingProductModalState.imageIndex;
+    if (index >= urls.length) index = 0;
+    if (index < 0) index = urls.length - 1;
+    bookingProductModalState.imageIndex = index;
+
+    var titleEl = document.getElementById('booking-product-modal-title');
+    var priceEl = document.getElementById('booking-product-modal-price');
+    var descEl = document.getElementById('booking-product-modal-desc');
+    var imageEl = document.getElementById('booking-product-modal-image');
+    var counterEl = document.getElementById('booking-product-modal-counter');
+    var actionsEl = document.getElementById('booking-product-modal-actions');
+    var prevBtn = document.querySelector('[data-booking-product-modal-prev]');
+    var nextBtn = document.querySelector('[data-booking-product-modal-next]');
+    var showNav = urls.length > 1;
+    var isSelected = !!selectedProductIds[product.id];
+
+    if (titleEl) titleEl.textContent = product.title || 'Product';
+    if (priceEl) priceEl.textContent = money(product.price);
+    if (descEl) {
+      var fullDesc = String(product.description || '').trim();
+      descEl.textContent = fullDesc;
+      descEl.hidden = !fullDesc;
+    }
+    if (imageEl) {
+      imageEl.src = urls[index] || '';
+      imageEl.hidden = !urls.length;
+    }
+    if (counterEl) {
+      counterEl.hidden = !showNav;
+      counterEl.textContent = showNav ? index + 1 + ' / ' + urls.length : '';
+    }
+    if (prevBtn) prevBtn.hidden = !showNav;
+    if (nextBtn) nextBtn.hidden = !showNav;
+    if (actionsEl) {
+      actionsEl.innerHTML =
+        '<button type="button" class="profile-product-card__btn profile-product-card__btn--primary" data-booking-product-modal-toggle="' +
+        escapeHtml(product.id) +
+        '">' +
+        (isSelected ? 'Remove from booking' : 'Add to booking') +
+        '</button>';
+    }
+  }
+
+  function openBookingProductModal(productId) {
+    var product = productsCatalog.find(function (item) {
+      return item && item.id === productId;
+    });
+    if (!product) return;
+
+    bookingProductModalState.product = product;
+    bookingProductModalState.imageIndex = 0;
+    renderBookingProductModal();
+
+    var modal = document.getElementById('booking-product-modal');
+    if (!modal) return;
+    modal.hidden = false;
+    document.body.classList.add('profile-product-modal-open');
+  }
+
+  function closeBookingProductModal() {
+    var modal = document.getElementById('booking-product-modal');
+    if (!modal) return;
+    modal.hidden = true;
+    document.body.classList.remove('profile-product-modal-open');
+    bookingProductModalState.product = null;
+    bookingProductModalState.imageIndex = 0;
+  }
+
+  function stepBookingProductModal(delta) {
+    if (!bookingProductModalState.product) return;
+    var urls = getBookingProductImageUrls(bookingProductModalState.product);
+    if (urls.length <= 1) return;
+    bookingProductModalState.imageIndex =
+      (bookingProductModalState.imageIndex + delta + urls.length) % urls.length;
+    renderBookingProductModal();
+  }
+
+  function toggleBookingProductFromModal(productId) {
+    var input = null;
+    document.querySelectorAll('input[name="booking-product"]').forEach(function (el) {
+      if (el.value === productId) input = el;
+    });
+    if (input) {
+      input.checked = !input.checked;
+      if (input.checked) selectedProductIds[productId] = true;
+      else delete selectedProductIds[productId];
+      updatePricingDisplay();
+    }
+    renderBookingProductModal();
+  }
+
+  function setupBookingProductModal() {
+    if (document.body.dataset.bookingProductModalBound) return;
+    document.body.dataset.bookingProductModalBound = '1';
+
+    document.addEventListener('click', function (e) {
+      var detailBtn = e.target.closest
+        ? e.target.closest('.booking-product-option__details, .booking-product-option__thumb-btn')
+        : null;
+      if (detailBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        var productId = detailBtn.getAttribute('data-product-id');
+        if (productId) openBookingProductModal(productId);
+        return;
+      }
+      if (e.target.closest && e.target.closest('[data-booking-product-modal-close]')) {
+        closeBookingProductModal();
+        return;
+      }
+      if (e.target.closest && e.target.closest('[data-booking-product-modal-prev]')) {
+        stepBookingProductModal(-1);
+        return;
+      }
+      if (e.target.closest && e.target.closest('[data-booking-product-modal-next]')) {
+        stepBookingProductModal(1);
+        return;
+      }
+      var toggleBtn = e.target.closest
+        ? e.target.closest('[data-booking-product-modal-toggle]')
+        : null;
+      if (toggleBtn) {
+        var toggleId = toggleBtn.getAttribute('data-booking-product-modal-toggle');
+        if (toggleId) toggleBookingProductFromModal(toggleId);
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      var modal = document.getElementById('booking-product-modal');
+      if (!modal || modal.hidden) return;
+      if (e.key === 'Escape') closeBookingProductModal();
+      if (e.key === 'ArrowLeft') stepBookingProductModal(-1);
+      if (e.key === 'ArrowRight') stepBookingProductModal(1);
+    });
+  }
+
+  function bookingProductInputId(productId) {
+    return 'booking-product-' + String(productId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  }
+
   function getSelectedBookingProducts() {
     return productsCatalog.filter(function (product) {
       return !!selectedProductIds[product.id];
@@ -561,36 +719,52 @@
     list.innerHTML = productsCatalog
       .map(function (product) {
         var checked = !!selectedProductIds[product.id];
-        var imageUrl = productImageUrl(product.storagePath || product.imagePaths[0]);
+        var inputId = bookingProductInputId(product.id);
+        var imageUrl = getBookingProductImageUrls(product)[0] || '';
         var thumb = imageUrl
-          ? '<img class="booking-product-option__thumb" src="' +
+          ? '<button type="button" class="booking-product-option__thumb-btn" data-product-id="' +
+            escapeHtml(product.id) +
+            '" aria-label="View ' +
+            escapeHtml(product.title || 'product') +
+            ' details"><img class="booking-product-option__thumb" src="' +
             escapeHtml(imageUrl) +
-            '" alt="" loading="lazy" decoding="async" />'
-          : '<span class="booking-product-option__thumb booking-product-option__thumb--empty" aria-hidden="true"></span>';
+            '" alt="" loading="lazy" decoding="async" /></button>'
+          : '<button type="button" class="booking-product-option__thumb-btn booking-product-option__thumb-btn--empty" data-product-id="' +
+            escapeHtml(product.id) +
+            '" aria-label="View ' +
+            escapeHtml(product.title || 'product') +
+            ' details"><span class="booking-product-option__thumb booking-product-option__thumb--empty" aria-hidden="true"></span></button>';
+        var shortDesc = String(product.description || '').trim();
+        if (shortDesc.length > 100) shortDesc = shortDesc.slice(0, 97) + '…';
         return (
-          '<label class="booking-product-option">' +
-          '<input type="checkbox" name="booking-product" value="' +
+          '<div class="booking-product-option">' +
+          '<input type="checkbox" class="booking-product-option__input" id="' +
+          escapeHtml(inputId) +
+          '" name="booking-product" value="' +
           escapeHtml(product.id) +
           '"' +
           (checked ? ' checked' : '') +
           ' />' +
-          '<span class="booking-product-option__body">' +
+          '<label class="booking-product-option__body" for="' +
+          escapeHtml(inputId) +
+          '">' +
           thumb +
           '<span class="booking-product-option__text">' +
           '<span class="booking-product-option__title">' +
           escapeHtml(product.title) +
           '</span>' +
-          (product.description
-            ? '<span class="booking-product-option__desc">' +
-              escapeHtml(product.description.length > 120 ? product.description.slice(0, 117) + '…' : product.description) +
-              '</span>'
+          (shortDesc
+            ? '<span class="booking-product-option__desc">' + escapeHtml(shortDesc) + '</span>'
             : '') +
           '</span>' +
           '<span class="booking-product-option__price">' +
           money(product.price) +
           '</span>' +
-          '</span>' +
-          '</label>'
+          '</label>' +
+          '<button type="button" class="booking-product-option__details" data-product-id="' +
+          escapeHtml(product.id) +
+          '">Details</button>' +
+          '</div>'
         );
       })
       .join('');
@@ -787,35 +961,45 @@
     var isInPerson = p.mode === 'none' || p.deposit <= 0;
     var isDepositMode = p.mode === 'deposit' && p.deposit > 0;
     var isFullPayment = p.mode === 'full' && p.deposit > 0;
-    var showServiceTotal = isDepositMode || isFullPayment;
+    var showServiceSubtotal = p.addonPrice > 0;
+    var showServiceAfterPromo = p.promoDiscount > 0;
     var summaryLabel;
     var summaryAmount;
     var payNote;
 
     if (isInPerson) {
-      summaryLabel = p.productsSubtotal > 0 ? 'Estimated total' : 'Pay in person';
+      summaryLabel = p.productsSubtotal > 0 ? 'Estimated total' : 'Total at appointment';
       summaryAmount = money(p.grandTotal);
       payNote =
         p.productsSubtotal > 0
           ? 'No payment is required now. Pay your stylist in person when you arrive — service plus any products you selected.'
           : 'No payment is required now. Pay your stylist in person when you arrive for your appointment.';
     } else if (isDepositMode) {
-      summaryLabel = 'Deposit due now';
-      summaryAmount = moneyPrecise(p.deposit);
-      payNote = 'You pay the deposit now to secure your appointment.';
+      summaryLabel = 'Estimated total';
+      summaryAmount = money(p.grandTotal);
+      payNote = 'You pay the deposit now to secure your appointment. The remaining balance is due at your appointment.';
     } else {
-      summaryLabel = 'Total due now';
-      summaryAmount = moneyPrecise(p.totalDue > 0 ? p.totalDue : p.deposit);
+      summaryLabel = 'Estimated total';
+      summaryAmount = money(p.grandTotal);
       payNote = 'Full payment is collected when you confirm your booking.';
     }
 
     var serviceTotalWrap = document.getElementById('side-service-total-wrap');
     var lineServiceTotalWrap = document.getElementById('line-service-total-wrap');
-    if (serviceTotalWrap) serviceTotalWrap.hidden = !showServiceTotal;
-    if (lineServiceTotalWrap) lineServiceTotalWrap.hidden = !showServiceTotal;
-    if (showServiceTotal) {
+    if (serviceTotalWrap) serviceTotalWrap.hidden = !showServiceSubtotal;
+    if (lineServiceTotalWrap) lineServiceTotalWrap.hidden = !showServiceSubtotal;
+    if (showServiceSubtotal) {
       setText('side-service-total', money(p.rawSubtotal));
       setText('line-service-total', money(p.rawSubtotal));
+    }
+
+    var lineServiceAfterPromoWrap = document.getElementById('line-service-after-promo-wrap');
+    var sideServiceAfterPromoWrap = document.getElementById('side-service-after-promo-wrap');
+    if (lineServiceAfterPromoWrap) lineServiceAfterPromoWrap.hidden = !showServiceAfterPromo;
+    if (sideServiceAfterPromoWrap) sideServiceAfterPromoWrap.hidden = !showServiceAfterPromo;
+    if (showServiceAfterPromo) {
+      setText('line-service-after-promo', money(p.total));
+      setText('side-service-after-promo', money(p.total));
     }
 
     var linePromoRow = document.getElementById('line-promo-row');
@@ -830,16 +1014,32 @@
       setText('side-promo-discount', '\u2212' + money(p.promoDiscount));
     }
 
-    var lineProductsRow = document.getElementById('line-products-row');
-    if (lineProductsRow) lineProductsRow.hidden = !(p.productsSubtotal > 0);
+    var lineProductsGroup = document.getElementById('line-products-group');
+    var sideProductsGroup = document.getElementById('side-products-group');
+    if (lineProductsGroup) lineProductsGroup.hidden = !(p.productsSubtotal > 0);
+    if (sideProductsGroup) sideProductsGroup.hidden = !(p.productsSubtotal > 0);
     if (p.productsSubtotal > 0) {
       setText('line-products-total', money(p.productsSubtotal));
+      setText('side-products-total', money(p.productsSubtotal));
     }
 
-    setText('side-total-label', summaryLabel);
-    setText('line-total-label', summaryLabel);
-    setText('side-total', summaryAmount);
-    setText('line-total', summaryAmount);
+    var lineOnlinePayment = document.getElementById('line-online-payment');
+    var sideOnlinePayment = document.getElementById('side-online-payment');
+    var showOnlinePayment = !isInPerson && p.deposit > 0 && !!window.__STYLD_STRIPE__;
+    if (lineOnlinePayment) lineOnlinePayment.hidden = !showOnlinePayment;
+    if (sideOnlinePayment) sideOnlinePayment.hidden = !showOnlinePayment;
+
+    if (!isInPerson && p.deposit > 0) {
+      setText('side-total-label', isDepositMode ? 'Deposit due now' : 'Total due now');
+      setText('line-total-label', isDepositMode ? 'Deposit due now' : 'Total due now');
+      setText('side-total', moneyPrecise(isDepositMode ? p.deposit : p.totalDue > 0 ? p.totalDue : p.deposit));
+      setText('line-total', moneyPrecise(isDepositMode ? p.deposit : p.totalDue > 0 ? p.totalDue : p.deposit));
+    } else {
+      setText('side-total-label', summaryLabel);
+      setText('line-total-label', summaryLabel);
+      setText('side-total', summaryAmount);
+      setText('line-total', summaryAmount);
+    }
 
     var sidePayNote = document.getElementById('side-pay-note');
     if (sidePayNote) {
@@ -864,7 +1064,7 @@
   }
 
   function updateDueBreakdown(p) {
-    var showDue = p.deposit > 0;
+    var showDue = p.deposit > 0 && !!window.__STYLD_STRIPE__;
     var isDepositMode = p.mode === 'deposit' && p.deposit > 0;
     var lineBreakdown = document.getElementById('line-due-breakdown');
     var sideBreakdown = document.getElementById('side-due-breakdown');
@@ -875,14 +1075,15 @@
     var lineSeparateNote = document.getElementById('line-deposit-separate-note');
     var sideSeparateNote = document.getElementById('side-deposit-separate-note');
     var lineDueDepositRow = document.getElementById('line-due-deposit-row');
+    var lineServiceFeeRow = document.getElementById('line-service-fee-row');
     var showBalance = isDepositMode && p.balanceDue > 0;
-    var showOnlineBreakdown = showDue && window.__STYLD_STRIPE__;
 
-    if (lineBreakdown) lineBreakdown.hidden = !showOnlineBreakdown;
-    if (sideBreakdown) sideBreakdown.hidden = !showOnlineBreakdown;
+    if (lineBreakdown) lineBreakdown.hidden = !showDue;
+    if (sideBreakdown) sideBreakdown.hidden = !showDue;
     if (lineDepositPricing) lineDepositPricing.hidden = !showBalance;
     if (sideDepositPricing) sideDepositPricing.hidden = !showBalance;
-    if (lineDueDepositRow) lineDueDepositRow.hidden = !showOnlineBreakdown || p.mode === 'full';
+    if (lineDueDepositRow) lineDueDepositRow.hidden = !showDue || p.mode === 'full';
+    if (lineServiceFeeRow) lineServiceFeeRow.hidden = !showDue || !(p.serviceFee > 0);
 
     function setText(id, value) {
       var el = document.getElementById(id);
@@ -1869,6 +2070,7 @@
   bindWizardNav();
   setupPromoCode();
   setupBookingProducts();
+  setupBookingProductModal();
 
   lockedStyleSelection = !!preselectedStyleId;
   if (preselectedVariantId) selectedVariantId = preselectedVariantId;

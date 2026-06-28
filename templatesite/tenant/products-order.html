@@ -69,6 +69,13 @@
         <div class="product-order-summary" id="product-order-summary"></div>
         <p class="product-order-note" id="product-order-fulfillment-note" hidden></p>
         <p id="product-order-feedback" class="product-order-feedback" role="status" hidden></p>
+        <div class="product-order-unavailable" id="product-order-unavailable" hidden>
+          <p class="product-order-unavailable__text">
+            This shop is not set up for shipped orders. Pickup is available when you book an appointment — add this product during checkout.
+          </p>
+          <a class="btn btn-primary" data-booking-product-link href="/booking">Book &amp; add product</a>
+          <a class="product-order-unavailable__shop" href="/products">← Back to shop</a>
+        </div>
         <form id="product-order-form" class="product-order-form" novalidate>
           <fieldset class="product-order-fulfillment" id="product-order-fulfillment" hidden>
             <legend class="visually-hidden">Fulfillment</legend>
@@ -112,6 +119,6 @@
     <script src="/js/styld-tenant-shared.js?v=74"></script>
     <script src="/js/profile-content.js?v=31"></script>
     <script src="/js/tenant-site.js?v=70"></script>
-    <script src="/js/products-order.js?v=1" defer></script>
+    <script src="/js/products-order.js?v=2" defer></script>
   </body>
 </html>

@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=77" />
+    <link rel="stylesheet" href="/css/styles.css?v=78" />
     <style>
       #tenant-status {
         position: fixed;
@@ -86,11 +86,30 @@
       </div>
     </footer>
 
+    <div class="profile-product-modal" id="profile-product-modal" hidden>
+      <div class="profile-product-modal__backdrop" data-product-modal-close></div>
+      <div class="profile-product-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="profile-product-modal-title">
+        <button type="button" class="profile-product-modal__close" data-product-modal-close aria-label="Close">&times;</button>
+        <div class="profile-product-modal__gallery">
+          <button type="button" class="profile-product-modal__nav profile-product-modal__nav--prev" data-product-modal-prev aria-label="Previous photo" hidden>&#8249;</button>
+          <img class="profile-product-modal__image" id="profile-product-modal-image" alt="" />
+          <button type="button" class="profile-product-modal__nav profile-product-modal__nav--next" data-product-modal-next aria-label="Next photo" hidden>&#8250;</button>
+          <p class="profile-product-modal__counter" id="profile-product-modal-counter" hidden></p>
+        </div>
+        <div class="profile-product-modal__body">
+          <h2 class="profile-product-modal__title" id="profile-product-modal-title"></h2>
+          <p class="profile-product-modal__price" id="profile-product-modal-price"></p>
+          <p class="profile-product-modal__desc" id="profile-product-modal-desc"></p>
+          <div class="profile-product-modal__actions" id="profile-product-modal-actions"></div>
+        </div>
+      </div>
+    </div>
+
     <script src="/js/vercel-analytics.bundle.js" defer></script>
     <script src="/js/styld-tenant-config.js?v=1780530043880"></script>
     <script src="/js/styld-tenant-config.local.js?v=1780530043880"></script>
     <script src="/js/styld-tenant-shared.js?v=73"></script>
-    <script src="/js/profile-content.js?v=30"></script>
-    <script src="/js/tenant-site.js?v=69"></script>
+    <script src="/js/profile-content.js?v=34"></script>
+    <script src="/js/tenant-site.js?v=70"></script>
   </body>
 </html>

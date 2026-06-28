@@ -44,6 +44,10 @@
     return data.settings && typeof data.settings === 'object' ? data.settings : {};
   }
 
+  function standaloneOrdersAllowed(settings) {
+    return !!(settings && settings.allowShipping === true);
+  }
+
   function setFeedback(message, isError) {
     var el = document.getElementById('product-order-feedback');
     if (!el) return;
@@ -80,42 +84,47 @@
   function renderFulfillmentOptions(settings) {
     var fieldset = document.getElementById('product-order-fulfillment');
     var noteEl = document.getElementById('product-order-fulfillment-note');
-    if (!fieldset) return 'pickup';
+    if (!fieldset) return null;
 
-    var allowPickup = settings.allowPickup !== false;
-    var allowShipping = settings.allowShipping === true;
-    var options = [];
-    if (allowPickup) options.push({ value: 'pickup', label: 'Pickup' });
-    if (allowShipping) options.push({ value: 'shipping', label: 'Shipping' });
-    if (!options.length) options.push({ value: 'pickup', label: 'Pickup' });
+    if (!standaloneOrdersAllowed(settings)) {
+      fieldset.hidden = true;
+      fieldset.innerHTML = '';
+      if (noteEl) noteEl.hidden = true;
+      return null;
+    }
 
-    fieldset.hidden = options.length <= 1;
-    fieldset.innerHTML = options
-      .map(function (opt, index) {
-        return (
-          '<label><input type="radio" name="fulfillment" value="' +
-          escapeHtml(opt.value) +
-          '"' +
-          (index === 0 ? ' checked' : '') +
-          ' />' +
-          escapeHtml(opt.label) +
-          (opt.value === 'shipping' && settings.shippingFlatRate
-            ? ' (+ ' + formatPrice(Number(settings.shippingFlatRate)) + ')'
-            : '') +
-          '</label>'
-        );
-      })
-      .join('');
+    fieldset.hidden = false;
+    fieldset.innerHTML =
+      '<label><input type="radio" name="fulfillment" value="shipping" checked />' +
+      'Shipping' +
+      (settings.shippingFlatRate
+        ? ' (+ ' + formatPrice(Number(settings.shippingFlatRate)) + ')'
+        : '') +
+      '</label>';
 
     var notes = [];
-    if (settings.pickupInstructions) notes.push(String(settings.pickupInstructions).trim());
     if (settings.shippingNote) notes.push(String(settings.shippingNote).trim());
     if (noteEl) {
       noteEl.hidden = !notes.length;
       noteEl.textContent = notes.join(' ');
     }
 
-    return options[0].value;
+    return 'shipping';
+  }
+
+  function showStandaloneUnavailable(product) {
+    var form = document.getElementById('product-order-form');
+    var unavailable = document.getElementById('product-order-unavailable');
+    var main = document.getElementById('product-order-main');
+    if (main) main.hidden = false;
+    if (form) form.hidden = true;
+    if (unavailable) {
+      unavailable.hidden = false;
+      var bookingLink = unavailable.querySelector('[data-booking-product-link]');
+      if (bookingLink) {
+        bookingLink.href = '/booking?product=' + encodeURIComponent(product.id);
+      }
+    }
   }
 
   function syncShippingVisibility() {
@@ -179,10 +188,21 @@
       }
 
       var fulfillmentInput = document.querySelector('input[name="fulfillment"]:checked');
-      var fulfillment = fulfillmentInput ? fulfillmentInput.value : 'pickup';
+      var fulfillment = fulfillmentInput ? fulfillmentInput.value : '';
       var shippingAddress = (document.getElementById('product-order-shipping') || {}).value || '';
+      var settings = getSettings();
 
-      if (fulfillment === 'shipping' && !String(shippingAddress).trim()) {
+      if (!standaloneOrdersAllowed(settings)) {
+        setFeedback('Standalone pickup orders are not available. Add this product when you book.', true);
+        return;
+      }
+
+      if (fulfillment !== 'shipping') {
+        setFeedback('Shipping is required for standalone product orders.', true);
+        return;
+      }
+
+      if (!String(shippingAddress).trim()) {
         setFeedback('Enter a shipping address.', true);
         return;
       }
@@ -196,8 +216,8 @@
         fullName: (document.getElementById('product-order-name') || {}).value || '',
         email: (document.getElementById('product-order-email') || {}).value || '',
         phone: (document.getElementById('product-order-phone') || {}).value || '',
-        fulfillment: fulfillment,
-        shippingAddress: fulfillment === 'shipping' ? String(shippingAddress).trim() : null,
+        fulfillment: 'shipping',
+        shippingAddress: String(shippingAddress).trim(),
       })
         .then(function () {
           setFeedback('Order received — we will be in touch shortly.', false);
@@ -224,9 +244,16 @@
       return;
     }
 
-    renderFulfillmentOptions(getSettings());
-    syncShippingVisibility();
+    var settings = getSettings();
     renderProduct(product);
+
+    if (!standaloneOrdersAllowed(settings)) {
+      showStandaloneUnavailable(product);
+      return;
+    }
+
+    renderFulfillmentOptions(settings);
+    syncShippingVisibility();
     bindForm(product);
 
     var footerBrand = document.getElementById('preview-footer-brand');
