@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Sign up — Styld Studio</title>
+  <link rel="icon" href="/assets/styld-icon.png" type="image/png">
+  <link rel="stylesheet" href="/marketing/styles.css?v=53">
+  <link rel="stylesheet" href="/marketing/dashboard.css?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page">
+  <header class="site-header site-header--simple">
+    <div class="site-header__shell">
+      <div class="site-header__bar">
+        <a href="/marketing" class="brand-lockup">
+          <img class="brand-lockup__icon" src="/assets/styld-icon.png" width="36" height="36" alt="" decoding="async">
+          <span class="brand-lockup__name">Styld</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="/login">Log in</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="wrap auth-wrap">
+      <section class="auth-card">
+        <span class="tag">Styld Studio</span>
+        <h1>Create your account</h1>
+        <p class="auth-lead">Sign up with the same email you&rsquo;ll use in the Styld app to run your business on web and mobile.</p>
+
+        <form id="signup-form" class="auth-form" novalidate>
+          <label class="auth-field">
+            <span>Full name</span>
+            <input type="text" id="signup-name" name="name" autocomplete="name" required placeholder="Alex Rivera">
+          </label>
+          <label class="auth-field">
+            <span>Email</span>
+            <input type="email" id="signup-email" name="email" autocomplete="email" required placeholder="you@example.com">
+          </label>
+          <label class="auth-field">
+            <span>Password</span>
+            <input type="password" id="signup-password" name="password" autocomplete="new-password" required minlength="8">
+          </label>
+          <p id="signup-error" class="auth-message auth-message--error" hidden role="alert"></p>
+          <p id="signup-success" class="auth-message auth-message--success" hidden role="status"></p>
+          <button type="submit" class="btn btn-primary auth-submit" id="signup-submit">Create account</button>
+        </form>
+
+        <p class="auth-footnote auth-footnote--muted">
+          Already have an account? <a href="/login?next=/studio">Log in</a>
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <script src="/js/marketing-config.js"></script>
+  <script src="/js/marketing-config.local.js"></script>
+  <script type="module" src="/marketing/studio/signup.js?v=1"></script>
+</body>
+</html>

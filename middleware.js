@@ -16,8 +16,43 @@ const MARKETING_PAGES = {
   '/privacy': '/marketing/privacy.html',
   '/terms': '/marketing/terms.html',
   '/login': '/marketing/login.html',
+  '/signup': '/marketing/signup.html',
+  '/onboarding': '/marketing/onboarding.html',
   '/dashboard': '/marketing/dashboard.html',
+  '/studio': '/marketing/studio.html',
 };
+
+function isAppStudioHost(host) {
+  return host === `app.${ROOT_DOMAIN}`;
+}
+
+function rewriteStudioRoutes(url) {
+  const clean = url.pathname.replace(/\/$/, '').toLowerCase();
+  if (clean.startsWith('/studio/website/edit')) {
+    url.pathname = '/marketing/studio-edit.html';
+    return rewrite(url);
+  }
+  if (clean.startsWith('/studio')) {
+    url.pathname = '/marketing/studio.html';
+    return rewrite(url);
+  }
+  return null;
+}
+
+function rewriteAppStudioHost(url) {
+  const studioRewrite = rewriteStudioRoutes(url);
+  if (studioRewrite) return studioRewrite;
+  const clean = url.pathname.replace(/\/$/, '').toLowerCase();
+  if (MARKETING_PAGES[clean]) {
+    url.pathname = MARKETING_PAGES[clean];
+    return rewrite(url);
+  }
+  if (url.pathname === '/' || !url.pathname.includes('.')) {
+    url.pathname = '/marketing/studio.html';
+    return rewrite(url);
+  }
+  return null;
+}
 
 const TENANT_STATIC_PAGES = {
   '/book': '/tenant/book.html',
@@ -106,6 +141,8 @@ export default async function middleware(request) {
     if (url.pathname.startsWith('/marketing/')) {
       return;
     }
+    const studioRewrite = rewriteStudioRoutes(url);
+    if (studioRewrite) return studioRewrite;
     const clean = url.pathname.replace(/\/$/, '').toLowerCase();
     if (MARKETING_PAGES[clean]) {
       url.pathname = MARKETING_PAGES[clean];
@@ -118,12 +155,21 @@ export default async function middleware(request) {
     return;
   }
 
+  if (isAppStudioHost(host)) {
+    if (url.pathname.startsWith('/marketing/')) {
+      return;
+    }
+    const appRewrite = rewriteAppStudioHost(url);
+    if (appRewrite) return appRewrite;
+    return;
+  }
+
   if (!host.endsWith(`.${ROOT_DOMAIN}`)) {
     return;
   }
 
   const subdomain = host.slice(0, -(ROOT_DOMAIN.length + 1));
-  if (!subdomain || subdomain.includes('.')) {
+  if (!subdomain || subdomain.includes('.') || subdomain === 'app') {
     return;
   }
 

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Welcome — Styld Studio</title>
+  <link rel="icon" href="/assets/styld-icon.png" type="image/png">
+  <link rel="stylesheet" href="/marketing/styles.css?v=53">
+  <link rel="stylesheet" href="/marketing/dashboard.css?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page">
+  <header class="site-header site-header--simple">
+    <div class="site-header__shell">
+      <div class="site-header__bar">
+        <a href="/marketing" class="brand-lockup">
+          <img class="brand-lockup__icon" src="/assets/styld-icon.png" width="36" height="36" alt="" decoding="async">
+          <span class="brand-lockup__name">Styld</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="wrap auth-wrap">
+      <section class="auth-card">
+        <span class="tag">Step 1 of 2</span>
+        <h1>Tell us about your business</h1>
+        <p class="auth-lead">This matches the Styld app onboarding so your studio and booking site stay in sync.</p>
+
+        <form id="onboarding-form" class="auth-form" novalidate>
+          <label class="auth-field">
+            <span>Business name</span>
+            <input type="text" id="onboarding-business" name="business_name" required placeholder="Studio name clients will see">
+          </label>
+          <label class="auth-field">
+            <span>What best describes you?</span>
+            <select id="onboarding-type" name="business_type" required>
+              <option value="">Select one…</option>
+              <option value="stylist">Hairstylist / braider</option>
+              <option value="barber">Barber</option>
+              <option value="makeup">Makeup artist</option>
+              <option value="lash">Lash tech</option>
+              <option value="nails">Nail tech</option>
+              <option value="other">Other beauty pro</option>
+            </select>
+          </label>
+          <p id="onboarding-error" class="auth-message auth-message--error" hidden role="alert"></p>
+          <button type="submit" class="btn btn-primary auth-submit" id="onboarding-submit">Continue to studio</button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script src="/js/marketing-config.js"></script>
+  <script src="/js/marketing-config.local.js"></script>
+  <script type="module" src="/marketing/studio/onboarding.js?v=1"></script>
+</body>
+</html>

@@ -254,6 +254,52 @@ h1, h2, h3 {
   overflow: visible;
 }
 
+.header-login-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--white);
+  text-decoration: none;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+.header-login-link:hover {
+  color: var(--white);
+  text-decoration: none;
+  background: rgba(255, 45, 138, 0.18);
+  border-color: rgba(255, 45, 138, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(255, 45, 138, 0.15) inset,
+    0 8px 24px rgba(255, 45, 138, 0.22);
+  transform: translateY(-1px);
+}
+
+.header-login-link:focus-visible {
+  outline: 2px solid rgba(255, 45, 138, 0.65);
+  outline-offset: 2px;
+}
+
+.mobile-nav .header-login-link {
+  margin-top: 0.35rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 45, 138, 0.14);
+  border-color: rgba(255, 45, 138, 0.42);
+}
+
 .header-icon-btn {
   display: none;
   align-items: center;
@@ -2981,7 +3027,11 @@ html.scroll-reveal-ready .scroll-reveal.is-visible {
   border: 1px solid var(--border);
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 12px 40px rgba(0, 0, 0, 0.55);
 }
 
 .support-main {

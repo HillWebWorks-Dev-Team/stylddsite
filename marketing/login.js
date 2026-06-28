@@ -9,8 +9,8 @@
 
   function nextPath() {
     var params = new URLSearchParams(window.location.search);
-    var next = params.get('next') || '/dashboard';
-    if (!next.startsWith('/') || next.startsWith('//')) return '/dashboard';
+    var next = params.get('next') || '/studio';
+    if (!next.startsWith('/') || next.startsWith('//')) return '/studio';
     return next;
   }
 

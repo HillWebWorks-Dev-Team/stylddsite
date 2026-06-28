@@ -331,7 +331,7 @@ HTML: `#style-selection-summary` replaces `#style-select-field-wrap` when locked
 
 ## Subscription-gated domains
 
-Styld sites are **not free hosting**. A stylist must have an **active Styld subscription** (RevenueCat entitlement `pro`, products `styld_monthly` / `styld_yearly`) to keep a live subdomain.
+Styld sites are **not free hosting**. A stylist must have an **active Styld subscription** (RevenueCat entitlement **`Styld: The CRM For Hair Salons Pro`**, products `styld_monthly` / `styld_yearly`) to keep a live subdomain.
 
 ### Rules
 

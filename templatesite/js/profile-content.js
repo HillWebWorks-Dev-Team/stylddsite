@@ -505,9 +505,7 @@
       return '';
     }
     if (!standaloneProductOrdersAllowed()) {
-      return (
-        '<p class="profile-product-card__booking-note">Add this product when you book your appointment.</p>'
-      );
+      return '';
     }
     return (
       '<div class="profile-product-card__actions">' +
@@ -1377,7 +1375,6 @@
       } else {
         actionsEl.innerHTML =
           stockHtml +
-          '<p class="profile-product-card__booking-note">Add this product when you book your appointment.</p>' +
           '<a class="profile-product-card__btn profile-product-card__btn--primary" href="/">Book appointment</a>';
       }
     }

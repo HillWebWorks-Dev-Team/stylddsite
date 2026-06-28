@@ -1,0 +1,264 @@
+/* Web Studio business settings — Part 6 (v2) */
+
+.studio-page-header {
+  margin-bottom: 1.5rem;
+}
+
+.studio-page-header h1 {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.5rem, 3vw, 1.85rem);
+  letter-spacing: -0.03em;
+}
+
+.studio-page-header p {
+  margin: 0;
+  color: var(--white-muted);
+  font-size: 0.9rem;
+}
+
+.studio-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.studio-settings-hub-section__title {
+  margin: 0 0 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--white-dim);
+}
+
+.studio-settings-hub-section + .studio-settings-hub-section {
+  margin-top: 0.5rem;
+}
+
+.studio-settings__hub {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+
+.studio-settings-tile {
+  position: relative;
+  display: block;
+  padding: 1rem 1.1rem 1rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.025);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+
+.studio-settings-tile:hover {
+  border-color: rgba(255, 45, 138, 0.35);
+  background: rgba(255, 45, 138, 0.06);
+  transform: translateY(-1px);
+}
+
+.studio-settings-tile strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.92rem;
+}
+
+.studio-settings-tile span {
+  font-size: 0.8rem;
+  color: var(--white-muted);
+  line-height: 1.4;
+}
+
+.studio-settings-tile__arrow {
+  position: absolute;
+  top: 1rem;
+  right: 0.85rem;
+  color: var(--white-dim);
+  font-size: 0.9rem;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.studio-settings-tile:hover .studio-settings-tile__arrow {
+  color: var(--pink);
+  transform: translateX(2px);
+}
+
+.studio-settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.studio-settings-tabs button,
+.studio-settings-tabs a {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--white-muted);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.studio-settings-tabs button.is-active,
+.studio-settings-tabs a.is-active {
+  border-color: var(--pink);
+  color: #fff;
+  background: rgba(255, 45, 138, 0.12);
+}
+
+.studio-settings-section {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.studio-settings-section h3 {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+}
+
+.studio-settings-grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.studio-settings-grid label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--white-dim);
+}
+
+.studio-settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.studio-settings-pill {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  font-size: 0.82rem;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.studio-style-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.studio-style-card {
+  display: grid;
+  grid-template-columns: 3rem 1fr auto;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  cursor: pointer;
+}
+
+.studio-style-card:hover {
+  border-color: var(--pink);
+}
+
+.studio-style-card img,
+.studio-style-card__initial {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+
+.studio-style-card__initial {
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.studio-promo-row,
+.studio-review-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.85rem;
+}
+
+.studio-weekday-row {
+  display: grid;
+  grid-template-columns: 6rem 1fr 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.82rem;
+}
+
+.studio-settings-preview {
+  padding: 0.75rem;
+  border-radius: 0.65rem;
+  background: rgba(0, 0, 0, 0.35);
+  font-size: 0.82rem;
+  color: var(--white-muted);
+  line-height: 1.5;
+}
+
+.studio-settings-save {
+  position: sticky;
+  bottom: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.studio-compose-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.studio-compose-panel {
+  width: min(32rem, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: #111;
+  padding: 1rem;
+}
+
+.studio-compose-grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.studio-compose-grid label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--white-dim);
+}
+
+@media (max-width: 720px) {
+  .studio-weekday-row {
+    grid-template-columns: 1fr;
+  }
+}
