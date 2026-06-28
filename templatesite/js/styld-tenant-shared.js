@@ -94,10 +94,13 @@
 
   function formatStylePriceRange(basePrice, addons, variants) {
     var normalizedVariants = normalizeVariants(variants);
+    var base = typeof basePrice === 'number' ? basePrice : Number(basePrice);
     if (normalizedVariants.length) {
-      var prices = normalizedVariants.map(function (variant) {
-        return variant.price;
-      });
+      var prices = [base].concat(
+        normalizedVariants.map(function (variant) {
+          return variant.price;
+        }),
+      );
       var minPrice = Math.min.apply(null, prices);
       var maxPrice = Math.max.apply(null, prices);
       var minLabel = formatPriceAmount(minPrice);
@@ -106,7 +109,6 @@
       return minLabel || maxLabel || 'Price TBD';
     }
 
-    var base = typeof basePrice === 'number' ? basePrice : Number(basePrice);
     var normalized = normalizeAddons(addons);
     if (!Number.isFinite(base) || base <= 0) return 'Price TBD';
 
@@ -141,6 +143,8 @@
           id: styleId,
           name: item.title || styleBookingName(item, styleId),
           base: base,
+          defaultVariantLabel:
+            item.defaultVariantLabel != null ? String(item.defaultVariantLabel).trim() : '',
           durationMinutes: normalizeDurationMinutes(item.durationMinutes),
           variants: normalizeVariants(item.variants),
           addons: normalizeAddons(item.addons),

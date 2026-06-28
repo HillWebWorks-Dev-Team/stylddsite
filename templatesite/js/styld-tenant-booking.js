@@ -42,7 +42,7 @@
     availability.src = '/js/booking-availability.js?v=4';
     availability.onload = function () {
       var script = document.createElement('script');
-      script.src = '/js/booking.js?v=61';
+      script.src = '/js/booking.js?v=63';
       script.defer = true;
       document.body.appendChild(script);
     };

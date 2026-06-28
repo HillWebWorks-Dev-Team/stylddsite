@@ -230,13 +230,13 @@ Base price stays in `style_price_overrides`. Menu display in `tenant-site.js` / 
 - With add-ons only → `$35–$55` (base through base + highest add-on price, en-dash)
 - With variants → min–max from variant prices (en-dash)
 
-Helpers: `normalizeAddons(raw)`, `normalizeVariants(raw)`, `formatStylePriceRange(basePrice, addons, variants)`. `buildBookingStyles` passes `variants` and `addons` on each style.
+Helpers: `normalizeAddons(raw)`, `normalizeVariants(raw)` (extras only), `formatStylePriceRange(basePrice, addons, variants)`. `buildBookingStyles` passes `base`, `defaultVariantLabel`, and extra `variants` on each style.
 
 **Booking page (`/booking`):** Multi-step onboarding-style flow: **Personal** → **Service** → **Appointment** → **Pricing** (with payment on the last step when enabled). Deep links with `?style=` open a **version picker modal** when the service has multiple variants.
 
 After selecting a service:
 
-1. **Choose your version** (if `variants.length > 1`) — required radio options with full prices; modal on menu deep link, inline `#style-variant-field-wrap` on the service step when changing style in-form.
+1. **Choose your version** (if stored extras exist) — version 1 comes from base price + `defaultVariantLabel`; modal on menu deep link, inline `#style-variant-field-wrap` on the service step
 2. **Optional add-on** radio group (`#style-addon-field-wrap`) when add-ons exist.
 3. Pricing uses **variant price** (or base when no variants) + selected add-on.
 
@@ -244,36 +244,40 @@ Saved on booking: `style_name` (e.g. `Knotless Braids — With hair provided + B
 
 ## Style versions (service options)
 
-Data — `styld_site_records` → `site_setting.style_catalog_meta` per `styleId`:
+Data — `styld_site_records` → `site_setting.style_catalog_meta` + `style_price_overrides` per `styleId`:
 
-- `variants`: `{ id: string, label: string, price: number }[]` — mutually exclusive; `price` is the **full** price for that version
-- `addons`: `{ id, name, price }[]` — optional extras **on top of** the chosen version (unchanged)
+- `style_price_overrides[styleId]` = **version 1 price** (always; the app “Price” field)
+- `defaultVariantLabel` = label for version 1 when extra versions exist (fallback `"Standard"`)
+- `variants[]` = **version 2+ only**: `{ id, label, price }[]` — each `price` is the full price for that version
+- `addons[]` unchanged — optional extras on top of the chosen version
 - `durationMinutes`: default slot length
 
-App: Profile → Styles & Services → edit style → **Versions** section (`StyleVariantsEditor`). Base price in `style_price_overrides` is used when no variants; with variants, menu/catalog shows min–max from variant prices via `formatStylePriceRange(base, addons, variants)`.
+App: **Price** field = version 1. **Add version** adds version 2+ only — do not store version 1 as a separate row in `variants[]`.
 
 Tenant JS:
 
-- `buildBookingStyles()` in `styld-tenant-shared.js` includes `variants[]` on each style
-- `tenant-site.js` / `__STYLD_SITE_STYLES__` passes variants into `formatStylePriceRange` for profile menu `priceLabel`
-- `normalizeVariants(raw)` — same shape as app `normalizeStyleVariants`
+- `buildBookingStyles()` passes `base`, `defaultVariantLabel`, and `variants` (extras only)
+- `formatStylePriceRange(base, addons, variants)`: when extras exist, range = min/max of `[base, ...extra prices]`
+- `normalizeVariants(raw)` — validates extras-only array (same shape as app)
 
 Booking (`booking.js` + `booking.html`):
 
-- After `#style-select`, if `style.variants.length > 1` → show `#style-variant-field-wrap` / `#style-variant-list`
-- Required radio group `name="style-variant"`; first option checked by default
-- `effectiveStyleBase()` = selected `variant.price` (or `style.base` if variant price is 0)
+- `getStyleVariantsForStyle(style)`: if stored extras exist, prepend `{ id: "default", label: defaultVariantLabel || "Standard", price: base }` then append extras
+- Show `#style-variant-field-wrap` / version modal only when **stored extras** exist (`style.variants.length > 0`)
+- Required radio group `name="style-variant"`; default (version 1) checked first
+- `effectiveStyleBase()` = selected variant price (default uses `style.base`)
 - `computePricing` uses `effectiveStyleBase` + add-ons
 - `buildBookingPayload`: `selected_variant_id`, `selected_variant_label`, `selected_variant_price`
-- `style_name`: `{title} — {variant.label}` (+ add-on name if any)
+- `style_name`: `{title} — {variant.label}` when a version is chosen (+ add-on name if any)
 
-HTML: `#style-variant-field-wrap` inserted **before** `#style-addon-field-wrap` in `booking.html`. CSS reuses `.booking-addon-option` for version radios.
+HTML: `#style-variant-field-wrap` before `#style-addon-field-wrap`. CSS reuses `.booking-addon-option` for version radios.
 
 **Example setup for Braids:**
 
-- Title: Knotless Braids · Base price: $180 (fallback)
-- Version 1: “Without hair” · $180
-- Version 2: “With hair provided” · $250
+- Title: Knotless Braids
+- Price (version 1): $180 · `defaultVariantLabel`: “Without hair”
+- Version 2 (in `variants[]`): “With hair provided” · $250
+- Menu range: `$180–$250`
 
 ## Subscription-gated domains
 

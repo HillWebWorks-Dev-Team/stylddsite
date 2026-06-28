@@ -4227,55 +4227,71 @@ ul.price-menu__policy-list {
 
 .booking-wizard__steps {
   display: flex;
+  align-items: flex-start;
   list-style: none;
   margin: 0;
   padding: 0;
-  gap: 0.35rem;
 }
 
 .booking-wizard__step-label {
   flex: 1;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.65rem 0.35rem;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.03);
-  color: var(--text-muted, #737373);
+  gap: 0.4rem;
+  padding: 0;
+  background: none;
+  color: var(--text-muted, #a3a3a3);
   font-size: 0.78rem;
   font-weight: 600;
   text-align: center;
-  transition: background 0.15s, color 0.15s;
+}
+
+.booking-wizard__step-label:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 0.8125rem;
+  left: calc(50% + 0.9rem);
+  width: calc(100% - 1.8rem);
+  height: 2px;
+  background: #d4d4d4;
+  pointer-events: none;
 }
 
 .booking-wizard__step-num {
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
   width: 1.65rem;
   height: 1.65rem;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.08);
+  border: 2px solid #d4d4d4;
+  background: var(--white, #fff);
+  color: #a3a3a3;
   font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .booking-wizard__step-label--active {
-  background: rgba(219, 39, 119, 0.08);
   color: var(--ink);
 }
 
 .booking-wizard__step-label--active .booking-wizard__step-num {
-  background: var(--pink, #db2777);
+  border-color: var(--ink, #0a0a0a);
+  background: var(--ink, #0a0a0a);
   color: #fff;
 }
 
 .booking-wizard__step-label--complete {
-  color: var(--ink);
+  color: var(--text-muted, #a3a3a3);
 }
 
 .booking-wizard__step-label--complete .booking-wizard__step-num {
-  background: rgba(219, 39, 119, 0.2);
-  color: var(--pink, #db2777);
+  border-color: #d4d4d4;
+  background: var(--white, #fff);
+  color: #a3a3a3;
 }
 
 .booking-wizard__panel[hidden] {
@@ -4356,10 +4372,6 @@ body.booking-variant-modal-open {
 @media (max-width: 640px) {
   .booking-wizard__step-text {
     display: none;
-  }
-
-  .booking-wizard__step-label {
-    padding: 0.55rem 0.2rem;
   }
 }
 
@@ -4949,6 +4961,11 @@ body.booking-variant-modal-open {
   font-size: 0.85rem;
   color: var(--muted);
   margin: 1rem 0 0;
+}
+
+.pricing-sidebar__pay-note {
+  margin-top: 0.65rem;
+  line-height: 1.5;
 }
 
 .pricing-sidebar-policy {

@@ -196,12 +196,24 @@
     return val !== false;
   }
 
-  function styleVariants(style) {
+  function styleExtraVariants(style) {
     return style && Array.isArray(style.variants) ? style.variants : [];
   }
 
+  function getStyleVariantsForStyle(style) {
+    if (!style) return [];
+    var extras = styleExtraVariants(style);
+    if (!extras.length) return [];
+    var base = typeof style.base === 'number' ? style.base : 0;
+    var label =
+      style.defaultVariantLabel && String(style.defaultVariantLabel).trim()
+        ? String(style.defaultVariantLabel).trim()
+        : 'Standard';
+    return [{ id: 'default', label: label, price: base }].concat(extras);
+  }
+
   function getSelectedVariant(style) {
-    var variants = styleVariants(style);
+    var variants = getStyleVariantsForStyle(style);
     if (!variants.length) return null;
     var id = selectedVariantId;
     if (!id) {
@@ -265,15 +277,15 @@
     var container = document.getElementById('style-variant-list');
     if (!field || !container) return;
 
-    var variants = styleVariants(style);
-    if (!style || variants.length <= 1) {
+    var extras = styleExtraVariants(style);
+    if (!style || !extras.length) {
       field.hidden = true;
       container.innerHTML = '';
-      if (variants.length === 1) selectedVariantId = variants[0].id;
-      else if (!variants.length) selectedVariantId = '';
+      selectedVariantId = '';
       return;
     }
 
+    var variants = getStyleVariantsForStyle(style);
     if (!selectedVariantId || !variants.some(function (v) { return v.id === selectedVariantId; })) {
       selectedVariantId = variants[0].id;
     }
@@ -291,8 +303,9 @@
     var backdrop = document.getElementById('style-variant-modal-backdrop');
     if (!modal || !style) return;
 
-    var variants = styleVariants(style);
-    if (variants.length <= 1) return;
+    if (!styleExtraVariants(style).length) return;
+
+    var variants = getStyleVariantsForStyle(style);
 
     variantModalStyleId = style.id;
     var title = document.getElementById('style-variant-modal-title');
@@ -478,6 +491,71 @@
     return preview;
   }
 
+  function updatePricingSummaryLabels(p) {
+    function setText(id, value) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    var isInPerson = p.mode === 'none' || p.deposit <= 0;
+    var isDepositMode = p.mode === 'deposit' && p.deposit > 0;
+    var isFullPayment = p.mode === 'full' && p.deposit > 0;
+    var showServiceTotal = isDepositMode || isFullPayment;
+    var summaryLabel;
+    var summaryAmount;
+    var payNote;
+
+    if (isInPerson) {
+      summaryLabel = 'Pay in person';
+      summaryAmount = money(p.total);
+      payNote =
+        'No payment is required now. Pay your stylist in person when you arrive for your appointment.';
+    } else if (isDepositMode) {
+      summaryLabel = 'Deposit due now';
+      summaryAmount = moneyPrecise(p.deposit);
+      payNote = 'You pay the deposit now to secure your appointment.';
+    } else {
+      summaryLabel = 'Total due now';
+      summaryAmount = moneyPrecise(p.totalDue > 0 ? p.totalDue : p.deposit);
+      payNote = 'Full payment is collected when you confirm your booking.';
+    }
+
+    var serviceTotalWrap = document.getElementById('side-service-total-wrap');
+    var lineServiceTotalWrap = document.getElementById('line-service-total-wrap');
+    if (serviceTotalWrap) serviceTotalWrap.hidden = !showServiceTotal;
+    if (lineServiceTotalWrap) lineServiceTotalWrap.hidden = !showServiceTotal;
+    if (showServiceTotal) {
+      setText('side-service-total', money(p.total));
+      setText('line-service-total', money(p.total));
+    }
+
+    setText('side-total-label', summaryLabel);
+    setText('line-total-label', summaryLabel + ':');
+    setText('side-total', summaryAmount);
+    setText('line-total', summaryAmount);
+
+    var sidePayNote = document.getElementById('side-pay-note');
+    if (sidePayNote) {
+      sidePayNote.hidden = !payNote;
+      sidePayNote.textContent = payNote || '';
+    }
+    var lineDepositDetail = document.getElementById('line-deposit-detail');
+    if (lineDepositDetail) {
+      lineDepositDetail.hidden = !payNote;
+      lineDepositDetail.textContent = payNote || '';
+    }
+
+    ['deposit-note-in-person', 'deposit-note-studio', 'deposit-note-house-call'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
+
+    var sideEstimatedWrap = document.getElementById('side-estimated-total-wrap');
+    var lineEstimatedWrap = document.getElementById('line-estimated-total-wrap');
+    if (sideEstimatedWrap) sideEstimatedWrap.hidden = false;
+    if (lineEstimatedWrap) lineEstimatedWrap.hidden = false;
+  }
+
   function updateDueBreakdown(p) {
     var showDue = p.deposit > 0;
     var isDepositMode = p.mode === 'deposit' && p.deposit > 0;
@@ -487,22 +565,24 @@
     var sideDepositPricing = document.getElementById('side-deposit-pricing');
     var lineBalanceWrap = document.getElementById('line-balance-wrap');
     var sideBalanceWrap = document.getElementById('side-balance-wrap');
-    var lineEstimatedWrap = document.getElementById('line-estimated-total-wrap');
-    var sideEstimatedWrap = document.getElementById('side-estimated-total-wrap');
     var lineSeparateNote = document.getElementById('line-deposit-separate-note');
     var sideSeparateNote = document.getElementById('side-deposit-separate-note');
+    var lineDueDepositRow = document.getElementById('line-due-deposit-row');
+    var showBalance = isDepositMode && p.balanceDue > 0;
+    var showOnlineBreakdown = showDue && window.__STYLD_STRIPE__;
 
-    if (lineBreakdown) lineBreakdown.hidden = !showDue;
-    if (sideBreakdown) sideBreakdown.hidden = !showDue;
-    if (lineDepositPricing) lineDepositPricing.hidden = !isDepositMode;
-    if (sideDepositPricing) sideDepositPricing.hidden = !isDepositMode;
-    if (lineEstimatedWrap) lineEstimatedWrap.hidden = isDepositMode;
-    if (sideEstimatedWrap) sideEstimatedWrap.hidden = isDepositMode;
+    if (lineBreakdown) lineBreakdown.hidden = !showOnlineBreakdown;
+    if (sideBreakdown) sideBreakdown.hidden = !showOnlineBreakdown;
+    if (lineDepositPricing) lineDepositPricing.hidden = !showBalance;
+    if (sideDepositPricing) sideDepositPricing.hidden = !showBalance;
+    if (lineDueDepositRow) lineDueDepositRow.hidden = !showOnlineBreakdown || p.mode === 'full';
 
     function setText(id, value) {
       var el = document.getElementById(id);
       if (el) el.textContent = value;
     }
+
+    updatePricingSummaryLabels(p);
 
     if (!showDue) return;
 
@@ -519,7 +599,6 @@
     setText('side-total-due', moneyPrecise(p.totalDue));
     setText('pay-total-due-preview', moneyPrecise(p.totalDue));
 
-    var showBalance = isDepositMode && p.balanceDue > 0;
     var depositNoteText =
       p.depositIncludedInPrice !== false
         ? 'Your deposit counts toward the total service price.'
@@ -527,11 +606,11 @@
     if (lineBalanceWrap) lineBalanceWrap.hidden = !showBalance;
     if (sideBalanceWrap) sideBalanceWrap.hidden = !showBalance;
     if (lineSeparateNote) {
-      lineSeparateNote.hidden = !isDepositMode || p.deposit <= 0;
+      lineSeparateNote.hidden = !showBalance;
       if (!lineSeparateNote.hidden) lineSeparateNote.textContent = depositNoteText;
     }
     if (sideSeparateNote) {
-      sideSeparateNote.hidden = !isDepositMode || p.deposit <= 0;
+      sideSeparateNote.hidden = !showBalance;
       if (!sideSeparateNote.hidden) sideSeparateNote.textContent = depositNoteText;
     }
     if (showBalance) {
@@ -612,8 +691,7 @@
         if (styleSelect) styleSelect.focus();
         return false;
       }
-      var variants = styleVariants(selectedStyle);
-      if (variants.length > 1 && !getSelectedVariant(selectedStyle)) {
+      if (styleExtraVariants(selectedStyle).length > 0 && !getSelectedVariant(selectedStyle)) {
         showFeedback('Choose your service option to continue.', true);
         return false;
       }
@@ -700,16 +778,17 @@
   function updatePricingDisplay() {
     if (!selectedStyle) return;
     var p = computePricing(selectedStyle);
+    var variant = getSelectedVariant(selectedStyle);
 
     function setText(id, value) {
       var el = document.getElementById(id);
       if (el) el.textContent = value;
     }
 
+    var serviceLabel = variant ? variant.label : 'Service price';
+    setText('side-subtotal-label', serviceLabel);
     setText('line-subtotal', money(p.base));
     setText('side-subtotal', money(p.base));
-    setText('line-total', money(p.total));
-    setText('side-total', money(p.total));
 
     var showAddon = !!(p.addon && p.addonPrice > 0);
     var lineAddonWrap = document.getElementById('line-addon-wrap');
@@ -991,7 +1070,7 @@
     if (
       variantModalStyleId &&
       selectedStyle.id !== variantModalStyleId &&
-      styleVariants(selectedStyle).length > 1
+      styleExtraVariants(selectedStyle).length > 0
     ) {
       showVariantModal(selectedStyle);
     }
@@ -1433,7 +1512,7 @@
     styleSelect.value = preselected;
     onStyleChange();
     var preStyle = styleById(preselected);
-    if (preStyle && styleVariants(preStyle).length > 1) {
+    if (preStyle && styleExtraVariants(preStyle).length > 0) {
       showVariantModal(preStyle);
     }
   }
