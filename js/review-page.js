@@ -119,7 +119,7 @@
       var token = new URLSearchParams(window.location.search).get('token') || '';
       var rating = Number(ratingInput && ratingInput.value ? ratingInput.value : 0);
       var message = (document.getElementById('review-message') || {}).value || '';
-      var clientName = (document.getElementById('review-name') || {}).value || '';
+      var anonymous = !!(document.getElementById('review-anonymous') || {}).checked;
 
       showStatus('Submitting…', false);
 
@@ -128,7 +128,8 @@
         p_token: token,
         p_rating: rating,
         p_message: message,
-        p_client_name: clientName,
+        p_client_name: null,
+        p_anonymous: anonymous,
       })
         .then(function () {
           showSuccess();
@@ -162,9 +163,32 @@
         return;
       }
 
-      var nameInput = document.getElementById('review-name');
-      if (nameInput && context.client_name) {
-        nameInput.value = context.client_name;
+      var bookingName = String(context.client_name || '').trim();
+      var nameDisplay = document.getElementById('review-name-display');
+      var nameHint = document.getElementById('review-name-hint');
+      var anonymousInput = document.getElementById('review-anonymous');
+      var nameField = document.querySelector('.review-field--name');
+
+      if (nameDisplay) {
+        nameDisplay.textContent = bookingName || 'Guest';
+      }
+
+      if (!bookingName && anonymousInput) {
+        anonymousInput.checked = true;
+        anonymousInput.disabled = true;
+        if (nameField) nameField.hidden = true;
+        if (nameHint) nameHint.textContent = 'Your review will be posted anonymously.';
+      } else if (anonymousInput) {
+        anonymousInput.addEventListener('change', function () {
+          if (nameDisplay) {
+            nameDisplay.textContent = anonymousInput.checked ? 'Anonymous' : bookingName;
+          }
+          if (nameHint) {
+            nameHint.textContent = anonymousInput.checked
+              ? 'Your review will appear as Anonymous on the site.'
+              : 'From your booking — not editable.';
+          }
+        });
       }
 
       var lead = document.getElementById('review-lead');

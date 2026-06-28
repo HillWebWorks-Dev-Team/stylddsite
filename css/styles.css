@@ -9696,6 +9696,11 @@ body.site-review-modal-open {
   color: var(--ink);
 }
 
+.review-field__optional {
+  font-weight: 500;
+  color: var(--text-muted, var(--muted, #666));
+}
+
 .review-field input,
 .review-field textarea {
   width: 100%;
@@ -9725,6 +9730,46 @@ body.site-review-modal-open {
 .theme-dark-surface .review-success {
   background: rgba(76, 175, 80, 0.14);
   color: #81c784;
+}
+
+.review-name-display {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--review-card-border, rgba(15, 23, 42, 0.14));
+  background: var(--cream, rgba(15, 23, 42, 0.04));
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.review-name-hint {
+  margin: -0.15rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted, var(--muted, #666));
+}
+
+.review-field--checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  cursor: pointer;
+}
+
+.review-field--checkbox input[type='checkbox'] {
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0.15rem 0 0;
+  flex: 0 0 auto;
+  accent-color: var(--pink, #e91e8c);
+}
+
+.review-field--checkbox span {
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.theme-dark-surface .review-name-display {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .review-submit-btn {

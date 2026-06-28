@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=49" />
+    <link rel="stylesheet" href="/css/styles.css?v=50" />
     <style>
       #tenant-status {
         position: fixed;
@@ -64,18 +64,23 @@
               <input type="hidden" id="review-rating" name="rating" value="5" />
             </fieldset>
 
-            <label class="review-field" for="review-name">
+            <div class="review-field review-field--name">
               <span>Your name</span>
-              <input id="review-name" name="client_name" type="text" required autocomplete="name" />
+              <p id="review-name-display" class="review-name-display">—</p>
+              <p id="review-name-hint" class="review-name-hint">From your booking — not editable.</p>
+            </div>
+
+            <label class="review-field review-field--checkbox" for="review-anonymous">
+              <input id="review-anonymous" name="anonymous" type="checkbox" />
+              <span>Post anonymously (your name won&rsquo;t appear publicly)</span>
             </label>
 
             <label class="review-field" for="review-message">
-              <span>Your review</span>
+              <span>Your review <span class="review-field__optional">(optional)</span></span>
               <textarea
                 id="review-message"
                 name="message"
                 rows="5"
-                required
                 placeholder="What did you love about your visit?"
               ></textarea>
             </label>
@@ -115,6 +120,6 @@
     <script src="/js/styld-tenant-config.js?v=40"></script>
     <script src="/js/styld-tenant-config.local.js?v=40"></script>
     <script src="/js/styld-tenant-shared.js?v=65"></script>
-    <script src="/js/review-page.js?v=4"></script>
+    <script src="/js/review-page.js?v=5"></script>
   </body>
 </html>
