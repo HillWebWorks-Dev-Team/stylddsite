@@ -89,6 +89,73 @@ function adminClient() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
+async function verifyOwnerJwt(req: Request): Promise<string | null> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7).trim();
+  if (!token) return null;
+
+  const url = Deno.env.get('SUPABASE_URL')!;
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+  if (anonKey && token === anonKey) return null;
+
+  const client = createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await client.auth.getUser(token);
+  if (error || !data.user?.id) return null;
+  return data.user.id;
+}
+
+function sanitizeOwnerDashboard(raw: Record<string, unknown>) {
+  if (!raw || typeof raw !== 'object') return { error: 'No data' };
+  if ('error' in raw && raw.error) return raw;
+
+  const profile = (raw.profile || {}) as Record<string, unknown>;
+  const sub = (raw.subscription || {}) as Record<string, unknown>;
+  const bookings = Array.isArray(raw.bookings) ? raw.bookings.slice(0, 20) : [];
+  const reviews = Array.isArray(raw.reviews) ? raw.reviews : [];
+
+  return {
+    profile: {
+      id: profile.id ?? null,
+      email: profile.email ?? null,
+      full_name: profile.full_name ?? null,
+      business_name: profile.business_name ?? null,
+      avatar_url: profile.avatar_url ?? null,
+    },
+    brand_name: raw.brand_name ?? null,
+    tagline: raw.tagline ?? null,
+    logo_url: raw.logo_url ?? null,
+    public_url: raw.public_url ?? null,
+    subdomain: raw.subdomain ?? null,
+    published_at: raw.published_at ?? null,
+    revenue_summary: raw.revenue_summary ?? null,
+    analytics: raw.analytics ?? null,
+    bookings,
+    reviews: reviews.slice(0, 12).map((row) => {
+      const r = row as Record<string, unknown>;
+      const data = (r.data || {}) as Record<string, unknown>;
+      return {
+        id: r.id ?? null,
+        created_at: r.created_at ?? null,
+        rating: data.rating ?? null,
+        comment: data.comment ?? null,
+        client_name: data.client_name ?? data.full_name ?? null,
+      };
+    }),
+    style_count: raw.style_count ?? 0,
+    addon_count: raw.addon_count ?? 0,
+    subscription: {
+      status: sub.status ?? null,
+      plan_label: sub.plan_label ?? null,
+      expires_date: sub.expires_date ?? null,
+      is_active: sub.is_active ?? null,
+    },
+    site_theme_summary: raw.site_theme_summary ?? null,
+  };
+}
+
 function pickData(row: { data?: unknown }) {
   const d = row?.data;
   if (d && typeof d === 'object' && 'value' in (d as Record<string, unknown>)) {
@@ -2297,6 +2364,22 @@ Deno.serve(async (req) => {
     return json({ error: 'Invalid JSON body' }, 400);
   }
 
+  const action = String(body.action || 'overview');
+  if (action === 'owner_dashboard') {
+    const userId = await verifyOwnerJwt(req);
+    if (!userId) {
+      return json({ error: 'Authentication required' }, 401);
+    }
+    const supabase = adminClient();
+    try {
+      const raw = await actionUserDetail(supabase, { user_id: userId });
+      return json(sanitizeOwnerDashboard(raw as Record<string, unknown>));
+    } catch (e) {
+      console.error(e);
+      return json({ error: String(e) }, 500);
+    }
+  }
+
   const pinCheck = verifyPin(req, body.pin);
   if (!pinCheck.ok) {
     return json(
@@ -2310,7 +2393,6 @@ Deno.serve(async (req) => {
   }
 
   const supabase = adminClient();
-  const action = String(body.action || 'overview');
   const filters = body.filters || {};
 
   try {

@@ -698,6 +698,21 @@
       .filter(Boolean);
   }
 
+  function formatFaqAnswer(text) {
+    var str = String(text || '');
+    var result = '';
+    var regex = /\*\*([^*]+)\*\*/g;
+    var lastIndex = 0;
+    var match;
+    while ((match = regex.exec(str)) !== null) {
+      result += escapeHtml(str.slice(lastIndex, match.index));
+      result += '<strong>' + escapeHtml(match[1]) + '</strong>';
+      lastIndex = regex.lastIndex;
+    }
+    result += escapeHtml(str.slice(lastIndex));
+    return result;
+  }
+
   function setupFaqAccordion() {
     if (document.documentElement.dataset.faqAccordionBound) return;
     document.documentElement.dataset.faqAccordionBound = '1';
@@ -752,10 +767,10 @@
           '<span class="profile-faq-item__question-text">' +
           escapeHtml(item.question) +
           '</span>' +
-          '<svg class="profile-faq-item__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>' +
+          '<span class="profile-faq-item__toggle" aria-hidden="true">+</span>' +
           '</button>' +
           '<div class="profile-faq-item__answer" hidden>' +
-          escapeHtml(item.answer) +
+          formatFaqAnswer(item.answer) +
           '</div>' +
           '</div>'
         );

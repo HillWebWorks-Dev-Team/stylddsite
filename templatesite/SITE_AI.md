@@ -141,13 +141,28 @@ Use `StyldTenant.resolveStyleCoverUrl(path)` when available.
 
 **Placement:** On `tenant/profile.html` and `tenant/book.html`, FAQ sits between `#profile-menu-section` and `#profile-location-section`. Do not move it above the menu. `populatePortfolio()` may reorder Previous work; FAQ stays after menu (and after portfolio when `portfolioPlacement === 'below_menu'`) via `insertBefore` on `#profile-location-section`.
 
+**HTML structure** (`profile.html` / `book.html`):
+
+- `#profile-faq-section.profile-faq-section`
+- `.profile-faq-list` > `.profile-faq-item`
+- Each item: `button.profile-faq-item__question` (`aria-expanded`) + `div.profile-faq-item__answer[hidden]`
+- Toggle: `span.profile-faq-item__toggle` shows pink `+` (`--text-accent`); rotate 45deg when `.is-open` to become `×`
+
+**Visual style — minimal accordion (NOT service cards):**
+
+- Full-width rows separated by thin bottom borders (`--card-border`), no card boxes or shadows
+- Question: bold, uses `--text-service-name`; generous vertical padding (~1.15rem)
+- Answer: muted (`--text-muted`), sits directly under question, no border/background on answer panel
+- Inline emphasis in answers: `**text**` in `faqItems[].answer` → `<strong>` via `formatFaqAnswer()` in `profile-content.js`
+
 **JS** (`js/profile-content.js`):
 
 - `populateFaq(content)` — called from `applyStyldPreviewContent()` after `populatePortfolio()`
 - Exclude `'faq'` from the generic `[data-site-section]` visibility loop
-- Accordion: clicking `.profile-faq-item__question` toggles the answer and `aria-expanded` (`setupFaqAccordion()`)
+- Accordion: clicking `.profile-faq-item__question` toggles answer `hidden`, `.is-open`, and `aria-expanded` (`setupFaqAccordion()`)
+- Do not style FAQ as menu/service cards
 
-**CSS:** `.profile-faq-section`, `.profile-faq-item`, `.profile-faq-item__question`, `.profile-faq-item__answer`, `.profile-faq-item__chevron` (rotate when `.is-open`). Match menu section spacing and service card styling; support dark mode via `:root[data-surface-mode='dark']`.
+**CSS:** `templatesite/css/styles.css` under `/* FAQ accordion */`. Match theme variables for light/dark (`--text-service-name`, `--text-muted`, `--text-accent`, `--card-border`).
 
 **Hide when:** `'faq'` in `hiddenSections`, or no `faqItems` entries with both question and answer filled in.
 

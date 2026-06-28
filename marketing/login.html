@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sign in to Styld to view your booking site analytics and business stats.">
+  <title>Log in — Styld</title>
+  <link rel="icon" href="/assets/styld-icon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/styld-icon.png">
+  <link rel="stylesheet" href="/marketing/styles.css?v=53">
+  <link rel="stylesheet" href="/marketing/dashboard.css?v=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page">
+  <header class="site-header site-header--simple">
+    <div class="site-header__shell">
+      <div class="site-header__bar">
+        <a href="/" class="brand-lockup">
+          <img class="brand-lockup__icon" src="/assets/styld-icon.png" width="36" height="36" alt="" decoding="async">
+          <span class="brand-lockup__name">Styld</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="/">Home</a>
+          <a href="/support">Support</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="wrap auth-wrap">
+      <section class="auth-card">
+        <span class="tag">Pro dashboard</span>
+        <h1>Log in to Styld</h1>
+        <p class="auth-lead">View site analytics, bookings, and revenue from your Styld account.</p>
+
+        <form id="login-form" class="auth-form" novalidate>
+          <label class="auth-field">
+            <span>Email</span>
+            <input type="email" id="login-email" name="email" autocomplete="email" required placeholder="you@example.com">
+          </label>
+          <label class="auth-field">
+            <span>Password</span>
+            <input type="password" id="login-password" name="password" autocomplete="current-password" required>
+          </label>
+          <p id="login-error" class="auth-message auth-message--error" hidden role="alert"></p>
+          <p id="login-success" class="auth-message auth-message--success" hidden role="status"></p>
+          <button type="submit" class="btn btn-primary auth-submit" id="login-submit">Log in</button>
+        </form>
+
+        <p class="auth-footnote">
+          <button type="button" class="auth-link-btn" id="forgot-password">Forgot password?</button>
+        </p>
+        <p class="auth-footnote auth-footnote--muted">
+          Use the same email and password as the Styld iOS app. Signed up with Apple only?
+          <a href="/support">Contact support</a> to set a password.
+        </p>
+        <p class="auth-footnote auth-footnote--muted">
+          Don&rsquo;t have Styld yet?
+          <a href="https://apps.apple.com/us/app/styld-the-crm-for-hair-salons/id6777321677" target="_blank" rel="noopener noreferrer">Download on the App Store</a>
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <script src="/js/marketing-config.js"></script>
+  <script src="/js/marketing-config.local.js"></script>
+  <script src="/marketing/marketing-auth.js?v=1"></script>
+  <script src="/marketing/login.js?v=1"></script>
+</body>
+</html>

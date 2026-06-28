@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>My dashboard — Styld</title>
+  <link rel="icon" href="/assets/styld-icon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/styld-icon.png">
+  <link rel="stylesheet" href="/marketing/styles.css?v=53">
+  <link rel="stylesheet" href="/marketing/dashboard.css?v=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+  <header class="site-header site-header--simple dash-header">
+    <div class="site-header__shell">
+      <div class="site-header__bar">
+        <a href="/" class="brand-lockup">
+          <img class="brand-lockup__icon" src="/assets/styld-icon.png" width="36" height="36" alt="" decoding="async">
+          <span class="brand-lockup__name">Styld</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="/">Home</a>
+          <a href="/support">Support</a>
+        </nav>
+        <div class="dash-header__actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="dash-refresh">Refresh</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="dash-signout">Sign out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="dash-main">
+    <div class="wrap dash-wrap">
+      <p id="dash-status" class="dash-status" role="status" hidden></p>
+      <div id="dash-content" class="dash-content" hidden></div>
+      <div id="dash-loading" class="dash-loading">
+        <p>Loading your stats…</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/marketing-config.js"></script>
+  <script src="/js/marketing-config.local.js"></script>
+  <script src="/marketing/marketing-auth.js?v=1"></script>
+  <script src="/marketing/dashboard.js?v=1"></script>
+</body>
+</html>

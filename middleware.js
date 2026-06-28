@@ -15,6 +15,8 @@ const MARKETING_PAGES = {
   '/support': '/marketing/support.html',
   '/privacy': '/marketing/privacy.html',
   '/terms': '/marketing/terms.html',
+  '/login': '/marketing/login.html',
+  '/dashboard': '/marketing/dashboard.html',
 };
 
 const TENANT_STATIC_PAGES = {
