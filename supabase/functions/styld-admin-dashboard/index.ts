@@ -901,8 +901,8 @@ async function actionStyldRevenue(supabase: ReturnType<typeof adminClient>, filt
     safeTable<Record<string, unknown>>(supabase, 'profiles', (q) =>
       q.select('id,email,full_name,business_name,avatar_url,created_at'),
     ),
-    safeTable<{ created_at: string; data: unknown }>(supabase, 'styld_site_records', (q) =>
-      q.select('created_at,data').eq('record_type', 'booking'),
+    safeTable<{ user_id: string; created_at: string; data: unknown }>(supabase, 'styld_site_records', (q) =>
+      q.select('user_id,created_at,data').eq('record_type', 'booking'),
     ),
   ]);
 
