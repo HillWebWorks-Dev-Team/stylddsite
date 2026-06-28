@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=60" />
+    <link rel="stylesheet" href="/css/styles.css?v=77" />
     <style>
       #tenant-status {
         position: fixed;
@@ -26,11 +26,11 @@
       }
       #tenant-status[hidden] { display: none; }
       body.tenant-error .profile-nav,
-      body.tenant-error .portfolio-catalog-main,
+      body.tenant-error .product-order-main,
       body.tenant-error .site-footer { opacity: 0.2; pointer-events: none; }
     </style>
   </head>
-  <body class="tpl-profile page-portfolio">
+  <body class="tpl-profile page-products-order">
     <div id="tenant-status">Loading your site…</div>
 
     <nav class="profile-nav" id="profile-nav">
@@ -62,14 +62,35 @@
       </div>
     </nav>
 
-    <main class="portfolio-catalog-main" id="portfolio-catalog-main">
-      <div class="container">
-        <a class="portfolio-catalog-back" href="/">← Back</a>
-        <div class="profile-portfolio-head portfolio-catalog-head">
-          <h1 id="portfolio-catalog-title">Previous work</h1>
-          <p class="profile-menu-blurb" id="portfolio-catalog-blurb"></p>
-        </div>
-        <div class="profile-portfolio-grid profile-portfolio-grid--catalog" id="portfolio-catalog-grid"></div>
+    <main class="product-order-main" id="product-order-main" hidden>
+      <div class="container product-order-layout">
+        <a class="product-order-back" href="/products">← Back to shop</a>
+        <h1 class="product-order-head">Place your order</h1>
+        <div class="product-order-summary" id="product-order-summary"></div>
+        <p class="product-order-note" id="product-order-fulfillment-note" hidden></p>
+        <p id="product-order-feedback" class="product-order-feedback" role="status" hidden></p>
+        <form id="product-order-form" class="product-order-form" novalidate>
+          <fieldset class="product-order-fulfillment" id="product-order-fulfillment" hidden>
+            <legend class="visually-hidden">Fulfillment</legend>
+          </fieldset>
+          <div class="form-field">
+            <label for="product-order-name">Full name</label>
+            <input id="product-order-name" name="full-name" type="text" autocomplete="name" required />
+          </div>
+          <div class="form-field">
+            <label for="product-order-email">Email</label>
+            <input id="product-order-email" name="email" type="email" autocomplete="email" required />
+          </div>
+          <div class="form-field">
+            <label for="product-order-phone">Phone</label>
+            <input id="product-order-phone" name="phone" type="tel" autocomplete="tel" required />
+          </div>
+          <div class="form-field" id="product-order-shipping-wrap" hidden>
+            <label for="product-order-shipping">Shipping address</label>
+            <textarea id="product-order-shipping" name="shipping-address" rows="3" placeholder="Street, city, state, ZIP"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" id="product-order-submit">Submit order</button>
+        </form>
       </div>
     </main>
 
@@ -85,17 +106,12 @@
       </div>
     </footer>
 
-    <div class="profile-portfolio-lightbox" id="profile-portfolio-lightbox" hidden>
-      <div class="profile-portfolio-lightbox__backdrop" data-portfolio-lightbox-close></div>
-      <button class="profile-portfolio-lightbox__close" type="button" data-portfolio-lightbox-close aria-label="Close">&times;</button>
-      <div class="profile-portfolio-lightbox__stage" id="profile-portfolio-lightbox-stage"></div>
-    </div>
-
     <script src="/js/vercel-analytics.bundle.js" defer></script>
     <script src="/js/styld-tenant-config.js?v=1780530043880"></script>
     <script src="/js/styld-tenant-config.local.js?v=1780530043880"></script>
-    <script src="/js/styld-tenant-shared.js?v=67"></script>
-    <script src="/js/profile-content.js?v=29"></script>
-    <script src="/js/tenant-site.js?v=68"></script>
+    <script src="/js/styld-tenant-shared.js?v=74"></script>
+    <script src="/js/profile-content.js?v=31"></script>
+    <script src="/js/tenant-site.js?v=70"></script>
+    <script src="/js/products-order.js?v=1" defer></script>
   </body>
 </html>

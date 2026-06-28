@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=60" />
+    <link rel="stylesheet" href="/css/styles.css?v=77" />
     <style>
       #tenant-status {
         position: fixed;
@@ -26,11 +26,11 @@
       }
       #tenant-status[hidden] { display: none; }
       body.tenant-error .profile-nav,
-      body.tenant-error .portfolio-catalog-main,
+      body.tenant-error .products-catalog-main,
       body.tenant-error .site-footer { opacity: 0.2; pointer-events: none; }
     </style>
   </head>
-  <body class="tpl-profile page-portfolio">
+  <body class="tpl-profile page-products">
     <div id="tenant-status">Loading your site…</div>
 
     <nav class="profile-nav" id="profile-nav">
@@ -62,14 +62,15 @@
       </div>
     </nav>
 
-    <main class="portfolio-catalog-main" id="portfolio-catalog-main">
+    <main class="products-catalog-main" id="products-catalog-main">
       <div class="container">
-        <a class="portfolio-catalog-back" href="/">← Back</a>
-        <div class="profile-portfolio-head portfolio-catalog-head">
-          <h1 id="portfolio-catalog-title">Previous work</h1>
-          <p class="profile-menu-blurb" id="portfolio-catalog-blurb"></p>
+        <a class="products-catalog-back" href="/">← Back</a>
+        <div class="profile-portfolio-head products-catalog-head">
+          <h1 id="products-catalog-title">Shop</h1>
+          <p class="profile-menu-blurb" id="products-catalog-blurb"></p>
         </div>
-        <div class="profile-portfolio-grid profile-portfolio-grid--catalog" id="portfolio-catalog-grid"></div>
+        <div class="products-catalog-grid" id="products-catalog-grid"></div>
+        <p class="products-catalog-empty" id="products-catalog-empty" hidden>No products available right now.</p>
       </div>
     </main>
 
@@ -85,17 +86,11 @@
       </div>
     </footer>
 
-    <div class="profile-portfolio-lightbox" id="profile-portfolio-lightbox" hidden>
-      <div class="profile-portfolio-lightbox__backdrop" data-portfolio-lightbox-close></div>
-      <button class="profile-portfolio-lightbox__close" type="button" data-portfolio-lightbox-close aria-label="Close">&times;</button>
-      <div class="profile-portfolio-lightbox__stage" id="profile-portfolio-lightbox-stage"></div>
-    </div>
-
     <script src="/js/vercel-analytics.bundle.js" defer></script>
     <script src="/js/styld-tenant-config.js?v=1780530043880"></script>
     <script src="/js/styld-tenant-config.local.js?v=1780530043880"></script>
-    <script src="/js/styld-tenant-shared.js?v=67"></script>
-    <script src="/js/profile-content.js?v=29"></script>
-    <script src="/js/tenant-site.js?v=68"></script>
+    <script src="/js/styld-tenant-shared.js?v=73"></script>
+    <script src="/js/profile-content.js?v=30"></script>
+    <script src="/js/tenant-site.js?v=69"></script>
   </body>
 </html>

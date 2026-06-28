@@ -440,27 +440,75 @@
     return document.body.classList.contains('page-certifications');
   }
 
-  function populateSiteNav(content) {
-    var hidden = isSectionHidden(content, 'certifications');
-    var label = String(content.certificationsTitle || 'Certifications').trim() || 'Certifications';
-    var linksWrap = document.getElementById('profile-nav-links');
-    var linkDesktop = document.getElementById('profile-nav-link-certifications');
-    var linkDrawer = document.getElementById('profile-nav-drawer-certifications');
-    var menuBtn = document.getElementById('profile-nav-menu-btn');
-    var drawer = document.getElementById('profile-nav-drawer');
-    var isActive = isCertificationsPage();
+  function isProductsCatalogPage() {
+    return document.body.classList.contains('page-products');
+  }
 
-    if (linksWrap) linksWrap.hidden = hidden;
-    if (menuBtn) menuBtn.hidden = hidden;
+  function isProductsPage() {
+    return (
+      isProductsCatalogPage() ||
+      document.body.classList.contains('page-products-order')
+    );
+  }
 
-    [linkDesktop, linkDrawer].forEach(function (el) {
+  function getSiteProductsCatalog() {
+    var data = window.__STYLD_SITE_PRODUCTS__ || {};
+    if (Array.isArray(data.catalog)) return data.catalog;
+    if (window.StyldTenant && window.StyldTenant.normalizeSiteProducts) {
+      return window.StyldTenant.normalizeSiteProducts(data.catalog || []);
+    }
+    return [];
+  }
+
+  function configureNavLinkPair(desktopId, drawerId, hidden, label, isActive) {
+    var desktop = document.getElementById(desktopId);
+    var drawer = document.getElementById(drawerId);
+    [desktop, drawer].forEach(function (el) {
       if (!el) return;
       el.textContent = label;
       el.hidden = hidden;
       el.classList.toggle('is-active', !hidden && isActive);
     });
+  }
 
-    if (hidden && drawer) {
+  function populateSiteNav(content) {
+    var theme = window.__STYLD_SITE_THEME__ || {};
+    var productsCatalog = getSiteProductsCatalog();
+    var certsHidden =
+      isSectionHidden(content, 'certifications') || !normalizeCertificationItems(theme).length;
+    var productsHidden = isSectionHidden(content, 'products') || !productsCatalog.length;
+    var anyVisible = !certsHidden || !productsHidden;
+
+    var certsLabel = String(content.certificationsTitle || 'Certifications').trim() || 'Certifications';
+    var productsLabel = String(content.productsTitle || 'Shop').trim() || 'Shop';
+
+    var linksWrap = document.getElementById('profile-nav-links');
+    var tabsWrap = document.getElementById('profile-nav-tabs');
+    var drawerTabs = document.getElementById('profile-nav-drawer-tabs');
+    var menuBtn = document.getElementById('profile-nav-menu-btn');
+    var drawer = document.getElementById('profile-nav-drawer');
+
+    if (linksWrap) linksWrap.hidden = !anyVisible;
+    if (tabsWrap) tabsWrap.hidden = !anyVisible;
+    if (drawerTabs) drawerTabs.hidden = !anyVisible;
+    if (menuBtn) menuBtn.hidden = !anyVisible;
+
+    configureNavLinkPair(
+      'profile-nav-link-certifications',
+      'profile-nav-drawer-certifications',
+      certsHidden,
+      certsLabel,
+      isCertificationsPage(),
+    );
+    configureNavLinkPair(
+      'profile-nav-link-products',
+      'profile-nav-drawer-products',
+      productsHidden,
+      productsLabel,
+      isProductsPage(),
+    );
+
+    if (!anyVisible && drawer) {
       drawer.hidden = true;
       if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
       document.body.classList.remove('profile-nav-drawer-open');
@@ -1079,6 +1127,83 @@
     startPortfolioVideos(grid);
   }
 
+  function formatProductPrice(price) {
+    var amount = typeof price === 'number' ? price : Number(price);
+    if (!Number.isFinite(amount)) return '$0';
+    if (Math.round(amount) === amount) return '$' + Math.round(amount);
+    return '$' + amount.toFixed(2);
+  }
+
+  function buildProductCardHtml(product) {
+    var imagePath = product.storagePath || (product.imagePaths && product.imagePaths[0]) || '';
+    var imageUrl = resolvePortfolioMediaUrl(imagePath);
+    var photoCount = Array.isArray(product.imagePaths) ? product.imagePaths.length : 0;
+    var desc = String(product.description || '').trim();
+    if (desc.length > 160) desc = desc.slice(0, 157) + '…';
+
+    return (
+      '<article class="profile-product-card">' +
+      (imageUrl
+        ? '<div class="profile-product-card__media"><img src="' +
+          escapeHtml(imageUrl) +
+          '" alt="" loading="lazy" decoding="async" /></div>'
+        : '<div class="profile-product-card__media profile-product-card__media--empty" aria-hidden="true"></div>') +
+      '<div class="profile-product-card__body">' +
+      '<h2 class="profile-product-card__title">' +
+      escapeHtml(product.title) +
+      '</h2>' +
+      (photoCount > 1
+        ? '<p class="profile-product-card__meta">' + photoCount + ' photos</p>'
+        : '') +
+      (desc ? '<p class="profile-product-card__desc">' + escapeHtml(desc) + '</p>' : '') +
+      '<p class="profile-product-card__price">' +
+      formatProductPrice(product.price) +
+      '</p>' +
+      '<div class="profile-product-card__actions">' +
+      '<a class="profile-product-card__btn profile-product-card__btn--primary" href="/booking?product=' +
+      encodeURIComponent(product.id) +
+      '">Add when booking</a>' +
+      '<a class="profile-product-card__btn profile-product-card__btn--secondary" href="/products/order?product=' +
+      encodeURIComponent(product.id) +
+      '">Order now</a>' +
+      '</div>' +
+      '</div>' +
+      '</article>'
+    );
+  }
+
+  function populateProductsCatalog(content) {
+    var main = document.getElementById('products-catalog-main');
+    var titleEl = document.getElementById('products-catalog-title');
+    var blurbEl = document.getElementById('products-catalog-blurb');
+    var grid = document.getElementById('products-catalog-grid');
+    var emptyEl = document.getElementById('products-catalog-empty');
+    if (!grid) return;
+
+    var items = getSiteProductsCatalog();
+    var title = String(content.productsTitle || 'Shop').trim() || 'Shop';
+    var brand = content.brandName || 'Your Brand';
+    document.title = title + ' | ' + brand;
+
+    if (isSectionHidden(content, 'products') || !items.length) {
+      if (main) main.hidden = true;
+      grid.innerHTML = '';
+      if (emptyEl) emptyEl.hidden = true;
+      return;
+    }
+
+    if (main) main.hidden = false;
+    if (titleEl) titleEl.textContent = title;
+    if (blurbEl) {
+      var blurb = String(content.productsBlurb || '').trim();
+      blurbEl.textContent = blurb;
+      blurbEl.hidden = !blurb;
+    }
+
+    grid.innerHTML = items.map(buildProductCardHtml).join('');
+    if (emptyEl) emptyEl.hidden = true;
+  }
+
   function populateCertificationsCatalog(content, theme) {
     var main = document.getElementById('certifications-catalog-main');
     var titleEl = document.getElementById('certifications-catalog-title');
@@ -1155,6 +1280,43 @@
         var certFooterBrand = document.getElementById('preview-footer-brand');
         if (certFooterBrand && content.brandName) {
           certFooterBrand.textContent = '\u00A9 ' + content.brandName;
+        }
+      }
+      return;
+    }
+
+    if (isProductsCatalogPage()) {
+      updateNavBookLink('/booking');
+      if (theme.hideBookNowButton) {
+        document.querySelectorAll('.profile-nav .profile-book-btn').forEach(function (btn) {
+          btn.style.display = 'none';
+        });
+      }
+      populateProductsCatalog(content);
+      if (window.StyldTenant && window.StyldTenant.applySiteFooter) {
+        window.StyldTenant.applySiteFooter(content);
+      } else {
+        var productsFooterBrand = document.getElementById('preview-footer-brand');
+        if (productsFooterBrand && content.brandName) {
+          productsFooterBrand.textContent = '\u00A9 ' + content.brandName;
+        }
+      }
+      return;
+    }
+
+    if (document.body.classList.contains('page-products-order')) {
+      updateNavBookLink('/booking');
+      if (theme.hideBookNowButton) {
+        document.querySelectorAll('.profile-nav .profile-book-btn').forEach(function (btn) {
+          btn.style.display = 'none';
+        });
+      }
+      if (window.StyldTenant && window.StyldTenant.applySiteFooter) {
+        window.StyldTenant.applySiteFooter(content);
+      } else {
+        var orderFooterBrand = document.getElementById('preview-footer-brand');
+        if (orderFooterBrand && content.brandName) {
+          orderFooterBrand.textContent = '\u00A9 ' + content.brandName;
         }
       }
       return;

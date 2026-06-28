@@ -15,6 +15,8 @@ const MARKETING_PAGES = {
   '/support': '/marketing/support.html',
   '/privacy': '/marketing/privacy.html',
   '/terms': '/marketing/terms.html',
+  '/login': '/marketing/login.html',
+  '/dashboard': '/marketing/dashboard.html',
 };
 
 const TENANT_STATIC_PAGES = {
@@ -28,6 +30,8 @@ const TENANT_STATIC_PAGES = {
   '/gallery': '/gallery.html',
   '/portfolio': '/tenant/portfolio.html',
   '/certifications': '/tenant/certifications.html',
+  '/products': '/tenant/products.html',
+  '/products/order': '/tenant/products-order.html',
   '/review': '/review.html',
 };
 
