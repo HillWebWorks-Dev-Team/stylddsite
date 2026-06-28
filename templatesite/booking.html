@@ -16,7 +16,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=69" />
+    <link rel="stylesheet" href="/css/styles.css?v=72" />
     <!-- Vercel Web Analytics: enable in Vercel Project Settings > Analytics -->
     <script src="/js/vercel-analytics.bundle.js" defer></script>
   </head>
@@ -62,7 +62,11 @@
 
           <div class="booking-wizard__panel booking-wizard__panel--active" data-booking-step="personal">
             <section class="form-section">
-              <h2>Personal information</h2>
+              <header class="booking-step-header">
+                <h2>Personal information</h2>
+                <p class="booking-step-header__lead">We'll use this to confirm your appointment.</p>
+              </header>
+              <div class="booking-wizard__block">
               <div class="field">
                 <label for="full-name">Full name *</label>
                 <input id="full-name" name="full-name" type="text" autocomplete="name" required />
@@ -75,6 +79,7 @@
                 <label for="email">Email *</label>
                 <input id="email" name="email" type="email" autocomplete="email" required />
               </div>
+              </div>
             </section>
             <div class="booking-wizard__nav">
               <button type="button" class="btn btn-primary booking-wizard__next" data-next-step="service">
@@ -85,7 +90,12 @@
 
           <div class="booking-wizard__panel" data-booking-step="service" hidden>
             <section class="form-section">
-              <h2>Service details</h2>
+              <header class="booking-step-header">
+                <h2>Service details</h2>
+                <p class="booking-step-header__lead">Choose your service and share any photos or notes.</p>
+              </header>
+
+              <div class="booking-wizard__block booking-wizard__block--service">
               <div class="field" id="style-select-field-wrap">
                 <label for="style-select">Choose menu item *</label>
                 <select id="style-select" name="style" required>
@@ -184,23 +194,28 @@
                 >
               </fieldset>
             </div>
+              </div>
 
-            <div class="field">
+              <div class="booking-wizard__block booking-wizard__block--photos">
+            <div class="field" id="photo-hair-field-wrap">
               <label for="photo-hair">Current hair photo *</label>
               <input id="photo-hair" name="photo-hair" type="file" accept="image/*" required />
               <div id="photo-hair-preview" class="file-preview" aria-live="polite"></div>
             </div>
 
-            <div class="field">
+            <div class="field" id="photo-ref-field-wrap">
               <label for="photo-ref">Reference image (optional)</label>
               <input id="photo-ref" name="photo-ref" type="file" accept="image/*" />
               <div id="photo-ref-preview" class="file-preview" aria-live="polite"></div>
             </div>
+              </div>
 
+              <div class="booking-wizard__block booking-wizard__block--notes">
             <div class="field">
               <label for="notes">Additional notes (optional)</label>
               <textarea id="notes" name="notes" placeholder="Allergies, part preferences, timing…"></textarea>
             </div>
+              </div>
             </section>
             <div class="booking-wizard__nav">
               <button type="button" class="btn btn-secondary booking-wizard__back" data-prev-step="personal">Back</button>
@@ -210,20 +225,24 @@
 
           <div class="booking-wizard__panel" data-booking-step="appointment" hidden>
             <section class="form-section form-section--appointment" id="book-time">
-            <h2 class="form-section__title-with-icon" data-booking-appointment-heading>
-              <span class="form-section__title-icon" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"
-                    stroke="#a67c52"
-                    stroke-width="1.75"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </span>
-              Appointment Details
-            </h2>
+            <header class="booking-step-header">
+              <h2 class="form-section__title-with-icon" data-booking-appointment-heading>
+                <span class="form-section__title-icon" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </span>
+                Pick a date & time
+              </h2>
+              <p class="booking-step-header__lead">Select when you'd like to come in.</p>
+            </header>
 
+            <div class="booking-wizard__block booking-wizard__block--calendar">
             <div class="field field--calendar-label">
               <label class="required-flag">Select Date and Time *</label>
             </div>
@@ -247,7 +266,9 @@
                 <p class="booking-calendar__selected" id="booking-cal-selected-line">Selected Date: —</p>
               </div>
             </div>
+            </div>
 
+            <div class="booking-wizard__block booking-wizard__block--times">
             <div class="booking-duration-strip" id="duration-strip">ESTIMATED DURATION TBD</div>
 
             <div class="booking-slots-panel" id="slots-panel">
@@ -262,6 +283,7 @@
                 — we may still be able to help.
               </p>
             </div>
+            </div>
 
             <input type="hidden" id="appointment-starts-at" name="appointment-starts-at" value="" />
             <input type="hidden" id="duration-minutes-input" name="duration-minutes" value="" />
@@ -273,81 +295,102 @@
           </div>
 
           <div class="booking-wizard__panel" data-booking-step="pricing" hidden>
-            <section class="form-section">
-            <h2>Pricing</h2>
-            <p>
-              <strong>Service price:</strong> <span id="line-subtotal">$0.00</span>
-            </p>
-            <p id="line-addon-wrap" hidden>
-              <strong>Add-on (<span id="line-addon-name"></span>):</strong> <span id="line-addon">$0.00</span>
-            </p>
-            <p id="line-service-total-wrap" hidden>
-              <strong>Service total:</strong> <span id="line-service-total">$0.00</span>
-            </p>
-            <p id="line-estimated-total-wrap">
-              <strong id="line-total-label">Pay in person:</strong> <span id="line-total">$0.00</span>
-            </p>
-            <div id="line-deposit-pricing" class="booking-deposit-pricing" hidden>
-              <p id="line-balance-wrap" hidden>
-                <strong>Balance at appointment:</strong> <span id="line-balance-due">$0.00</span>
-              </p>
-              <p class="deposit-note booking-deposit-separate-note" id="line-deposit-separate-note" hidden></p>
-            </div>
-            <div id="line-due-breakdown" class="booking-due-breakdown" hidden>
-              <p id="line-due-deposit-row" hidden>
-                <strong id="line-deposit-label">Deposit:</strong> <span id="line-deposit-amount">$0.00</span>
-              </p>
-              <p>
-                <strong>Service fee:</strong> <span id="line-service-fee">$0.00</span>
-              </p>
-              <p class="booking-due-breakdown__total">
-                <strong>Total due now:</strong> <span id="line-total-due">$0.00</span>
-              </p>
-            </div>
-            <p class="deposit-note" id="line-deposit-detail"></p>
-            <p class="deposit-note" id="deposit-note-in-person" hidden>
-              No payment is required now. Pay your stylist in person when you arrive for your appointment.
-            </p>
-            <p class="deposit-note" id="deposit-note-studio" hidden>
-              A deposit is required to secure your appointment. The remaining balance is due in person at your appointment.
-            </p>
-            <p class="deposit-note" id="deposit-note-house-call" hidden>
-              A deposit is required to secure your appointment. House-call bookings include a <strong>$15</strong> house
-              deposit <strong>in addition to</strong> the usual percentage booking hold. Balance due per your checkout rules.
-            </p>
-            <div class="alert" role="alert" id="deposit-policy-alert"></div>
-          </section>
+            <section class="form-section booking-pricing">
+              <header class="booking-step-header">
+                <h2>Review & confirm</h2>
+                <p class="booking-step-header__lead">Check your total before completing your booking.</p>
+              </header>
 
-          <section class="form-section hidden" id="cancellation-policy-section" aria-hidden="true">
-            <h2>Cancellation policy</h2>
-            <p id="cancellation-policy-text" class="cancellation-policy-text"></p>
-          </section>
+              <div class="booking-wizard__block booking-pricing__card">
+                <h3 class="booking-block__title">Price summary</h3>
+                <div class="booking-pricing__rows">
+                  <div class="booking-pricing__row">
+                    <span class="booking-pricing__label" id="line-subtotal-label">Service price</span>
+                    <span class="booking-pricing__value" id="line-subtotal">$0.00</span>
+                  </div>
+                  <div class="booking-pricing__row" id="line-addon-wrap" hidden>
+                    <span class="booking-pricing__label">Add-on · <span id="line-addon-name"></span></span>
+                    <span class="booking-pricing__value" id="line-addon">$0.00</span>
+                  </div>
+                  <div class="booking-pricing__row" id="line-service-total-wrap" hidden>
+                    <span class="booking-pricing__label">Service total</span>
+                    <span class="booking-pricing__value" id="line-service-total">$0.00</span>
+                  </div>
+                </div>
 
-          <section class="form-section hidden" id="payment-section" aria-hidden="true">
-            <h2>Payment</h2>
-            <p class="payment-card-trust" id="payment-card-trust" hidden>
-              Pay securely with your credit or debit card.
-            </p>
-            <div class="payment-placeholder">
-              <p><strong>Name:</strong> <span id="pay-name-preview">—</span></p>
-              <p><strong>Email:</strong> <span id="pay-email-preview">—</span></p>
-              <p><strong id="pay-deposit-label">Deposit:</strong> <span id="pay-deposit-preview">$0.00</span></p>
-              <p><strong>Service fee:</strong> <span id="pay-service-fee-preview">$0.00</span></p>
-              <p><strong>Total due now:</strong> <span id="pay-total-due-preview">$0.00</span></p>
-            </div>
-            <div id="stripe-card-element" class="stripe-card-element"></div>
-            <p id="stripe-card-error" class="booking-feedback booking-feedback--error" role="alert" hidden></p>
-          </section>
+                <div class="booking-pricing__hero" id="line-estimated-total-wrap">
+                  <span class="booking-pricing__hero-label" id="line-total-label">Pay in person</span>
+                  <span class="booking-pricing__hero-value" id="line-total">$0.00</span>
+                </div>
 
-          <section class="form-section">
+                <div id="line-deposit-pricing" class="booking-pricing__rows booking-pricing__rows--secondary" hidden>
+                  <div class="booking-pricing__row" id="line-balance-wrap" hidden>
+                    <span class="booking-pricing__label">Balance at appointment</span>
+                    <span class="booking-pricing__value" id="line-balance-due">$0.00</span>
+                  </div>
+                  <p class="booking-pricing__note booking-pricing__note--inline" id="line-deposit-separate-note" hidden></p>
+                </div>
+
+                <div id="line-due-breakdown" class="booking-pricing__rows booking-pricing__rows--due" hidden>
+                  <div class="booking-pricing__row" id="line-due-deposit-row" hidden>
+                    <span class="booking-pricing__label" id="line-deposit-label">Deposit</span>
+                    <span class="booking-pricing__value" id="line-deposit-amount">$0.00</span>
+                  </div>
+                  <div class="booking-pricing__row">
+                    <span class="booking-pricing__label">Service fee</span>
+                    <span class="booking-pricing__value" id="line-service-fee">$0.00</span>
+                  </div>
+                  <div class="booking-pricing__row booking-pricing__row--total">
+                    <span class="booking-pricing__label">Total due now</span>
+                    <span class="booking-pricing__value" id="line-total-due">$0.00</span>
+                  </div>
+                </div>
+
+                <p class="booking-pricing__note" id="line-deposit-detail" hidden></p>
+              </div>
+            </section>
+
+            <section class="form-section booking-wizard__block hidden" id="cancellation-policy-section" aria-hidden="true">
+              <h3 class="booking-block__title">Cancellation policy</h3>
+              <p id="cancellation-policy-text" class="booking-pricing__policy-text cancellation-policy-text"></p>
+            </section>
+
+            <section class="form-section booking-wizard__block hidden" id="payment-section" aria-hidden="true">
+              <h3 class="booking-block__title">Payment</h3>
+              <p class="payment-card-trust booking-pricing__note" id="payment-card-trust" hidden>
+                Pay securely with your credit or debit card.
+              </p>
+              <div class="booking-pricing__rows payment-placeholder">
+                <div class="booking-pricing__row">
+                  <span class="booking-pricing__label">Name</span>
+                  <span class="booking-pricing__value" id="pay-name-preview">—</span>
+                </div>
+                <div class="booking-pricing__row">
+                  <span class="booking-pricing__label">Email</span>
+                  <span class="booking-pricing__value" id="pay-email-preview">—</span>
+                </div>
+                <div class="booking-pricing__row">
+                  <span class="booking-pricing__label" id="pay-deposit-label">Deposit</span>
+                  <span class="booking-pricing__value" id="pay-deposit-preview">$0.00</span>
+                </div>
+                <div class="booking-pricing__row">
+                  <span class="booking-pricing__label">Service fee</span>
+                  <span class="booking-pricing__value" id="pay-service-fee-preview">$0.00</span>
+                </div>
+                <div class="booking-pricing__row booking-pricing__row--total">
+                  <span class="booking-pricing__label">Total due now</span>
+                  <span class="booking-pricing__value" id="pay-total-due-preview">$0.00</span>
+                </div>
+              </div>
+              <div id="stripe-card-element" class="stripe-card-element"></div>
+              <p id="stripe-card-error" class="booking-feedback booking-feedback--error" role="alert" hidden></p>
+            </section>
+
             <div id="booking-feedback" class="booking-feedback" role="status" aria-live="polite" hidden></div>
             <div class="booking-wizard__nav booking-wizard__nav--submit">
               <button type="button" class="btn btn-secondary booking-wizard__back" data-prev-step="appointment">Back</button>
-              <button type="submit" id="booking-submit-btn" class="btn btn-primary" style="flex: 1; padding: 1rem; font-size: 1.05rem">
-                Confirm payment
-              </button>
+              <button type="submit" id="booking-submit-btn" class="btn btn-primary booking-wizard__submit">Confirm booking</button>
             </div>
-          </section>
           </div>
         </form>
 
@@ -402,7 +445,7 @@
     <script src="/js/booking-config.js?v=52"></script>
     <script src="/js/styld-tenant-config.js?v=39"></script>
     <script src="/js/styld-tenant-config.local.js?v=39"></script>
-    <script src="/js/styld-tenant-shared.js?v=69"></script>
+    <script src="/js/styld-tenant-shared.js?v=70"></script>
     <script src="/js/profile-content.js?v=29"></script>
     <script src="/js/tenant-site.js?v=68"></script>
     <script src="/js/styld-tenant-booking.js?v=70"></script>
@@ -431,7 +474,7 @@
           'avail.src = "/js/booking-availability.js?v=4";' +
           'avail.onload = function () {' +
           'const booking = document.createElement("script");' +
-          'booking.src = "/js/booking.js?v=64";' +
+          'booking.src = "/js/booking.js?v=65";' +
           'booking.defer = true;' +
           'document.body.appendChild(booking);' +
           '};' +

@@ -781,19 +781,27 @@
 
   function applyBookingFormSettings(bookingPayment) {
     var req = getBookingFormRequirements(bookingPayment);
+    var hairWrap = document.getElementById('photo-hair-field-wrap');
     var hairLabel = document.querySelector('label[for="photo-hair"]');
     var hairInput = document.getElementById('photo-hair');
+    var hairPreview = document.getElementById('photo-hair-preview');
     var refLabel = document.querySelector('label[for="photo-ref"]');
     var refInput = document.getElementById('photo-ref');
 
-    if (hairLabel) {
-      hairLabel.textContent = req.requireCurrentHairPhoto
-        ? 'Current hair photo *'
-        : 'Current hair photo (optional)';
+    if (hairWrap) {
+      hairWrap.hidden = !req.requireCurrentHairPhoto;
+    }
+    if (hairLabel && req.requireCurrentHairPhoto) {
+      hairLabel.textContent = 'Current hair photo *';
     }
     if (hairInput) {
-      if (req.requireCurrentHairPhoto) hairInput.setAttribute('required', '');
-      else hairInput.removeAttribute('required');
+      if (req.requireCurrentHairPhoto) {
+        hairInput.setAttribute('required', '');
+      } else {
+        hairInput.removeAttribute('required');
+        hairInput.value = '';
+        if (hairPreview) hairPreview.innerHTML = '';
+      }
     }
     if (refLabel) {
       refLabel.textContent = req.requireReferencePhoto

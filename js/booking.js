@@ -577,7 +577,7 @@
     }
 
     setText('side-total-label', summaryLabel);
-    setText('line-total-label', summaryLabel + ':');
+    setText('line-total-label', summaryLabel);
     setText('side-total', summaryAmount);
     setText('line-total', summaryAmount);
 
@@ -633,9 +633,9 @@
 
     if (!showDue) return;
 
-    setText('line-deposit-label', p.depositLabel + ':');
+    setText('line-deposit-label', p.depositLabel);
     setText('side-deposit-label', p.depositLabel);
-    setText('pay-deposit-label', p.depositLabel + ':');
+    setText('pay-deposit-label', p.depositLabel);
     setText('line-deposit-amount', moneyPrecise(p.deposit));
     setText('side-deposit-amount', moneyPrecise(p.deposit));
     setText('pay-deposit-preview', moneyPrecise(p.deposit));
@@ -834,6 +834,7 @@
 
     var serviceLabel = variant ? variant.label : 'Service price';
     setText('side-subtotal-label', serviceLabel);
+    setText('line-subtotal-label', serviceLabel);
     setText('line-subtotal', money(p.base));
     setText('side-subtotal', money(p.base));
 
