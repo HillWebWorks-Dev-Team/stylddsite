@@ -22,16 +22,30 @@
     };
   }
 
+  function readSupabaseSession() {
+    try {
+      var raw = localStorage.getItem('styld_studio_auth');
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      if (data && data.access_token) return data;
+      if (data && data.currentSession && data.currentSession.access_token) return data.currentSession;
+    } catch (e) {
+      /* ignore */
+    }
+    return null;
+  }
+
   function getSession() {
     try {
       var raw = localStorage.getItem(SESSION_KEY);
-      if (!raw) return null;
-      var session = JSON.parse(raw);
-      if (!session || !session.access_token) return null;
-      return session;
+      if (raw) {
+        var session = JSON.parse(raw);
+        if (session && session.access_token) return session;
+      }
     } catch (e) {
-      return null;
+      /* ignore */
     }
+    return readSupabaseSession();
   }
 
   function setSession(session) {
@@ -177,11 +191,12 @@
 
   function updateAuthNavLinks() {
     var session = getSession();
+    var loggedIn = !!session;
     document.querySelectorAll('[data-auth-link="login"]').forEach(function (el) {
-      el.hidden = !!session;
+      el.hidden = loggedIn;
     });
     document.querySelectorAll('[data-auth-link="dashboard"]').forEach(function (el) {
-      el.hidden = !session;
+      el.hidden = !loggedIn;
     });
   }
 
@@ -210,4 +225,10 @@
   } else {
     updateAuthNavLinks();
   }
+
+  window.addEventListener('storage', function (e) {
+    if (e.key === SESSION_KEY || e.key === 'styld_studio_auth') {
+      updateAuthNavLinks();
+    }
+  });
 })(window);

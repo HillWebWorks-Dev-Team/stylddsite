@@ -16,7 +16,7 @@ const MARKETING_PAGES = {
   '/privacy': '/marketing/privacy.html',
   '/terms': '/marketing/terms.html',
   '/login': '/marketing/login.html',
-  '/signup': '/marketing/signup.html',
+  '/signup': '/marketing/login.html',
   '/onboarding': '/marketing/onboarding.html',
   '/dashboard': '/marketing/dashboard.html',
   '/studio': '/marketing/studio.html',

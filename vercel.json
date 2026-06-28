@@ -8,7 +8,7 @@
     { "source": "/marketing", "destination": "/marketing/index.html" },
     { "source": "/marketing/admin", "destination": "/marketing/admin.html" },
     { "source": "/login", "destination": "/marketing/login.html" },
-    { "source": "/signup", "destination": "/marketing/signup.html" },
+    { "source": "/signup", "destination": "/login" },
     { "source": "/onboarding", "destination": "/marketing/onboarding.html" },
     { "source": "/dashboard", "destination": "/marketing/dashboard.html" },
     { "source": "/studio/main.js", "destination": "/marketing/studio/main.js" },

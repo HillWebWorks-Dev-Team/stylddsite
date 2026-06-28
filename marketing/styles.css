@@ -277,6 +277,10 @@ h1, h2, h3 {
     transform 0.15s ease;
 }
 
+[data-auth-link][hidden] {
+  display: none !important;
+}
+
 .header-login-link:hover {
   color: var(--white);
   text-decoration: none;
