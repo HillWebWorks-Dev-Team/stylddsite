@@ -7991,8 +7991,8 @@ body.page-cover-splash .profile-below-hero {
 .profile-hero-stack--tall .profile-hero-stack__img {
   aspect-ratio: auto;
   height: auto;
-  width: min(100%, 400px);
-  max-width: 400px;
+  width: min(100%, 560px);
+  max-width: 560px;
   object-fit: contain;
 }
 .profile-hero-stack__img {
@@ -8060,6 +8060,13 @@ body.page-cover-splash .profile-below-hero {
 }
 .profile-hero--stack .profile-photo {
   display: none;
+}
+
+@media (min-width: 701px) {
+  .profile-hero-stack--tall .profile-hero-stack__img {
+    width: min(100%, 680px);
+    max-width: 680px;
+  }
 }
 
 /* Previous work portfolio */
