@@ -104,7 +104,11 @@
       };
       window.__STYLD_TENANT_BOOKING__ = window.__SALON_SITE_BOOKING__;
 
-      applyTenantBranding(site);
+      if (window.StyldTenant.applyTenantBranding) {
+        window.StyldTenant.applyTenantBranding(site);
+      } else {
+        applyBrandToPage(site.theme, site.content);
+      }
       populateStyleSelect(site.bookingStyles);
 
       if (statusEl) statusEl.hidden = true;
