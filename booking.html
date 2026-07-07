@@ -65,6 +65,9 @@
               <header class="booking-step-header">
                 <h2>Personal information</h2>
                 <p class="booking-step-header__lead">We'll use this to confirm your appointment.</p>
+                <p class="booking-contact-note" data-site-contact-phone-wrap hidden>
+                  Questions before you book? Call <a data-site-contact-phone href="#">—</a>.
+                </p>
               </header>
               <div class="booking-wizard__block booking-wizard__block--lined">
               <div class="field">
@@ -277,9 +280,9 @@
                 Pick a menu item above to preview duration (from booking logic) and open time slots.
               </p>
               <div id="time-slots-container" class="time-slots" aria-live="polite"></div>
-              <p class="booking-slots-footnote">
+              <p class="booking-slots-footnote" data-site-contact-phone-wrap hidden>
                 If none of these times work for you, please call
-                <a class="booking-footer-phone" href="tel:+15550100199">(555) 010-0199</a>
+                <a class="booking-footer-phone" data-site-contact-phone href="#">—</a>
                 — we may still be able to help.
               </p>
             </div>
@@ -299,6 +302,9 @@
               <header class="booking-step-header">
                 <h2>Review & confirm</h2>
                 <p class="booking-step-header__lead">Check your total before completing your booking.</p>
+                <p class="booking-contact-note" data-site-contact-phone-wrap hidden>
+                  Need help before confirming? Call <a data-site-contact-phone href="#">—</a>.
+                </p>
               </header>
 
               <div class="booking-wizard__block booking-pricing__card">
@@ -514,7 +520,7 @@
     <script src="/js/booking-config.js?v=52"></script>
     <script src="/js/styld-tenant-config.js?v=39"></script>
     <script src="/js/styld-tenant-config.local.js?v=39"></script>
-    <script src="/js/styld-tenant-shared.js?v=77"></script>
+    <script src="/js/styld-tenant-shared.js?v=78"></script>
     <script src="/js/profile-content.js?v=29"></script>
     <script src="/js/tenant-site.js?v=68"></script>
     <script src="/js/styld-tenant-booking.js?v=73"></script>
@@ -543,7 +549,7 @@
           'avail.src = "/js/booking-availability.js?v=4";' +
           'avail.onload = function () {' +
           'const booking = document.createElement("script");' +
-          'booking.src = "/js/booking.js?v=72";' +
+          'booking.src = "/js/booking.js?v=73";' +
           'booking.defer = true;' +
           'document.body.appendChild(booking);' +
           '};' +

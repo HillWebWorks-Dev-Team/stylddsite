@@ -5631,6 +5631,19 @@ body.page-booking .booking-calendar__selected {
   color: var(--pink-dark);
 }
 
+.booking-contact-note,
+.manage-booking-contact {
+  margin: 0.65rem 0 0;
+  font-size: 0.88rem;
+  color: var(--text-muted, var(--muted));
+}
+
+.booking-contact-note a,
+.manage-booking-contact a {
+  font-weight: 700;
+  color: var(--text-accent, var(--pink-dark));
+}
+
 .booking-slots-placeholder {
   margin: 0;
   font-size: 0.92rem;
@@ -7774,6 +7787,28 @@ body.profile-nav-drawer-open {
   gap: 1.75rem;
   padding-top: 0.5rem;
 }
+
+.profile-ordered-block-section {
+  padding: 2.5rem 0;
+  background: var(--cream, #fff);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.profile-ordered-block-section .container,
+.profile-ordered-block-section .profile-section-block {
+  width: min(1120px, 100% - 2rem);
+  margin-inline: auto;
+}
+
+.profile-hero__grid.profile-hero__grid--photo-only {
+  grid-template-columns: min(100%, 520px);
+  justify-content: center;
+}
+
+.profile-hero__grid.profile-hero__grid--photo-only .profile-info {
+  display: none !important;
+}
+
 .profile-section-block {
   display: flex;
   flex-direction: column;

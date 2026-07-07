@@ -354,6 +354,32 @@
       .join('');
   }
 
+  function applySitePhonePreview(content) {
+    var phone =
+      window.StyldTenant && window.StyldTenant.resolveSitePhone
+        ? window.StyldTenant.resolveSitePhone(content)
+        : {
+            display: String(content.phoneDisplay || content.phone || '').trim(),
+            tel: String(content.phoneTel || content.phoneDisplay || content.phone || '').replace(/[^\d+]/g, ''),
+          };
+    var el = document.getElementById('preview-phone');
+    if (!el) return;
+    if (!phone.display) {
+      el.textContent = '';
+      return;
+    }
+    if (phone.tel) {
+      el.innerHTML =
+        '<a href="tel:' +
+        escapeHtml(phone.tel) +
+        '">' +
+        escapeHtml(phone.display) +
+        '</a>';
+    } else {
+      el.textContent = phone.display;
+    }
+  }
+
   window.applyStyldPreviewContent = function applyStyldPreviewContent() {
     var content = window.__STYLD_SITE_CONTENT__;
     if (!content || typeof content !== 'object') return;
@@ -371,7 +397,7 @@
     setText('preview-visit-title', content.visitTitle);
     setText('preview-visit-body', content.visitBody);
     applyLocationAddress(content);
-    setText('preview-phone', content.phoneDisplay);
+    applySitePhonePreview(content);
     setText('preview-email', content.email || 'hello@yoursite.com');
     if (window.StyldTenant && window.StyldTenant.applySiteFooter) {
       window.StyldTenant.applySiteFooter(content);

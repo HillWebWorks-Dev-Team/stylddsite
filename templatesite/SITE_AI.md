@@ -131,7 +131,69 @@ Use `StyldTenant.resolveStyleCoverUrl(path)` when available.
 
 **CSS:** `.profile-portfolio-carousel`, `.profile-portfolio-carousel__slide`, `.profile-portfolio-view-more`, `.profile-portfolio-grid--catalog`
 
-**Section order:** Hero → Reviews → Portfolio (if above menu) → Menu → Portfolio (if below menu) → FAQ → Location → Footer. Full catalog at `/portfolio`.
+**Section order:** Controlled by `site_content.mainSectionOrder` (see **Main page section order** below). Legacy `portfolioPlacement` applies only when `mainSectionOrder` is absent. Full catalog at `/portfolio`.
+
+## Main page section order
+
+Stylists set section order in the app under **Site editor → Order** (up/down arrows). Order is saved in Supabase `styld_site_records` → `site_content.mainSectionOrder`.
+
+### Data field (source of truth)
+
+```ts
+mainSectionOrder: (
+  'aboutMe' | 'policies' | 'reviews' | 'portfolio' | 'menu' | 'faq' | 'visit'
+)[]
+```
+
+- **Default:** `['aboutMe', 'policies', 'reviews', 'portfolio', 'menu', 'faq', 'visit']`
+- **`portfolioPlacement`** (`above_menu` / `below_menu`) is legacy — the app still writes it, but **`mainSectionOrder` wins**
+- **`hiddenSections`** only controls visibility, not order
+
+### Required DOM on `tenant/profile.html` and `tenant/book.html`
+
+All seven sections must exist with these IDs (static HTML order does not matter — JS reorders at runtime):
+
+| Section ID | Element |
+|------------|---------|
+| `aboutMe` | `#profile-about-block` inside `.profile-info` (hero or book intro) |
+| `policies` | `#profile-policy-block` inside `.profile-info` |
+| `reviews` | `#profile-reviews-section` inside `<main>` |
+| `portfolio` | `#profile-portfolio-section` inside `<main>` |
+| `menu` | `#profile-menu-section` inside `<main>` |
+| `faq` | `#profile-faq-section` inside `<main>` |
+| `visit` | `#profile-location-section` inside `<main>` |
+
+There must be a `<main>` element containing reviews, portfolio, menu, FAQ, and visit.
+
+### Required JS in `profile-content.js`
+
+1. **`resolveMainSectionOrder(content)`** — read `content.mainSectionOrder`, merge any missing IDs, fall back to `portfolioPlacement` for old sites
+2. **`reorderMainSections(content, theme)`** — apply the order:
+   - **Split hero:** About Me / Policies stay in `.profile-info` beside the photo only if they appear **before** the first non-hero section (portfolio, reviews, menu, etc.)
+   - Otherwise those blocks move into `<main>`, wrapped in `.profile-ordered-block-section`
+   - All other sections: `main.appendChild()` in `mainSectionOrder` sequence (moves existing nodes)
+3. In **`applyStyldPreviewContent()`**, call **`reorderMainSections(content, theme)`** after:
+   - `populateReviews()`
+   - `populatePortfolio()`
+   - `populateFaq()`
+   - and **before** `populateSiteNav()`
+
+### Do NOT
+
+- Reorder portfolio vs menu with `insertBefore` inside `populatePortfolio()` — ordering is only in `reorderMainSections`
+- Hard-code section order in HTML or CSS
+- Ignore `mainSectionOrder` and rely only on `portfolioPlacement`
+
+### CSS (`styles.css`)
+
+Include styles for sections moved into `<main>`:
+
+- `.profile-ordered-block-section` — padding for About/Policies when not in hero
+- `.profile-hero__grid--photo-only` — when About/Policies moved out of split hero (photo-only column)
+
+### Visibility loop
+
+In the generic `[data-site-section]` visibility loop, **exclude** `aboutMe`, `policies`, `portfolio`, `faq`, and `reviews` — those are handled in their own `populate*` functions.
 
 ## FAQ section (`faqItems`)
 
@@ -139,7 +201,7 @@ Use `StyldTenant.resolveStyleCoverUrl(path)` when available.
 |--------|--------|
 | `site_content` | `faqTitle` (default `"FAQ"`), optional `faqBlurb`, `faqItems: { question, answer }[]` (both required per item), `hiddenSections` includes `'faq'` to hide |
 
-**Placement:** On `tenant/profile.html` and `tenant/book.html`, FAQ sits between `#profile-menu-section` and `#profile-location-section`. Do not move it above the menu. `populatePortfolio()` may reorder Previous work; FAQ stays after menu (and after portfolio when `portfolioPlacement === 'below_menu'`) via `insertBefore` on `#profile-location-section`.
+**Placement:** Section order comes from `mainSectionOrder` via `reorderMainSections()` in `profile-content.js`. Do not hard-code FAQ position in HTML.
 
 **HTML structure** (`profile.html` / `book.html`):
 

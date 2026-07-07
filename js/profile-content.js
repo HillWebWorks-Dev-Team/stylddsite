@@ -298,11 +298,18 @@
     var address = formatSiteAddress(content).trim();
     var handle = (content.instagramHandle || '').replace(/^@/, '').trim();
     var igUrl = handle ? 'https://www.instagram.com/' + encodeURIComponent(handle) + '/' : '';
+    var sitePhone =
+      window.StyldTenant && window.StyldTenant.resolveSitePhone
+        ? window.StyldTenant.resolveSitePhone(content)
+        : {
+            display: String(content.phoneDisplay || content.phone || '').trim(),
+            tel: String(content.phoneTel || content.phoneDisplay || content.phone || '').replace(/[^\d+]/g, ''),
+          };
 
     var showAddress = !isLocationPartHidden(content, 'address') && !!address;
     var showContact =
       !isLocationPartHidden(content, 'contact') &&
-      !!(String(content.phoneDisplay || '').trim() || String(content.email || '').trim());
+      !!(sitePhone.display || String(content.email || '').trim());
     var showSocial = !isLocationPartHidden(content, 'social') && !!handle;
     var showMap = !isLocationPartHidden(content, 'map') && !!buildGoogleMapsEmbedUrl(content);
 
@@ -329,7 +336,15 @@
 
     if (showContact) {
       var contactHtml =
-        (content.phoneDisplay ? '<p>' + escapeHtml(content.phoneDisplay) + '</p>' : '') +
+        (sitePhone.display
+          ? sitePhone.tel
+            ? '<p><a href="tel:' +
+              escapeHtml(sitePhone.tel) +
+              '">' +
+              escapeHtml(sitePhone.display) +
+              '</a></p>'
+            : '<p>' + escapeHtml(sitePhone.display) + '</p>'
+          : '') +
         (content.email
           ? '<p><a href="mailto:' + escapeHtml(content.email) + '">' + escapeHtml(content.email) + '</a></p>'
           : '');
@@ -771,7 +786,8 @@
         sectionId === 'aboutMe' ||
         sectionId === 'policies' ||
         sectionId === 'portfolio' ||
-        sectionId === 'faq'
+        sectionId === 'faq' ||
+        sectionId === 'reviews'
       ) {
         return;
       }
@@ -970,13 +986,189 @@
     });
   }
 
+  var DEFAULT_MAIN_SECTION_ORDER = [
+    'aboutMe',
+    'policies',
+    'reviews',
+    'portfolio',
+    'menu',
+    'faq',
+    'visit',
+  ];
+  var HERO_INLINE_SECTION_IDS = ['aboutMe', 'policies'];
+  var MAIN_FLOW_SECTION_IDS = ['reviews', 'portfolio', 'menu', 'faq', 'visit'];
+
+  function resolveMainSectionOrder(content) {
+    content = content && typeof content === 'object' ? content : {};
+    var order = Array.isArray(content.mainSectionOrder) ? content.mainSectionOrder.slice() : null;
+    var valid = [];
+
+    if (order && order.length) {
+      var seen = {};
+      order.forEach(function (id) {
+        id = String(id || '').trim();
+        if (!id || DEFAULT_MAIN_SECTION_ORDER.indexOf(id) === -1 || seen[id]) return;
+        seen[id] = true;
+        valid.push(id);
+      });
+    } else {
+      valid = DEFAULT_MAIN_SECTION_ORDER.slice();
+      var placement = String(content.portfolioPlacement || 'above_menu').trim();
+      if (placement === 'below_menu') {
+        valid = valid.filter(function (id) {
+          return id !== 'portfolio';
+        });
+        var menuIndex = valid.indexOf('menu');
+        if (menuIndex === -1) menuIndex = valid.length - 1;
+        valid.splice(menuIndex + 1, 0, 'portfolio');
+      }
+    }
+
+    var seenAll = {};
+    valid.forEach(function (id) {
+      seenAll[id] = true;
+    });
+    DEFAULT_MAIN_SECTION_ORDER.forEach(function (id) {
+      if (!seenAll[id]) valid.push(id);
+    });
+
+    return valid;
+  }
+
+  function getMainSectionElement(sectionId) {
+    if (sectionId === 'aboutMe') return document.getElementById('profile-about-block');
+    if (sectionId === 'policies') return document.getElementById('profile-policy-block');
+    if (sectionId === 'reviews') return document.getElementById('profile-reviews-section');
+    if (sectionId === 'portfolio') return document.getElementById('profile-portfolio-section');
+    if (sectionId === 'menu') return document.getElementById('profile-menu-section');
+    if (sectionId === 'faq') return document.getElementById('profile-faq-section');
+    if (sectionId === 'visit') return document.getElementById('profile-location-section');
+    return null;
+  }
+
+  function ensureOrderedBlockWrap(blockEl, sectionId) {
+    if (!blockEl) return null;
+    var existing = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+    if (existing) {
+      if (blockEl.parentElement !== existing) existing.appendChild(blockEl);
+      return existing;
+    }
+    var wrap = document.createElement('section');
+    wrap.className = 'profile-ordered-block-section';
+    wrap.setAttribute('data-ordered-section-wrap', sectionId);
+    wrap.setAttribute('data-site-section', sectionId);
+    wrap.appendChild(blockEl);
+    return wrap;
+  }
+
+  function reorderMainSections(content, theme) {
+    if (
+      isCertificationsPage() ||
+      isProductsCatalogPage() ||
+      isPortfolioPage() ||
+      document.body.classList.contains('page-products-order')
+    ) {
+      return;
+    }
+
+    var main = document.querySelector('#site-main-content main') || document.querySelector('main');
+    if (!main) return;
+
+    theme = theme && typeof theme === 'object' ? theme : {};
+    content = content && typeof content === 'object' ? content : {};
+
+    var order = resolveMainSectionOrder(content);
+    var firstMainFlowIndex = order.findIndex(function (id) {
+      return MAIN_FLOW_SECTION_IDS.indexOf(id) !== -1;
+    });
+    if (firstMainFlowIndex === -1) firstMainFlowIndex = order.length;
+
+    var isSplitHome = theme.heroLayout === 'split' && !isBookPage() && !isSplashPage();
+    var profileInfo = document.getElementById('profile-info-block');
+    var heroGrid = document.querySelector('.profile-hero__grid');
+
+    function belongsInIntro(sectionId) {
+      if (HERO_INLINE_SECTION_IDS.indexOf(sectionId) === -1) return false;
+      var index = order.indexOf(sectionId);
+      if (index === -1) return false;
+      if (isBookPage() || isSplitHome) return index < firstMainFlowIndex;
+      return false;
+    }
+
+    HERO_INLINE_SECTION_IDS.forEach(function (sectionId) {
+      var block = getMainSectionElement(sectionId);
+      if (!block) return;
+
+      if (belongsInIntro(sectionId)) {
+        if (profileInfo && block.parentElement !== profileInfo) {
+          profileInfo.appendChild(block);
+        }
+        var oldWrap = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+        if (oldWrap) oldWrap.remove();
+        return;
+      }
+
+      ensureOrderedBlockWrap(block, sectionId);
+    });
+
+    if (heroGrid) {
+      var hasIntroBlocks =
+        isSplitHome &&
+        HERO_INLINE_SECTION_IDS.some(function (sectionId) {
+          return belongsInIntro(sectionId);
+        });
+      heroGrid.classList.toggle('profile-hero__grid--photo-only', isSplitHome && !hasIntroBlocks);
+    }
+
+    if (profileInfo && isSplitHome) {
+      var showIntro = HERO_INLINE_SECTION_IDS.some(function (sectionId) {
+        if (!belongsInIntro(sectionId)) return false;
+        var block = getMainSectionElement(sectionId);
+        return block && !block.hidden;
+      });
+      profileInfo.hidden = !showIntro;
+      profileInfo.style.display = showIntro ? '' : 'none';
+    }
+
+    var bookIntro = document.getElementById('profile-book-intro');
+    if (bookIntro && isBookPage() && profileInfo) {
+      var visibleInIntro = HERO_INLINE_SECTION_IDS.some(function (sectionId) {
+        var block = getMainSectionElement(sectionId);
+        return block && block.parentElement === profileInfo && !block.hidden;
+      });
+      if (!visibleInIntro) bookIntro.hidden = true;
+    }
+
+    order.forEach(function (sectionId) {
+      if (belongsInIntro(sectionId)) return;
+
+      var node;
+      if (HERO_INLINE_SECTION_IDS.indexOf(sectionId) !== -1) {
+        node = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+        if (!node) {
+          var block = getMainSectionElement(sectionId);
+          node = ensureOrderedBlockWrap(block, sectionId);
+        }
+      } else {
+        node = getMainSectionElement(sectionId);
+      }
+
+      if (node) main.appendChild(node);
+    });
+  }
+
+  function populateReviews() {
+    if (window.initStyldSiteReviews) {
+      window.initStyldSiteReviews();
+    }
+  }
+
   function populatePortfolio(content, theme) {
     var section = document.getElementById('profile-portfolio-section');
     var track = document.getElementById('profile-portfolio-carousel-track');
     var titleEl = document.getElementById('profile-portfolio-title');
     var blurbEl = document.getElementById('profile-portfolio-blurb');
     var viewMoreEl = document.getElementById('profile-portfolio-view-more');
-    var menuSection = document.getElementById('profile-menu-section');
     if (!section || !track) return;
 
     var items = normalizePortfolioItems(theme);
@@ -985,16 +1177,6 @@
       track.innerHTML = '';
       if (viewMoreEl) viewMoreEl.hidden = true;
       return;
-    }
-
-    if (menuSection && menuSection.parentNode) {
-      var parent = menuSection.parentNode;
-      var placement = String(content.portfolioPlacement || 'above_menu').trim();
-      if (placement === 'below_menu') {
-        parent.insertBefore(section, menuSection.nextSibling);
-      } else {
-        parent.insertBefore(section, menuSection);
-      }
     }
 
     if (titleEl) {
@@ -1546,9 +1728,8 @@
       }
     }
 
-    populateSiteNav(content);
-
     if (isCertificationsPage()) {
+      populateSiteNav(content);
       updateNavBookLink('/booking');
       if (theme.hideBookNowButton) {
         document.querySelectorAll('.profile-nav .profile-book-btn').forEach(function (btn) {
@@ -1568,6 +1749,7 @@
     }
 
     if (isProductsCatalogPage()) {
+      populateSiteNav(content);
       updateNavBookLink('/booking');
       if (theme.hideBookNowButton) {
         document.querySelectorAll('.profile-nav .profile-book-btn').forEach(function (btn) {
@@ -1587,6 +1769,7 @@
     }
 
     if (document.body.classList.contains('page-products-order')) {
+      populateSiteNav(content);
       updateNavBookLink('/booking');
       if (theme.hideBookNowButton) {
         document.querySelectorAll('.profile-nav .profile-book-btn').forEach(function (btn) {
@@ -1605,6 +1788,7 @@
     }
 
     if (isPortfolioPage()) {
+      populateSiteNav(content);
       updateNavBookLink('/booking');
       if (theme.hideBookNowButton) {
         document.querySelectorAll('.profile-nav .profile-book-btn').forEach(function (btn) {
@@ -1748,6 +1932,9 @@
     applySectionVisibility(content);
     populatePortfolio(content, theme);
     populateFaq(content);
+    populateReviews();
+    reorderMainSections(content, theme);
+    populateSiteNav(content);
 
     // Footer
     if (window.StyldTenant && window.StyldTenant.applySiteFooter) {

@@ -241,6 +241,56 @@
     });
   }
 
+  function trimContactValue(value) {
+    return value == null ? '' : String(value).trim();
+  }
+
+  function phoneTelHref(raw) {
+    var value = trimContactValue(raw);
+    if (!value) return '';
+    if (/^tel:/i.test(value)) value = value.replace(/^tel:/i, '');
+    return value.replace(/[^\d+]/g, '');
+  }
+
+  function resolveSitePhone(content) {
+    content = content && typeof content === 'object' ? content : {};
+    var display = trimContactValue(
+      content.phoneDisplay || content.phone_display || content.phone,
+    );
+    var tel = phoneTelHref(
+      content.phoneTel ||
+        content.phone_tel ||
+        content.phoneDisplay ||
+        content.phone_display ||
+        content.phone,
+    );
+    if (!display && tel) {
+      display = trimContactValue(content.phoneTel || content.phone_tel || content.phone || tel);
+    }
+    return { display: display, tel: tel };
+  }
+
+  function applySiteContactPhones(content) {
+    var phone = resolveSitePhone(content);
+    document.querySelectorAll('[data-site-contact-phone]').forEach(function (el) {
+      if (!phone.display) {
+        el.hidden = true;
+        el.textContent = '';
+        el.removeAttribute('href');
+        return;
+      }
+      el.hidden = false;
+      el.textContent = phone.display;
+      if (el.tagName === 'A' || el.getAttribute('href') != null) {
+        if (phone.tel) el.setAttribute('href', 'tel:' + phone.tel);
+        else el.removeAttribute('href');
+      }
+    });
+    document.querySelectorAll('[data-site-contact-phone-wrap]').forEach(function (wrap) {
+      wrap.hidden = !phone.display;
+    });
+  }
+
   function applySiteFooter(content) {
     var brandName = content && content.brandName ? String(content.brandName).trim() : '';
     var brandEl = document.getElementById('preview-footer-brand');
@@ -253,6 +303,7 @@
       styldLink.href = cfg.marketingUrl || 'https://styldd.com';
     }
     ensureStyldFooterSocial();
+    applySiteContactPhones(content);
   }
 
   function normalizeWeekdayHours(raw) {
@@ -763,6 +814,15 @@
     var shareImageUrl = resolveShareImageUrl(theme, covers, cfg.supabaseUrl) || logoImageUrl;
 
     window.__STYLD_SITE_CONTENT__ = content;
+    if (content && typeof content === 'object') {
+      var resolvedPhone = resolveSitePhone(content);
+      if (resolvedPhone.display && !trimContactValue(content.phoneDisplay)) {
+        content.phoneDisplay = resolvedPhone.display;
+      }
+      if (resolvedPhone.tel && !trimContactValue(content.phoneTel)) {
+        content.phoneTel = resolvedPhone.tel;
+      }
+    }
     window.__STYLD_CANCELLATION_POLICY__ = site.cancellationPolicy || {};
     window.__STYLD_CANCELLATION_POLICY_SUMMARY__ = resolveCancellationPolicySummary(
       site.cancellationPolicy,
@@ -981,6 +1041,8 @@
     SITE_OFFLINE_MESSAGE: SITE_OFFLINE_MESSAGE,
     getSubdomain: getSubdomain,
     applySiteFooter: applySiteFooter,
+    resolveSitePhone: resolveSitePhone,
+    applySiteContactPhones: applySiteContactPhones,
     ensureStyldFooterSocial: ensureStyldFooterSocial,
     applySiteTheme: applySiteTheme,
     applySiteShareBranding: applySiteShareBranding,

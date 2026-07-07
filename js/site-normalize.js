@@ -3,7 +3,21 @@
 const FONT_IDS = ['cormorant', 'playfair', 'inter', 'dm-sans', 'montserrat', 'lora', 'poppins', 'nunito'];
 const HERO_LAYOUTS = ['split', 'stack', 'cover', 'image-below', 'minimal'];
 const SECTION_IDS = ['menu', 'about', 'visit', 'aboutMe', 'policies', 'portfolio', 'certifications', 'products', 'faq'];
+const MAIN_SECTION_ORDER_IDS = ['aboutMe', 'policies', 'reviews', 'portfolio', 'menu', 'faq', 'visit'];
 const LOCATION_PARTS = ['address', 'map', 'contact', 'social'];
+
+function normalizeMainSectionOrder(raw) {
+  if (!Array.isArray(raw)) return null;
+  const seen = {};
+  const order = [];
+  raw.forEach(function (item) {
+    const id = str(item);
+    if (!id || MAIN_SECTION_ORDER_IDS.indexOf(id) === -1 || seen[id]) return;
+    seen[id] = true;
+    order.push(id);
+  });
+  return order.length ? order : null;
+}
 
 function str(v) {
   return v == null ? '' : String(v).trim();
@@ -87,13 +101,14 @@ export function normalizeSiteContent(raw) {
     zip: str(r.zip),
     timezone: str(r.timezone),
     mapEmbedUrl: str(r.mapEmbedUrl),
-    phoneDisplay: str(r.phoneDisplay),
-    phoneTel: str(r.phoneTel),
+    phoneDisplay: str(r.phoneDisplay || r.phone_display || r.phone),
+    phoneTel: str(r.phoneTel || r.phone_tel || r.phoneDisplay || r.phone_display || r.phone),
     email: str(r.email),
     instagramHandle: str(r.instagramHandle).replace(/^@/, ''),
     faqTitle: str(r.faqTitle) || 'FAQ',
     faqBlurb: str(r.faqBlurb),
     faqItems: normalizeFaqItems(r.faqItems),
+    mainSectionOrder: normalizeMainSectionOrder(r.mainSectionOrder),
     reelsTitle: str(r.reelsTitle) || 'Previous work',
     reelsBlurb: str(r.reelsBlurb),
     portfolioPlacement: r.portfolioPlacement === 'below_menu' ? 'below_menu' : 'above_menu',
@@ -186,4 +201,4 @@ export function normalizeSiteProducts(raw) {
     .slice(0, 48);
 }
 
-export { FONT_IDS, HERO_LAYOUTS, SECTION_IDS, LOCATION_PARTS };
+export { FONT_IDS, HERO_LAYOUTS, SECTION_IDS, LOCATION_PARTS, MAIN_SECTION_ORDER_IDS };
