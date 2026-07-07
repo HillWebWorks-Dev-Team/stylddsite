@@ -9194,15 +9194,13 @@ body.page-booking .booking-product-qty--disabled {
   border-color: var(--card-outline, var(--ink));
 }
 .profile-service-card-wrap--outlined {
-  border: 1.5px solid var(--card-outline, var(--ink));
-  background: var(--cream);
+  /* legacy — outline lives on .profile-service-card--outlined inside wrap */
 }
 .profile-service-card-wrap--outlined:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  border-color: var(--card-outline, var(--ink));
+  box-shadow: none;
 }
 .profile-service-card-wrap--outlined .profile-service-card:hover {
-  border-color: transparent;
+  border-color: var(--card-outline, var(--ink));
 }
 .profile-service-card__img {
   width: 64px;
@@ -9234,30 +9232,27 @@ body.page-booking .booking-product-qty--disabled {
 .profile-service-card-wrap {
   display: flex;
   flex-direction: column;
-  border-radius: 14px;
-  border: 1.5px solid var(--card-outline, var(--ink));
-  background: var(--cream, #fff);
-  overflow: hidden;
-  transition: box-shadow 0.15s, border-color 0.15s;
-}
-.profile-service-card-wrap:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  border-color: var(--card-outline, var(--ink));
-}
-.profile-service-card-wrap .profile-service-card:hover {
-  border-color: transparent;
+  gap: 0.35rem;
 }
 .profile-service-card-wrap[hidden] {
   display: none !important;
 }
 .profile-service-card-wrap .profile-service-card {
-  border: none;
-  border-radius: 0;
-  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 14px;
+  background: var(--cream, #fff);
+}
+.profile-service-card-wrap .profile-service-card--outlined {
+  border: 1.5px solid var(--card-outline, var(--ink));
+  background: var(--cream);
 }
 .profile-service-card-wrap .profile-service-card:hover {
-  box-shadow: none;
-  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: rgba(219, 39, 119, 0.22);
+}
+.profile-service-card-wrap .profile-service-card--outlined:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-color: var(--card-outline, var(--ink));
 }
 
 .page-book .profile-book-intro {
@@ -9297,9 +9292,8 @@ body.page-booking .booking-product-qty--disabled {
 
 .profile-service-card__expand-btn {
   display: flex; align-items: center; justify-content: space-between;
-  width: 100%; padding: 0.45rem 0.75rem;
+  width: 100%; padding: 0.15rem 0.75rem 0;
   background: transparent; border: none;
-  border-top: 1px solid rgba(0,0,0,0.07);
   cursor: pointer; font-family: var(--font-body);
   font-size: 0.76rem; font-weight: 400;
   color: var(--text-muted, var(--muted));
@@ -9315,11 +9309,8 @@ body.page-booking .booking-product-qty--disabled {
 .profile-service-card__expand-btn.is-open .profile-service-card__expand-chevron { transform: rotate(180deg); }
 
 .profile-service-card__desc {
-  padding: 0.65rem 0.75rem 0.75rem;
+  padding: 0.15rem 0.75rem 0;
   font-size: 0.85rem; line-height: 1.6; color: var(--text-body, var(--muted));
-  border-top: 1px solid rgba(0,0,0,0.06);
-  background: rgba(0,0,0,0.02);
-  border-radius: 0 0 14px 14px;
 }
 
 /* FAQ accordion */
