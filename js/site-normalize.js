@@ -108,7 +108,9 @@ export function normalizeSiteContent(raw) {
     faqTitle: str(r.faqTitle) || 'FAQ',
     faqBlurb: str(r.faqBlurb),
     faqItems: normalizeFaqItems(r.faqItems),
-    mainSectionOrder: normalizeMainSectionOrder(r.mainSectionOrder),
+    mainSectionOrder: normalizeMainSectionOrder(
+      r.mainSectionOrder || r.main_section_order,
+    ),
     reelsTitle: str(r.reelsTitle) || 'Previous work',
     reelsBlurb: str(r.reelsBlurb),
     portfolioPlacement: r.portfolioPlacement === 'below_menu' ? 'below_menu' : 'above_menu',

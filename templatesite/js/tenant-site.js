@@ -205,6 +205,10 @@
         throw new Error('Site content not found.');
       }
 
+      if (window.StyldTenant && window.StyldTenant.normalizeSiteContent) {
+        content = window.StyldTenant.normalizeSiteContent(content);
+      }
+
       var templateId = 'profile';
 
       window.__STYLD_SITE_CONTENT__ = content;
@@ -296,9 +300,6 @@
       if (statusEl) statusEl.hidden = true;
       if (window.applyStyldPreviewContent) {
         window.applyStyldPreviewContent();
-      }
-      if (window.initStyldSiteReviews) {
-        window.initStyldSiteReviews();
       }
 
       if (theme.hideBookNowButton) {

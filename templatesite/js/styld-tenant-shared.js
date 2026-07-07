@@ -291,6 +291,120 @@
     });
   }
 
+  var MAIN_SECTION_ORDER_IDS = [
+    'aboutMe',
+    'policies',
+    'reviews',
+    'portfolio',
+    'menu',
+    'faq',
+    'visit',
+  ];
+
+  var MAIN_SECTION_ID_ALIASES = {
+    about_me: 'aboutMe',
+    about: 'aboutMe',
+    aboutMe: 'aboutMe',
+    policy: 'policies',
+    policies: 'policies',
+    review: 'reviews',
+    reviews: 'reviews',
+    portfolio: 'portfolio',
+    previous_work: 'portfolio',
+    previousWork: 'portfolio',
+    previouswork: 'portfolio',
+    reels: 'portfolio',
+    menu: 'menu',
+    services: 'menu',
+    service: 'menu',
+    faq: 'faq',
+    visit: 'visit',
+    location: 'visit',
+  };
+
+  function normalizeMainSectionId(raw) {
+    if (raw == null) return '';
+    if (typeof raw === 'object') {
+      raw =
+        raw.id ||
+        raw.key ||
+        raw.sectionId ||
+        raw.section_id ||
+        raw.type ||
+        raw.slug ||
+        raw.name;
+    }
+    var id = trimContactValue(raw).replace(/\s+/g, '');
+    if (!id) return '';
+    if (MAIN_SECTION_ID_ALIASES[id]) return MAIN_SECTION_ID_ALIASES[id];
+    var lower = id.toLowerCase();
+    if (MAIN_SECTION_ID_ALIASES[lower]) return MAIN_SECTION_ID_ALIASES[lower];
+    return id;
+  }
+
+  function readMainSectionOrderRaw(content) {
+    content = content && typeof content === 'object' ? content : {};
+    var raw =
+      content.mainSectionOrder ||
+      content.main_section_order ||
+      content.sectionOrder ||
+      content.section_order ||
+      null;
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') {
+      if (Array.isArray(raw.order)) return raw.order;
+      if (Array.isArray(raw.sections)) return raw.sections;
+      if (Array.isArray(raw.items)) return raw.items;
+    }
+    return null;
+  }
+
+  function resolveMainSectionOrder(content) {
+    content = content && typeof content === 'object' ? content : {};
+    var raw = readMainSectionOrderRaw(content);
+    var valid = [];
+
+    if (raw && raw.length) {
+      var seen = {};
+      raw.forEach(function (item) {
+        var id = normalizeMainSectionId(item);
+        if (!id || MAIN_SECTION_ORDER_IDS.indexOf(id) === -1 || seen[id]) return;
+        seen[id] = true;
+        valid.push(id);
+      });
+    }
+
+    if (!valid.length) {
+      valid = MAIN_SECTION_ORDER_IDS.slice();
+      var placement = trimContactValue(content.portfolioPlacement || content.portfolio_placement || 'above_menu');
+      if (placement === 'below_menu') {
+        valid = valid.filter(function (id) {
+          return id !== 'portfolio';
+        });
+        var menuIndex = valid.indexOf('menu');
+        if (menuIndex === -1) menuIndex = valid.length - 1;
+        valid.splice(menuIndex + 1, 0, 'portfolio');
+      }
+    }
+
+    var seenAll = {};
+    valid.forEach(function (id) {
+      seenAll[id] = true;
+    });
+    MAIN_SECTION_ORDER_IDS.forEach(function (id) {
+      if (!seenAll[id]) valid.push(id);
+    });
+
+    return valid;
+  }
+
+  function normalizeSiteContent(content) {
+    content = content && typeof content === 'object' ? content : {};
+    var order = resolveMainSectionOrder(content);
+    if (order.length) content.mainSectionOrder = order.slice();
+    return content;
+  }
+
   function applySiteFooter(content) {
     var brandName = content && content.brandName ? String(content.brandName).trim() : '';
     var brandEl = document.getElementById('preview-footer-brand');
@@ -808,6 +922,8 @@
     site = site && typeof site === 'object' ? site : {};
     var cfg = window.__STYLD_TENANT__ || {};
     var content = site.content || {};
+    content = normalizeSiteContent(content);
+    site.content = content;
     var theme = site.theme || {};
     var covers = site.covers || {};
     var logoImageUrl = coverUrl(theme.logoImagePath, cfg.supabaseUrl);
@@ -1043,6 +1159,8 @@
     applySiteFooter: applySiteFooter,
     resolveSitePhone: resolveSitePhone,
     applySiteContactPhones: applySiteContactPhones,
+    normalizeSiteContent: normalizeSiteContent,
+    resolveMainSectionOrder: resolveMainSectionOrder,
     ensureStyldFooterSocial: ensureStyldFooterSocial,
     applySiteTheme: applySiteTheme,
     applySiteShareBranding: applySiteShareBranding,
@@ -1159,6 +1277,7 @@
             });
 
             if (!content) throw new Error('Site content not found.');
+            content = normalizeSiteContent(content);
 
             return {
               subdomain: subdomain,
