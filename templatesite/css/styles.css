@@ -7809,6 +7809,30 @@ body.profile-nav-drawer-open {
   display: none !important;
 }
 
+.profile-hero--hidden {
+  display: none !important;
+}
+
+.profile-hero__grid--no-photo {
+  grid-template-columns: 1fr;
+}
+
+.profile-hero__grid--no-photo .profile-photo {
+  display: none !important;
+}
+
+.profile-header-main-section {
+  padding: 2.5rem 0 2rem;
+  background: var(--cream);
+}
+
+.profile-hero__grid.profile-hero__grid--in-main {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+
 .profile-section-block {
   display: flex;
   flex-direction: column;
@@ -9110,25 +9134,27 @@ body.page-booking .booking-product-qty--disabled {
 .profile-menu-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.25rem;
+  gap: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   margin-bottom: 1.25rem;
 }
 .profile-menu-filter {
-  padding: 0.35rem 0.1rem;
+  padding: 0.45rem 0.9rem;
   border: none;
   border-radius: 0;
   border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
   background: transparent;
   font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-muted, var(--muted));
+  color: var(--text-heading, var(--ink));
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
 .profile-menu-filter:hover {
-  color: var(--text-accent, var(--pink));
+  color: var(--text-heading, var(--ink));
 }
 .profile-menu-filter--active {
   color: var(--text-heading, var(--ink));

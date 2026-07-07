@@ -2,6 +2,8 @@
 
 Use this when editing tenant sites on Vercel (`*.styldd.com`).
 
+**Preview parity:** See [`SITE_PARITY.md`](./SITE_PARITY.md) for the full live ↔ app preview spec, checklist, and rules that must stay in sync with `src/data/siteContent.ts` in the app repo.
+
 **Code locations in this repo** (there is no separate `templatesite/` app folder — the Vercel project root *is* the template):
 
 | Area | Path |

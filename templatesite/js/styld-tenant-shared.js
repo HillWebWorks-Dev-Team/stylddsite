@@ -395,6 +395,10 @@
       if (!seenAll[id]) valid.push(id);
     });
 
+    if (valid.length !== MAIN_SECTION_ORDER_IDS.length) {
+      return MAIN_SECTION_ORDER_IDS.slice();
+    }
+
     return valid;
   }
 
@@ -957,6 +961,9 @@
       cardOutlineColor: theme.cardOutlineColor || null,
       fontFamily: theme.fontFamily || 'cormorant',
       hideBookNowButton: !!theme.hideBookNowButton,
+      heroPhotoEnabled: theme.heroPhotoEnabled !== false && theme.hero_photo_enabled !== false,
+      heroAboutBesidePhoto:
+        theme.heroAboutBesidePhoto !== false && theme.hero_about_beside_photo !== false,
       backgroundColor: theme.backgroundColor || null,
       textColors: theme.textColors && typeof theme.textColors === 'object' ? theme.textColors : null,
       textColorSources:

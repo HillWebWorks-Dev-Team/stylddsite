@@ -1035,7 +1035,115 @@
       if (!seenAll[id]) valid.push(id);
     });
 
+    if (valid.length !== DEFAULT_MAIN_SECTION_ORDER.length) {
+      return DEFAULT_MAIN_SECTION_ORDER.slice();
+    }
+
     return valid;
+  }
+
+  function themeFlagEnabled(theme, camelKey, defaultValue) {
+    theme = theme && typeof theme === 'object' ? theme : {};
+    if (theme[camelKey] === false) return false;
+    if (theme[camelKey] === true) return true;
+    var snake = camelKey.replace(/[A-Z]/g, function (ch) {
+      return '_' + ch.toLowerCase();
+    });
+    if (theme[snake] === false) return false;
+    if (theme[snake] === true) return true;
+    return defaultValue;
+  }
+
+  function resolveHeroSidebarSections(order, theme, options) {
+    options = options || {};
+    var treatAsSplit = options.treatAsSplit === true;
+    var heroLayout = String((theme && theme.heroLayout) || 'split').trim();
+    if (heroLayout !== 'split' && !treatAsSplit) return [];
+    if (!themeFlagEnabled(theme, 'heroAboutBesidePhoto', true)) return [];
+    if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return [];
+
+    var firstHeroIndex = -1;
+    order.forEach(function (id, index) {
+      if (firstHeroIndex === -1 && HERO_INLINE_SECTION_IDS.indexOf(id) !== -1) {
+        firstHeroIndex = index;
+      }
+    });
+    if (firstHeroIndex === -1) return [];
+
+    for (var i = 0; i < firstHeroIndex; i++) {
+      if (MAIN_FLOW_SECTION_IDS.indexOf(order[i]) !== -1) return [];
+    }
+
+    return order.filter(function (id) {
+      return HERO_INLINE_SECTION_IDS.indexOf(id) !== -1;
+    });
+  }
+
+  function isHeroProfileGroupInMain(order, theme, options) {
+    options = options || {};
+    var treatAsSplit = options.treatAsSplit === true;
+    var heroLayout = String((theme && theme.heroLayout) || 'split').trim();
+    if (heroLayout !== 'split' && !treatAsSplit) return false;
+    if (!themeFlagEnabled(theme, 'heroAboutBesidePhoto', true)) return false;
+    if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return false;
+    if (resolveHeroSidebarSections(order, theme, options).length) return false;
+    return order.some(function (id) {
+      return HERO_INLINE_SECTION_IDS.indexOf(id) !== -1;
+    });
+  }
+
+  function getHeroProfileGroupSectionIds(order) {
+    return order.filter(function (id) {
+      return HERO_INLINE_SECTION_IDS.indexOf(id) !== -1;
+    });
+  }
+
+  function teardownProfileHeaderMainSection(heroSection, heroGrid, photoWrap, profileInfo) {
+    var composite = document.getElementById('profile-header-main-section');
+    if (!composite) {
+      if (heroSection) heroSection.classList.remove('profile-hero--hidden');
+      return;
+    }
+    if (heroGrid) {
+      if (photoWrap && photoWrap.parentElement !== heroGrid) {
+        heroGrid.insertBefore(photoWrap, heroGrid.firstChild);
+      }
+      if (profileInfo && profileInfo.parentElement !== heroGrid) {
+        heroGrid.appendChild(profileInfo);
+      }
+    }
+    composite.remove();
+    if (heroSection) heroSection.classList.remove('profile-hero--hidden');
+  }
+
+  function ensureProfileHeaderMainSection(photoWrap, profileInfo, order) {
+    var composite = document.getElementById('profile-header-main-section');
+    if (!composite) {
+      composite = document.createElement('section');
+      composite.className = 'profile-header-main-section';
+      composite.id = 'profile-header-main-section';
+      composite.setAttribute('data-site-section', 'profileHeader');
+      var container = document.createElement('div');
+      container.className = 'container';
+      var grid = document.createElement('div');
+      grid.className = 'profile-hero__grid profile-hero__grid--in-main';
+      container.appendChild(grid);
+      composite.appendChild(container);
+    }
+    var compositeGrid = composite.querySelector('.profile-hero__grid');
+    if (photoWrap && compositeGrid && photoWrap.parentElement !== compositeGrid) {
+      compositeGrid.insertBefore(photoWrap, compositeGrid.firstChild);
+    }
+    if (profileInfo && compositeGrid && profileInfo.parentElement !== compositeGrid) {
+      compositeGrid.appendChild(profileInfo);
+    }
+    getHeroProfileGroupSectionIds(order).forEach(function (sectionId) {
+      var block = getMainSectionElement(sectionId);
+      if (block && profileInfo && block.parentElement !== profileInfo) {
+        profileInfo.appendChild(block);
+      }
+    });
+    return composite;
   }
 
   function getMainSectionElement(sectionId) {
@@ -1092,28 +1200,39 @@
     content = content && typeof content === 'object' ? content : {};
 
     var order = resolveMainSectionOrder(content);
-    var firstMainFlowIndex = order.findIndex(function (id) {
-      return MAIN_FLOW_SECTION_IDS.indexOf(id) !== -1;
-    });
-    if (firstMainFlowIndex === -1) firstMainFlowIndex = order.length;
+    var placementOptions = { treatAsSplit: isBookPage() };
+    var sidebarIds = resolveHeroSidebarSections(order, theme, placementOptions);
+    var profileGroupInMain = isHeroProfileGroupInMain(order, theme, placementOptions);
+    var heroGroupIds = getHeroProfileGroupSectionIds(order);
+    var heroGroupEmitted = false;
 
     var isSplitHome = theme.heroLayout === 'split' && !isBookPage() && !isSplashPage();
     var profileInfo = document.getElementById('profile-info-block');
+    var heroSection = document.querySelector('.profile-hero');
     var heroGrid = document.querySelector('.profile-hero__grid');
+    var photoWrap = document.getElementById('profile-photo-wrap');
 
-    function belongsInIntro(sectionId) {
-      if (HERO_INLINE_SECTION_IDS.indexOf(sectionId) === -1) return false;
-      var index = order.indexOf(sectionId);
-      if (index === -1) return false;
-      if (isBookPage() || isSplitHome) return index < firstMainFlowIndex;
-      return false;
+    function belongsInSidebar(sectionId) {
+      return sidebarIds.indexOf(sectionId) !== -1;
+    }
+
+    if (profileGroupInMain) {
+      if (heroSection) heroSection.classList.add('profile-hero--hidden');
+      ensureProfileHeaderMainSection(photoWrap, profileInfo, order);
+    } else {
+      teardownProfileHeaderMainSection(heroSection, heroGrid, photoWrap, profileInfo);
     }
 
     HERO_INLINE_SECTION_IDS.forEach(function (sectionId) {
       var block = getMainSectionElement(sectionId);
       if (!block) return;
 
-      if (belongsInIntro(sectionId)) {
+      if (profileGroupInMain) {
+        detachOrderedBlockWrap(sectionId, null);
+        return;
+      }
+
+      if (belongsInSidebar(sectionId)) {
         detachOrderedBlockWrap(sectionId, profileInfo);
         if (profileInfo && block.parentElement !== profileInfo) {
           profileInfo.appendChild(block);
@@ -1124,49 +1243,61 @@
       ensureOrderedBlockWrap(block, sectionId);
     });
 
-    if (profileInfo && (isBookPage() || isSplitHome)) {
-      order.forEach(function (sectionId) {
-        if (!belongsInIntro(sectionId)) return;
+    if (profileInfo && (isBookPage() || isSplitHome) && !profileGroupInMain) {
+      sidebarIds.forEach(function (sectionId) {
         var block = getMainSectionElement(sectionId);
         if (block) profileInfo.appendChild(block);
       });
     }
 
-    if (heroGrid) {
-      var hasIntroBlocks =
-        isSplitHome &&
-        HERO_INLINE_SECTION_IDS.some(function (sectionId) {
-          return belongsInIntro(sectionId);
-        });
-      heroGrid.classList.toggle('profile-hero__grid--photo-only', isSplitHome && !hasIntroBlocks);
+    if (heroGrid && !profileGroupInMain) {
+      var hasSidebarBlocks = sidebarIds.length > 0;
+      heroGrid.classList.toggle('profile-hero__grid--photo-only', isSplitHome && !hasSidebarBlocks);
+    } else if (heroGrid) {
+      heroGrid.classList.remove('profile-hero__grid--photo-only');
     }
 
-    if (profileInfo && isSplitHome) {
-      var showIntro = HERO_INLINE_SECTION_IDS.some(function (sectionId) {
-        if (!belongsInIntro(sectionId)) return false;
+    if (profileInfo && isSplitHome && !profileGroupInMain) {
+      var showIntro = sidebarIds.some(function (sectionId) {
         var block = getMainSectionElement(sectionId);
         return block && !block.hidden;
       });
       profileInfo.hidden = !showIntro;
       profileInfo.style.display = showIntro ? '' : 'none';
+    } else if (profileInfo && !profileGroupInMain) {
+      profileInfo.hidden = false;
+      profileInfo.style.display = '';
     }
 
     var bookIntro = document.getElementById('profile-book-intro');
-    if (bookIntro && isBookPage() && profileInfo) {
-      var visibleInIntro = Array.prototype.some.call(profileInfo.children, function (child) {
-        return !child.hidden;
+    if (bookIntro && isBookPage() && profileInfo && !profileGroupInMain) {
+      var visibleInIntro = sidebarIds.some(function (sectionId) {
+        var block = getMainSectionElement(sectionId);
+        return block && block.parentElement === profileInfo && !block.hidden;
       });
       bookIntro.hidden = !visibleInIntro;
+    } else if (bookIntro && isBookPage() && profileGroupInMain) {
+      bookIntro.hidden = true;
     }
 
     var siteMain = document.getElementById('site-main-content');
     var introShell = siteMain && siteMain.querySelector('.profile-main-intro');
-    if (introShell && profileInfo && !isBookPage()) {
+    if (introShell && profileInfo && !isBookPage() && !profileGroupInMain) {
       introShell.hidden = profileInfo.hidden || profileInfo.children.length === 0;
+    } else if (introShell && profileGroupInMain) {
+      introShell.hidden = true;
     }
 
     order.forEach(function (sectionId) {
-      if (belongsInIntro(sectionId)) return;
+      if (belongsInSidebar(sectionId)) return;
+
+      if (profileGroupInMain && heroGroupIds.indexOf(sectionId) !== -1) {
+        if (heroGroupEmitted) return;
+        heroGroupEmitted = true;
+        var composite = document.getElementById('profile-header-main-section');
+        if (composite) main.appendChild(composite);
+        return;
+      }
 
       var node;
       if (HERO_INLINE_SECTION_IDS.indexOf(sectionId) !== -1) {
@@ -1899,10 +2030,21 @@
 
     if (isCoverSplash) {
       /* cover hero image applied in setupCoverLayout */
-    } else if (!isStack && !isMinimal && heroPhoto && theme.heroImageUrl) {
-      heroPhoto.style.backgroundImage = "url('" + String(theme.heroImageUrl).replace(/'/g, '%27') + "')";
-      heroPhoto.style.backgroundPosition = heroBackgroundPosition(theme);
-      applyHeroCoverBlur(heroPhoto, theme);
+    } else if (!isStack && !isMinimal) {
+      var photoEnabled = themeFlagEnabled(theme, 'heroPhotoEnabled', true);
+      if (heroGrid) {
+        heroGrid.classList.toggle('profile-hero__grid--no-photo', !photoEnabled);
+      }
+      if (photoWrap) {
+        photoWrap.style.display = photoEnabled ? '' : 'none';
+      }
+      if (photoEnabled && heroPhoto && theme.heroImageUrl) {
+        heroPhoto.style.backgroundImage = "url('" + String(theme.heroImageUrl).replace(/'/g, '%27') + "')";
+        heroPhoto.style.backgroundPosition = heroBackgroundPosition(theme);
+        applyHeroCoverBlur(heroPhoto, theme);
+      } else if (heroPhoto) {
+        heroPhoto.style.backgroundImage = '';
+      }
     }
 
     var aboutEl = document.getElementById('profile-about-body');

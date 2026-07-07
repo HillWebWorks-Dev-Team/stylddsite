@@ -235,6 +235,9 @@
         styleCardLayout: theme.styleCardLayout || 'card',
         fontFamily: theme.fontFamily || 'cormorant',
         hideBookNowButton: !!theme.hideBookNowButton,
+        heroPhotoEnabled: theme.heroPhotoEnabled !== false && theme.hero_photo_enabled !== false,
+        heroAboutBesidePhoto:
+          theme.heroAboutBesidePhoto !== false && theme.hero_about_beside_photo !== false,
         templateId: templateId,
         textColors: theme.textColors && typeof theme.textColors === 'object' ? theme.textColors : null,
         textColorSources:
