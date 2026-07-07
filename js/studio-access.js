@@ -29,6 +29,24 @@ export function liveSiteUrl(subdomain, rootDomain) {
 
 }
 
+/** Marketing homepage — absolute on app/studio hosts, relative on styldd.com. */
+export function marketingHomeUrl(rootDomain) {
+  const root = rootDomain || 'styldd.com';
+  if (typeof window === 'undefined' || !window.location) {
+    return 'https://' + root;
+  }
+  const host = window.location.hostname.toLowerCase();
+  const onMarketingHost =
+    host === root ||
+    host === 'www.' + root ||
+    host === 'localhost' ||
+    host === '127.0.0.1';
+  if (onMarketingHost) {
+    return '/';
+  }
+  return 'https://' + root;
+}
+
 
 
 export function studioRoutePath(pathname) {

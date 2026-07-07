@@ -25,10 +25,27 @@ export function isWeekdayClosed(date, hours) {
   const d = date instanceof Date ? date : new Date(date);
   const weekday = d.getDay();
   if (hours && hours.days && typeof hours.days === 'object') {
-    const dayCfg = hours.days[String(weekday)] || hours.days[weekday];
-    return !dayCfg || dayCfg.closed;
+    const dayCfg = hours.days[String(weekday)] ?? hours.days[weekday];
+    if (dayCfg != null) return !!dayCfg.closed;
   }
   return (hours?.closedWeekdays || []).indexOf(weekday) !== -1;
+}
+
+function parseTimeLabelToMinutes(label) {
+  const text = String(label || '').trim();
+  if (!text) return null;
+  const match24 = text.match(/^(\d{1,2}):(\d{2})$/);
+  if (match24) return Number(match24[1]) * 60 + Number(match24[2]);
+  const match12 = text.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
+  if (match12) {
+    let hour = Number(match12[1]);
+    const minute = Number(match12[2] || 0);
+    const meridiem = match12[3].toLowerCase();
+    if (meridiem === 'pm' && hour < 12) hour += 12;
+    if (meridiem === 'am' && hour === 12) hour = 0;
+    return hour * 60 + minute;
+  }
+  return null;
 }
 
 export function getDayHours(date, hours) {
@@ -38,6 +55,23 @@ export function getDayHours(date, hours) {
   let startMinute = hours?.slotDayStartMinute ?? 0;
   let endHour = hours?.slotDayEndHour ?? 19;
   let endMinute = hours?.slotDayEndMinute ?? 30;
+
+  if (hours && hours.days && typeof hours.days === 'object') {
+    const dayCfg = hours.days[String(weekday)] ?? hours.days[weekday];
+    if (dayCfg && typeof dayCfg === 'object' && !dayCfg.closed) {
+      const openMin = parseTimeLabelToMinutes(dayCfg.open);
+      const closeMin = parseTimeLabelToMinutes(dayCfg.close);
+      if (openMin != null && closeMin != null && closeMin > openMin) {
+        return {
+          startHour: Math.floor(openMin / 60),
+          startMinute: openMin % 60,
+          endHour: Math.floor(closeMin / 60),
+          endMinute: closeMin % 60,
+        };
+      }
+    }
+  }
+
   const wh = hours?.weekdayHours || {};
   const dayHours = wh[String(weekday)] || wh[weekday];
   if (dayHours && typeof dayHours === 'object') {
@@ -72,27 +106,49 @@ export function buildClosedRegions(date, hours) {
   return regions;
 }
 
-export function resolveTimelineBounds(hours, date) {
+export function getTimelineBoundsForDate(date, hours) {
+  const isClosedDay = isWeekdayClosed(date, hours);
+  const { openMinutes, closeMinutes } = getDayOpenCloseBoundaries(date, hours);
+  if (closeMinutes <= openMinutes) {
+    return {
+      timelineStartMinutes: 8 * 60,
+      timelineEndMinutes: 18 * 60,
+      isClosedDay,
+    };
+  }
   return {
-    timelineStartMinutes: TIMELINE_START,
-    timelineEndMinutes: TIMELINE_END,
+    timelineStartMinutes: openMinutes,
+    timelineEndMinutes: closeMinutes,
+    isClosedDay,
+  };
+}
+
+export function timelineDurationHours(bounds) {
+  return Math.max(0.5, (bounds.timelineEndMinutes - bounds.timelineStartMinutes) / 60);
+}
+
+export function resolveTimelineBounds(hours, date) {
+  const bounds = getTimelineBoundsForDate(date, hours);
+  return {
+    timelineStartMinutes: bounds.timelineStartMinutes,
+    timelineEndMinutes: bounds.timelineEndMinutes,
     hourHeight: HOUR_HEIGHT,
   };
 }
 
 export function getTimelineBoundsForWeek(weekDays, hours) {
-  let minOpen = TIMELINE_END;
-  let maxClose = TIMELINE_START;
+  let minOpen = null;
+  let maxClose = null;
   weekDays.forEach(function (day) {
     if (isWeekdayClosed(day, hours)) return;
     const b = getDayOpenCloseBoundaries(day, hours);
-    minOpen = Math.min(minOpen, b.openMinutes);
-    maxClose = Math.max(maxClose, b.closeMinutes);
+    if (minOpen == null || b.openMinutes < minOpen) minOpen = b.openMinutes;
+    if (maxClose == null || b.closeMinutes > maxClose) maxClose = b.closeMinutes;
   });
-  if (minOpen >= maxClose) {
-    return { timelineStartMinutes: 8 * 60, timelineEndMinutes: 20 * 60 };
+  if (minOpen == null || maxClose == null || maxClose <= minOpen) {
+    return { timelineStartMinutes: 8 * 60, timelineEndMinutes: 18 * 60 };
   }
-  return { timelineStartMinutes: Math.max(TIMELINE_START, minOpen - 60), timelineEndMinutes: Math.min(TIMELINE_END, maxClose + 60) };
+  return { timelineStartMinutes: minOpen, timelineEndMinutes: maxClose };
 }
 
 export function minutesFromMidnight(d) {

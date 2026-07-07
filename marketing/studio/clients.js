@@ -58,6 +58,11 @@ export function isClientsRoute(r) {
   return path === '/studio/clients' || path.startsWith('/studio/clients/');
 }
 
+export function isClientsHomeRoute(r) {
+  const clean = String(r || '').replace(/\/$/, '');
+  return clean === '/studio/clients';
+}
+
 export function clientsPageTitle(r) {
   const info = parseClientsRoute(r);
   if (info.view === 'reminders') return 'Reminders';
@@ -153,12 +158,12 @@ function renderList() {
   const clients = filteredClients();
   const total = (store.snapshot.clients || []).length;
   const hasSite = !!(ctx.subdomain?.subdomain || ctx.sitePublish?.subdomain);
-  const subtitle = hasSite ? total + ' client' + (total === 1 ? '' : 's') : 'Link a site to load clients';
+  const countLabel = hasSite ? total + ' client' + (total === 1 ? '' : 's') : 'Link a site to load clients';
 
   let searchBar = '';
   if (searchOpen) {
     searchBar =
-      '<input class="studio-field studio-clients__search" type="search" id="clients-search" placeholder="Search by name" value="' +
+      '<input class="studio-clients__search studio-field" type="search" id="clients-search" placeholder="Search clients" value="' +
       esc(searchQuery) +
       '">';
   }
@@ -178,89 +183,105 @@ function renderList() {
       withEmail.length +
       ' with email</span>' +
       (withEmail.length
-        ? '<button type="button" class="studio-btn studio-btn--primary" id="clients-compose">Compose</button>'
+        ? '<button type="button" class="studio-clients__pill-btn studio-clients__pill-btn--accent" id="clients-compose">Compose</button>'
         : '') +
-      '<button type="button" class="studio-btn studio-btn--ghost" id="clients-cancel-select">Done</button></div>';
+      '<button type="button" class="studio-clients__pill-btn" id="clients-cancel-select">Done</button></div>';
   }
 
   let listBody = '';
   if (!hasSite) {
-    listBody = '<div class="studio-empty">No linked site yet</div>';
+    listBody = '<div class="studio-clients__empty">No linked site yet</div>';
   } else if (!total) {
-    listBody = '<div class="studio-empty">No clients yet</div>';
+    listBody = '<div class="studio-clients__empty">No clients yet</div>';
   } else if (!clients.length) {
-    listBody = '<div class="studio-empty">No results</div>';
+    listBody = '<div class="studio-clients__empty">No results</div>';
   } else {
-    listBody = clients
-      .map(function (c) {
-        const checked = selectedIds.has(c.id);
-        const validEmail = isValidClientEmail(c.email);
-        const rowInner =
-          (selectMode
-            ? '<input type="checkbox" class="studio-client-row__check" data-client-check="' +
-              esc(c.id) +
-              '"' +
-              (checked ? ' checked' : '') +
-              (validEmail ? '' : ' disabled') +
-              '>'
-            : '') +
-          '<span class="studio-client-avatar" style="' +
-          esc(avatarStyle(c.id)) +
-          '">' +
-          esc(initials(c.name)) +
-          '</span>' +
-          '<span class="studio-client-row__main"><strong>' +
-          esc(c.name) +
-          '</strong><span class="studio-client-row__meta">' +
-          c.totalBookings +
-          ' booking' +
-          (c.totalBookings === 1 ? '' : 's') +
-          '</span></span>' +
-          '<span class="studio-client-row__spent">' +
-          esc(fmtMoney(c.totalSpent)) +
-          '</span>';
+    const listHead =
+      '<div class="studio-clients__list-head' +
+      (selectMode ? ' studio-clients__list-head--select' : '') +
+      '">' +
+      (selectMode ? '<span></span>' : '') +
+      '<span>Client</span><span>Bookings</span><span>Spent</span></div>';
 
-        if (selectMode) {
+    listBody =
+      listHead +
+      clients
+        .map(function (c) {
+          const checked = selectedIds.has(c.id);
+          const validEmail = isValidClientEmail(c.email);
+          const rowClass =
+            'studio-client-row' +
+            (selectMode ? ' studio-client-row--select' : '') +
+            (validEmail || !selectMode ? '' : ' is-muted');
+          const rowInner =
+            (selectMode
+              ? '<input type="checkbox" class="studio-client-row__check" data-client-check="' +
+                esc(c.id) +
+                '"' +
+                (checked ? ' checked' : '') +
+                (validEmail ? '' : ' disabled') +
+                '>'
+              : '') +
+            '<span class="studio-client-row__identity">' +
+            '<span class="studio-client-avatar" style="' +
+            esc(avatarStyle(c.id)) +
+            '">' +
+            esc(initials(c.name)) +
+            '</span>' +
+            '<span class="studio-client-row__name">' +
+            esc(c.name) +
+            '</span></span>' +
+            '<span class="studio-client-row__bookings">' +
+            esc(String(c.totalBookings)) +
+            '</span>' +
+            '<span class="studio-client-row__spent">' +
+            esc(fmtMoney(c.totalSpent)) +
+            '</span>';
+
+          if (selectMode) {
+            return (
+              '<div class="' +
+              rowClass +
+              '" data-client-row="' +
+              esc(c.id) +
+              '">' +
+              rowInner +
+              '</div>'
+            );
+          }
           return (
-            '<div class="studio-client-row' +
-            (validEmail ? '' : ' is-muted') +
-            '" data-client-row="' +
-            esc(c.id) +
+            '<a class="' +
+            rowClass +
+            '" href="' +
+            esc(clientHref(c.id)) +
             '">' +
             rowInner +
-            '</div>'
+            '</a>'
           );
-        }
-        return (
-          '<a class="studio-client-row" href="' +
-          esc(clientHref(c.id)) +
-          '">' +
-          rowInner +
-          '</a>'
-        );
-      })
-      .join('');
+        })
+        .join('');
   }
 
   return (
-    '<div class="studio-clients">' +
-    '<div class="studio-clients__head"><div><h1>Clients</h1><p class="studio-clients__sub">' +
-    esc(subtitle) +
-    '</p></div>' +
-    '<div class="studio-clients__actions">' +
-    '<button type="button" id="clients-search-toggle"' +
-    (searchOpen ? ' class="is-active"' : '') +
-    '>Search</button>' +
-    '<button type="button" id="clients-email-mode"' +
-    (selectMode ? ' class="is-active"' : '') +
-    '>Email</button>' +
-    '<a href="/studio/clients/reminders" title="Reminder settings">⏰ Reminders</a>' +
+    '<div class="studio-clients studio-clients--home">' +
+    '<div class="studio-clients__toolbar">' +
+    '<span class="studio-clients__count">' +
+    esc(countLabel) +
+    '</span>' +
+    '<div class="studio-clients__toolbar-actions">' +
+    '<button type="button" class="studio-clients__pill-btn' +
+    (searchOpen ? ' is-active' : '') +
+    '" id="clients-search-toggle">Search</button>' +
+    '<button type="button" class="studio-clients__pill-btn' +
+    (selectMode ? ' is-active' : '') +
+    '" id="clients-email-mode">Email</button>' +
+    '<a class="studio-clients__pill-btn" href="/studio/clients/reminders">Reminders</a>' +
     '</div></div>' +
     searchBar +
     selectBar +
-    '<section class="studio-section" style="padding:0;overflow:hidden">' +
+    '<div class="studio-clients__panel">' +
     listBody +
-    '</section></div>'
+    '</div></div>'
   );
 }
 
@@ -738,6 +759,12 @@ async function paint() {
   const main = document.getElementById('studio-main');
   if (!main || !store) return;
   const routeInfo = parseClientsRoute(route);
+  const content = document.querySelector('.studio-content');
+  if (content) {
+    content.classList.toggle('studio-content--clients-home', isClientsHomeRoute(route));
+  }
+  const topbar = document.getElementById('studio-topbar');
+  if (topbar) topbar.hidden = isClientsHomeRoute(route);
   const banner = main.querySelector('.studio-banner');
   const bannerHtml = banner ? banner.outerHTML : '';
 

@@ -12,12 +12,14 @@ import {
   buildClosedRegions,
   clampMinutes,
   formatMinutesLabel,
-  getDayOpenCloseBoundaries,
+  getTimelineBoundsForDate,
+  getTimelineBoundsForWeek,
   isWeekdayClosed,
   monthGrid,
   overlayFromBlock,
   parseDateKey,
   snapMinutes,
+  timelineDurationHours,
   toDateKey,
   validateRangeSelection,
   weekDaysFrom,
@@ -31,6 +33,9 @@ let viewMode = 'day';
 let selectedDate = new Date();
 let scheduleDraft = null;
 let clickAnchor = null;
+let fittedHourHeight = null;
+let homeDayFitObserver = null;
+let homeDayFitAttempts = 0;
 
 function esc(v) {
   return String(v == null ? '' : v)
@@ -60,6 +65,11 @@ export function calendarPageTitle(r) {
   return 'Calendar';
 }
 
+export function isCalendarHomeRoute(r) {
+  const clean = String(r || '').replace(/\/$/, '');
+  return clean === '/studio/calendar';
+}
+
 function sameDay(a, b) {
   return toDateKey(a) === toDateKey(b);
 }
@@ -87,58 +97,236 @@ function overlaysForDate(dateKeyStr) {
   return overlays;
 }
 
-function posStyle(startMin, endMin) {
-  const top = ((startMin - TIMELINE_START) / 60) * HOUR_HEIGHT;
-  const height = Math.max(52, ((endMin - startMin) / 60) * HOUR_HEIGHT);
+function isHomeDayView() {
+  return viewMode === 'day' && parseCalendarRoute(route).view === 'home';
+}
+
+function isHomeTimelineView() {
+  return (viewMode === 'day' || viewMode === 'week') && parseCalendarRoute(route).view === 'home';
+}
+
+function dayTimelineBounds(date) {
+  return getTimelineBoundsForDate(date, store.bookingHours);
+}
+
+function weekTimelineBounds(days) {
+  return getTimelineBoundsForWeek(days, store.bookingHours);
+}
+
+function homeTimelineBounds() {
+  if (viewMode === 'week') return weekTimelineBounds(weekDaysFrom(selectedDate));
+  return dayTimelineBounds(selectedDate);
+}
+
+function scheduleTimelineBounds(date) {
+  const bounds = dayTimelineBounds(date);
+  if (bounds.isClosedDay) {
+    return {
+      timelineStartMinutes: TIMELINE_START,
+      timelineEndMinutes: TIMELINE_END,
+      isClosedDay: true,
+    };
+  }
+  return bounds;
+}
+
+function applyTimelineCssVars(scroll, bounds, hourHeight) {
+  if (!scroll || !bounds) return;
+  const hourCount = timelineDurationHours(bounds);
+  scroll.style.setProperty('--studio-cal-hour-count', String(hourCount));
+  if (hourHeight != null) {
+    scroll.style.setProperty('--studio-cal-hour-height', hourHeight + 'px');
+    scroll.style.setProperty('--studio-cal-timeline-height', hourCount * hourHeight + 'px');
+  }
+}
+
+function getHourHeight() {
+  if (isHomeTimelineView() && fittedHourHeight != null) return fittedHourHeight;
+  return HOUR_HEIGHT;
+}
+
+function disconnectHomeDayFit() {
+  if (homeDayFitObserver) {
+    homeDayFitObserver.disconnect();
+    homeDayFitObserver = null;
+  }
+}
+
+function observeHomeDayFit() {
+  disconnectHomeDayFit();
+  if (!isHomeTimelineView()) return;
+  const scroll = document.getElementById('cal-scroll');
+  if (!scroll || typeof ResizeObserver === 'undefined') return;
+  homeDayFitObserver = new ResizeObserver(function () {
+    syncHomeDayFit();
+  });
+  homeDayFitObserver.observe(scroll);
+}
+
+function dayScrollStyle(bounds) {
+  const hourCount = timelineDurationHours(bounds);
+  let style = '--studio-cal-hour-count:' + hourCount;
+  if (fittedHourHeight != null) {
+    style +=
+      ';--studio-cal-hour-height:' +
+      fittedHourHeight +
+      'px;--studio-cal-timeline-height:' +
+      hourCount * fittedHourHeight +
+      'px';
+  }
+  return style;
+}
+
+function syncHomeDayFit() {
+  if (!isHomeTimelineView()) {
+    fittedHourHeight = null;
+    disconnectHomeDayFit();
+    return;
+  }
+  const bounds = homeTimelineBounds();
+  const scroll = document.getElementById('cal-scroll');
+  if (!scroll) return;
+  const hourCount = timelineDurationHours(bounds);
+  const available =
+    viewMode === 'week'
+      ? (scroll.querySelector('.studio-cal__week-body-row') || scroll).clientHeight
+      : scroll.clientHeight;
+  if (available <= 0) {
+    applyTimelineCssVars(scroll, bounds, fittedHourHeight || HOUR_HEIGHT);
+    if (homeDayFitAttempts < 10) {
+      homeDayFitAttempts += 1;
+      requestAnimationFrame(syncHomeDayFit);
+    }
+    return;
+  }
+  homeDayFitAttempts = 0;
+  const next = Math.max(14, available / hourCount);
+  applyTimelineCssVars(scroll, bounds, next);
+  if (fittedHourHeight != null && Math.abs(fittedHourHeight - next) < 0.25) return;
+  fittedHourHeight = next;
+  refreshHomeDayTimeline();
+}
+
+function refreshHomeDayTimeline() {
+  if (viewMode === 'week') {
+    const layout = document.querySelector('.studio-cal__week-layout');
+    if (!layout) return;
+    layout.outerHTML = renderWeekView();
+  } else {
+    const layout = document.querySelector('.studio-cal__day-layout');
+    if (!layout) return;
+    layout.outerHTML = renderDayView();
+  }
+  const scroll = document.getElementById('cal-scroll');
+  if (scroll && fittedHourHeight != null) {
+    applyTimelineCssVars(scroll, homeTimelineBounds(), fittedHourHeight);
+  }
+}
+
+function posStyle(startMin, endMin, hourHeight, timelineStart) {
+  const hh = hourHeight != null ? hourHeight : HOUR_HEIGHT;
+  const start = timelineStart != null ? timelineStart : TIMELINE_START;
+  const top = ((startMin - start) / 60) * hh;
+  const minBlock = Math.min(52, Math.max(18, hh * 0.75));
+  const height = Math.max(minBlock, ((endMin - startMin) / 60) * hh);
   return 'top:' + top + 'px;height:' + height + 'px';
 }
 
-function renderHourLabels() {
+function formatHourLabel(h) {
+  if (h === 0) return '12am';
+  if (h < 12) return h + 'am';
+  if (h === 12) return '12pm';
+  return h - 12 + 'pm';
+}
+
+function defaultTimelineBounds() {
+  return { timelineStartMinutes: TIMELINE_START, timelineEndMinutes: TIMELINE_END };
+}
+
+function renderHourLabels(bounds, hourHeight) {
+  bounds = bounds || defaultTimelineBounds();
+  const hh = hourHeight != null ? hourHeight : HOUR_HEIGHT;
+  const firstHour = Math.floor(bounds.timelineStartMinutes / 60);
+  const lastHour = Math.ceil(bounds.timelineEndMinutes / 60);
   let html = '';
-  for (let h = 0; h < 24; h++) {
-    const label =
-      h === 0
-        ? '12 AM'
-        : h < 12
-          ? h + ' AM'
-          : h === 12
-            ? '12 PM'
-            : h - 12 + ' PM';
-    html += '<div class="studio-cal__hour-label">' + esc(label) + '</div>';
+  for (let h = firstHour; h < lastHour; h++) {
+    const hourMin = h * 60;
+    if (hourMin >= bounds.timelineEndMinutes) break;
+    if (hourMin + 60 <= bounds.timelineStartMinutes) continue;
+    const labelTop = hourMin < bounds.timelineStartMinutes ? 0 : ((hourMin - bounds.timelineStartMinutes) / 60) * hh;
+    html +=
+      '<div class="studio-cal__hour-label" style="top:' +
+      labelTop +
+      'px">' +
+      esc(formatHourLabel(h)) +
+      '</div>';
   }
   return html;
 }
 
+function renderHourGrid(hourHeight, bounds) {
+  const hh = hourHeight != null ? hourHeight : HOUR_HEIGHT;
+  bounds = bounds || defaultTimelineBounds();
+  const durationHours = timelineDurationHours(bounds);
+  let html = '<div class="studio-cal__gridlines" aria-hidden="true">';
+  const fullHours = Math.floor(durationHours);
+  for (let i = 0; i <= fullHours; i++) {
+    html += '<div class="studio-cal__gridline" style="top:' + i * hh + 'px"></div>';
+  }
+  if (durationHours - fullHours > 0.001) {
+    html += '<div class="studio-cal__gridline" style="top:' + durationHours * hh + 'px"></div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderNowLine(date, hourHeight, bounds) {
+  if (!isToday(date)) return '';
+  bounds = bounds || defaultTimelineBounds();
+  const hh = hourHeight != null ? hourHeight : HOUR_HEIGHT;
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  if (nowMin < bounds.timelineStartMinutes || nowMin > bounds.timelineEndMinutes) return '';
+  const top = ((nowMin - bounds.timelineStartMinutes) / 60) * hh;
+  const label = new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return (
+    '<div class="studio-cal__nowline" style="top:' +
+    top +
+    'px"><span class="studio-cal__nowtime">' +
+    esc(label) +
+    '</span></div>'
+  );
+}
+
 function renderTimelineLayers(dateKeyStr, events, opts) {
   opts = opts || {};
+  const hh = opts.hourHeight != null ? opts.hourHeight : HOUR_HEIGHT;
+  const bounds = opts.bounds || defaultTimelineBounds();
+  const timelineStart = bounds.timelineStartMinutes;
+  const timelineEnd = bounds.timelineEndMinutes;
+  const showClosedOverlays = !!opts.showClosedOverlays;
   const date = parseDateKey(dateKeyStr);
   const hours = store.bookingHours;
-  const closed = isWeekdayClosed(date, hours);
   let html = '';
 
   overlaysForDate(dateKeyStr).forEach(function (o) {
+    if (o.kind === 'booking') return;
+    if (o.kind === 'closed' && !showClosedOverlays) return;
+    if (o.endMinutes <= timelineStart || o.startMinutes >= timelineEnd) return;
+    const clipStart = Math.max(o.startMinutes, timelineStart);
+    const clipEnd = Math.min(o.endMinutes, timelineEnd);
     const cls = o.kind === 'block' ? 'studio-cal__overlay--block' : 'studio-cal__overlay--closed';
     html +=
       '<div class="studio-cal__overlay ' +
       cls +
       '" style="' +
-      esc(posStyle(o.startMinutes, o.endMinutes)) +
+      esc(posStyle(clipStart, clipEnd, hh, timelineStart)) +
       '"></div>';
   });
 
-  if (!closed) {
-    const b = getDayOpenCloseBoundaries(date, hours);
-    html +=
-      '<div class="studio-cal__boundary" style="top:' +
-      ((b.openMinutes / 60) * HOUR_HEIGHT) +
-      'px"></div>';
-    html +=
-      '<div class="studio-cal__boundary" style="top:' +
-      ((b.closeMinutes / 60) * HOUR_HEIGHT) +
-      'px"></div>';
-  }
-
   events.forEach(function (ev) {
+    if (ev.endMinutes <= timelineStart || ev.startMinutes >= timelineEnd) return;
+    const clipStart = Math.max(ev.startMinutes, timelineStart);
+    const clipEnd = Math.min(ev.endMinutes, timelineEnd);
     const colors = getCalendarEventColors({
       styleId: ev.styleId,
       title: ev.title,
@@ -148,18 +336,18 @@ function renderTimelineLayers(dateKeyStr, events, opts) {
       '<a class="studio-cal__event" href="' +
       esc(eventHref(ev.appointmentId)) +
       '" style="' +
-      esc(posStyle(ev.startMinutes, ev.endMinutes)) +
+      esc(posStyle(clipStart, clipEnd, hh, timelineStart)) +
       ';background:' +
       esc(colors.fill) +
       ';border-color:' +
       esc(colors.border) +
       '"><strong>' +
       esc(ev.title) +
-      '</strong>' +
+      '</strong><span class="studio-cal__event-time">' +
       esc(formatMinutesLabel(ev.startMinutes)) +
       ' – ' +
       esc(formatMinutesLabel(ev.endMinutes)) +
-      '</a>';
+      '</span></a>';
   });
 
   if (opts.draft) {
@@ -168,13 +356,8 @@ function renderTimelineLayers(dateKeyStr, events, opts) {
       '<div class="studio-cal__draft' +
       (err ? ' is-conflict' : '') +
       '" style="' +
-      esc(posStyle(opts.draft.start, opts.draft.end)) +
+      esc(posStyle(opts.draft.start, opts.draft.end, hh, timelineStart)) +
       '"></div>';
-  }
-
-  if (isToday(date)) {
-    const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-    html += '<div class="studio-cal__nowline" style="top:' + ((nowMin / 60) * HOUR_HEIGHT) + 'px"></div>';
   }
 
   return html;
@@ -241,75 +424,262 @@ function toolbarHtml() {
   );
 }
 
-function renderDayView() {
-  const key = toDateKey(selectedDate);
-  const events = getCalendarEventsForDateKey(store.snapshot.calendarEvents, key);
-  const closed = isWeekdayClosed(selectedDate, store.bookingHours);
-  let body = '';
-
-  if (closed) {
-    body += '<div class="studio-cal__banner">Closed today — matches your site booking hours.</div>';
-  } else if (!events.length) {
-    body += '<div class="studio-cal__banner" style="border-color:var(--border);background:rgba(255,255,255,0.03)">No bookings on this day. Blocked times appear as red tint.</div>';
+function calendarHeaderDateLabel() {
+  if (viewMode === 'month') {
+    return selectedDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   }
-
-  body +=
-    '<div class="studio-cal__legend">Lines = business hours · Red tint = blocked time</div>' +
-    '<div class="studio-cal__weekstrip">' +
-    weekStripHtml(selectedDate) +
-    '</div>' +
-    '<div class="studio-cal__timeline-wrap"><div class="studio-cal__timeline-scroll" id="cal-scroll">' +
-    '<div class="studio-cal__timeline"><div class="studio-cal__hours">' +
-    renderHourLabels() +
-    '</div><div class="studio-cal__track" id="cal-track">' +
-    renderTimelineLayers(key, events) +
-    '</div></div></div></div>';
-
-  return body;
+  if (viewMode === 'week') {
+    const days = weekDaysFrom(selectedDate);
+    const start = days[0];
+    const end = days[6];
+    const sameMonth = start.getMonth() === end.getMonth();
+    const startLabel = start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const endLabel = end.toLocaleDateString(undefined, {
+      month: sameMonth ? undefined : 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    return startLabel + ' – ' + endLabel;
+  }
+  return selectedDate.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
-function renderWeekView() {
-  const days = weekDaysFrom(selectedDate);
-  const cols = days
-    .map(function (d) {
-      const key = toDateKey(d);
-      const events = getCalendarEventsForDateKey(store.snapshot.calendarEvents, key);
-      const closed = isWeekdayClosed(d, store.bookingHours);
-      const chips = events
-        .map(function (ev) {
-          const colors = getCalendarEventColors({
-            styleId: ev.styleId,
-            title: ev.title,
-            completed: ev.completed,
-          });
-          return (
-            '<a class="studio-cal__chip" href="' +
-            esc(eventHref(ev.appointmentId)) +
-            '" style="background:' +
-            esc(colors.fill) +
-            ';border-color:' +
-            esc(colors.border) +
-            '">' +
-            esc(formatMinutesLabel(ev.startMinutes)) +
-            ' ' +
-            esc(ev.title) +
-            '</a>'
-          );
-        })
-        .join('');
+function calendarHeaderHtml() {
+  const viewButtons = ['day', 'week', 'month']
+    .map(function (mode) {
+      const label = mode.charAt(0).toUpperCase() + mode.slice(1);
       return (
-        '<div class="studio-cal__week-col"><div class="studio-cal__week-col-head' +
-        (closed ? ' is-closed' : '') +
+        '<button type="button" class="studio-cal__view-btn' +
+        (viewMode === mode ? ' is-active' : '') +
+        '" data-cal-view="' +
+        mode +
+        '" role="tab" aria-selected="' +
+        (viewMode === mode ? 'true' : 'false') +
         '">' +
-        esc(d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })) +
-        '</div>' +
-        (chips || '<div class="studio-empty" style="padding:0.5rem;font-size:0.78rem">—</div>') +
-        '</div>'
+        label +
+        '</button>'
       );
     })
     .join('');
 
-  return '<div class="studio-cal__week-grid">' + cols + '</div>';
+  return (
+    '<div class="studio-cal__head">' +
+    '<div class="studio-cal__view-switch" role="tablist" aria-label="Calendar view">' +
+    viewButtons +
+    '</div>' +
+    '<div class="studio-cal__head-actions">' +
+    '<button type="button" class="studio-cal__pill-btn" data-cal-nav="today">Today</button>' +
+    '<div class="studio-cal__date-switch">' +
+    '<button type="button" class="studio-cal__date-switch-btn" data-cal-nav="prev" aria-label="Previous">‹</button>' +
+    '<span class="studio-cal__date-switch-label">' +
+    esc(calendarHeaderDateLabel()) +
+    '</span>' +
+    '<button type="button" class="studio-cal__date-switch-btn" data-cal-nav="next" aria-label="Next">›</button>' +
+    '</div>' +
+    '<a class="studio-cal__pill-btn studio-cal__pill-btn--accent" href="/studio/calendar/schedule">+ New</a>' +
+    '</div></div>'
+  );
+}
+
+function renderDayView() {
+  const key = toDateKey(selectedDate);
+  const events = getCalendarEventsForDateKey(store.snapshot.calendarEvents, key);
+  const bounds = dayTimelineBounds(selectedDate);
+  const hourHeight = getHourHeight();
+  let notice = '';
+
+  if (bounds.isClosedDay) {
+    notice = '<div class="studio-cal__box-notice">Closed today — matches your site booking hours.</div>';
+  }
+
+  return (
+    '<div class="studio-cal__day-layout">' +
+    notice +
+    '<div class="studio-cal__day-scroll" id="cal-scroll" style="' +
+    esc(dayScrollStyle(bounds)) +
+    '">' +
+    '<div class="studio-cal__day-scroll-row">' +
+    '<div class="studio-cal__hours-rail">' +
+    '<div class="studio-cal__hours">' +
+    renderHourLabels(bounds, hourHeight) +
+    '</div></div>' +
+    '<div class="studio-cal__box studio-cal__box--day">' +
+    '<div class="studio-cal__track-wrap">' +
+    '<div class="studio-cal__track" id="cal-track">' +
+    renderHourGrid(hourHeight, bounds) +
+    renderTimelineLayers(key, events, {
+      hourHeight: hourHeight,
+      bounds: bounds,
+    }) +
+    '</div>' +
+    renderNowLine(selectedDate, hourHeight, bounds) +
+    '</div></div></div></div></div>'
+  );
+}
+
+function renderWeekColumnEvents(key, events, bounds, hourHeight) {
+  const hh = hourHeight != null ? hourHeight : HOUR_HEIGHT;
+  const timelineStart = bounds.timelineStartMinutes;
+  const timelineEnd = bounds.timelineEndMinutes;
+  let html = renderHourGrid(hh, bounds);
+  events.forEach(function (ev) {
+    if (ev.endMinutes <= timelineStart || ev.startMinutes >= timelineEnd) return;
+    const clipStart = Math.max(ev.startMinutes, timelineStart);
+    const clipEnd = Math.min(ev.endMinutes, timelineEnd);
+    const colors = getCalendarEventColors({
+      styleId: ev.styleId,
+      title: ev.title,
+      completed: ev.completed,
+    });
+    html +=
+      '<a class="studio-cal__event studio-cal__event--week" href="' +
+      esc(eventHref(ev.appointmentId)) +
+      '" style="' +
+      esc(posStyle(clipStart, clipEnd, hh, timelineStart)) +
+      ';background:' +
+      esc(colors.fill) +
+      ';border-color:' +
+      esc(colors.border) +
+      '"><strong>' +
+      esc(ev.title) +
+      '</strong><span class="studio-cal__event-time">' +
+      esc(formatMinutesLabel(ev.startMinutes)) +
+      ' – ' +
+      esc(formatMinutesLabel(ev.endMinutes)) +
+      '</span></a>';
+  });
+  return html;
+}
+
+function renderWeekNowLine(bounds, hourHeight) {
+  const days = weekDaysFrom(selectedDate);
+  if (!days.some(function (d) {
+    return isToday(d);
+  })) {
+    return '';
+  }
+  const hh = hourHeight != null ? hourHeight : HOUR_HEIGHT;
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  if (nowMin < bounds.timelineStartMinutes || nowMin > bounds.timelineEndMinutes) return '';
+  const top = ((nowMin - bounds.timelineStartMinutes) / 60) * hh;
+  const label = new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return (
+    '<div class="studio-cal__nowline studio-cal__nowline--week" style="top:' +
+    top +
+    'px"><span class="studio-cal__nowtime">' +
+    esc(label) +
+    '</span></div>'
+  );
+}
+
+function renderWeekView() {
+  const days = weekDaysFrom(selectedDate);
+  const bounds = weekTimelineBounds(days);
+  const hourHeight = getHourHeight();
+
+  const headCols = days
+    .map(function (d) {
+      const key = toDateKey(d);
+      const closed = isWeekdayClosed(d, store.bookingHours);
+      return (
+        '<button type="button" class="studio-cal__week-col-head' +
+        (closed ? ' is-closed' : '') +
+        (isToday(d) ? ' is-today' : '') +
+        (sameDay(d, selectedDate) ? ' is-selected' : '') +
+        '" data-cal-day="' +
+        esc(key) +
+        '"><span class="studio-cal__week-col-weekday">' +
+        esc(d.toLocaleDateString(undefined, { weekday: 'short' })) +
+        '</span><span class="studio-cal__week-col-date">' +
+        esc(String(d.getDate())) +
+        '</span></button>'
+      );
+    })
+    .join('');
+
+  const bodyCols = days
+    .map(function (d) {
+      const key = toDateKey(d);
+      const events = getCalendarEventsForDateKey(store.snapshot.calendarEvents, key);
+      const closed = isWeekdayClosed(d, store.bookingHours);
+      return (
+        '<div class="studio-cal__week-col' +
+        (closed ? ' is-closed' : '') +
+        (isToday(d) ? ' is-today' : '') +
+        '"><div class="studio-cal__week-col-track"><div class="studio-cal__track">' +
+        renderWeekColumnEvents(key, events, bounds, hourHeight) +
+        '</div></div></div>'
+      );
+    })
+    .join('');
+
+  return (
+    '<div class="studio-cal__week-layout">' +
+    '<div class="studio-cal__week-scroll" id="cal-scroll" style="' +
+    esc(dayScrollStyle(bounds)) +
+    '">' +
+    '<div class="studio-cal__week-scroll-inner">' +
+    '<div class="studio-cal__week-head-row">' +
+    '<div class="studio-cal__week-head-spacer"></div>' +
+    '<div class="studio-cal__week-head-cols">' +
+    headCols +
+    '</div></div>' +
+    '<div class="studio-cal__week-body-row">' +
+    '<div class="studio-cal__hours-rail"><div class="studio-cal__hours">' +
+    renderHourLabels(bounds, hourHeight) +
+    '</div></div>' +
+    '<div class="studio-cal__week-cols-wrap">' +
+    '<div class="studio-cal__week-cols">' +
+    bodyCols +
+    '</div></div>' +
+    renderWeekNowLine(bounds, hourHeight) +
+    '</div></div></div></div></div>'
+  );
+}
+
+function renderMonthEventPreviews(events) {
+  const maxPreview = 3;
+  const sorted = events.slice().sort(function (a, b) {
+    return a.startMinutes - b.startMinutes;
+  });
+  const preview = sorted.slice(0, maxPreview);
+  const remaining = sorted.length - preview.length;
+
+  let html = preview
+    .map(function (ev) {
+      const colors = getCalendarEventColors({
+        styleId: ev.styleId,
+        title: ev.title,
+        completed: ev.completed,
+      });
+      return (
+        '<a class="studio-cal__month-event" href="' +
+        esc(eventHref(ev.appointmentId)) +
+        '" style="background:' +
+        esc(colors.fill) +
+        ';border-color:' +
+        esc(colors.border) +
+        '" title="' +
+        esc(formatMinutesLabel(ev.startMinutes) + ' – ' + ev.title) +
+        '"><span class="studio-cal__month-event-time">' +
+        esc(formatMinutesLabel(ev.startMinutes)) +
+        '</span><span class="studio-cal__month-event-title">' +
+        esc(ev.title) +
+        '</span></a>'
+      );
+    })
+    .join('');
+
+  if (remaining > 0) {
+    html += '<span class="studio-cal__month-more">' + esc(String(remaining) + ' more') + '</span>';
+  }
+
+  return html;
 }
 
 function renderMonthView() {
@@ -328,57 +698,79 @@ function renderMonthView() {
       const muted = d.getMonth() !== m;
       const closed = isWeekdayClosed(d, store.bookingHours);
       const events = getCalendarEventsForDateKey(store.snapshot.calendarEvents, key);
-      const dots = events
-        .slice(0, 3)
-        .map(function (ev) {
-          const colors = getCalendarEventColors({ styleId: ev.styleId, title: ev.title, completed: ev.completed });
-          return '<span class="studio-cal__dot" style="background:' + esc(colors.accent) + '"></span>';
-        })
-        .join('');
       return (
-        '<button type="button" class="studio-cal__month-cell' +
+        '<div class="studio-cal__month-cell' +
         (muted ? ' is-muted' : '') +
         (sameDay(d, selectedDate) ? ' is-selected' : '') +
+        (isToday(d) ? ' is-today' : '') +
         (closed ? ' is-closed' : '') +
         '" data-cal-day="' +
         esc(key) +
-        '"><div>' +
+        '" role="button" tabindex="0" aria-label="' +
+        esc(d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) +
+        '">' +
+        '<div class="studio-cal__month-cell-top">' +
+        '<span class="studio-cal__month-cell-day">' +
         esc(d.getDate()) +
-        '</div><div>' +
-        dots +
-        (events.length > 3 ? '<small>+' + (events.length - 3) + '</small>' : '') +
-        '</div></button>'
+        '</span></div>' +
+        '<div class="studio-cal__month-events">' +
+        renderMonthEventPreviews(events) +
+        '</div></div>'
       );
     })
     .join('');
 
   return (
-    '<div class="studio-cal__month"><div class="studio-cal__month-head">' +
+    '<div class="studio-cal__month-layout">' +
+    '<div class="studio-cal__month">' +
+    '<div class="studio-cal__month-head">' +
     head +
-    '</div><div class="studio-cal__month-grid">' +
+    '</div>' +
+    '<div class="studio-cal__month-grid">' +
     body +
-    '</div></div>'
+    '</div></div></div>'
   );
 }
 
 function renderHome() {
-  let viewBody = '';
-  if (viewMode === 'week') viewBody = renderWeekView();
-  else if (viewMode === 'month') viewBody = renderMonthView();
-  else viewBody = renderDayView();
-
   const setupCta =
     !ctx.subdomain && !ctx.sitePublish?.subdomain
       ? '<div class="studio-cal__banner"><a href="/studio/website/edit" style="color:var(--pink)">Complete site setup</a> to take online bookings.</div>'
       : '';
 
-  return '<div class="studio-cal">' + setupCta + toolbarHtml() + viewBody + '</div>';
+  var body = '';
+  if (viewMode === 'week') {
+    body = renderWeekView();
+  } else if (viewMode === 'month') {
+    body = renderMonthView();
+  } else {
+    body = renderDayView();
+  }
+
+  return (
+    '<div class="studio-cal studio-cal--home">' +
+    setupCta +
+    calendarHeaderHtml() +
+    body +
+    '</div>'
+  );
 }
 
 function renderSchedule() {
   const key = toDateKey(selectedDate);
   const events = getCalendarEventsForDateKey(store.snapshot.calendarEvents, key);
   const blocks = store.blockedIntervals;
+  const bounds = scheduleTimelineBounds(selectedDate);
+  const closedDay = bounds.isClosedDay;
+  const hourCount = timelineDurationHours(bounds);
+  const timelineStyle =
+    '--studio-cal-hour-count:' +
+    hourCount +
+    ';--studio-cal-hour-height:' +
+    HOUR_HEIGHT +
+    'px;--studio-cal-timeline-height:' +
+    hourCount * HOUR_HEIGHT +
+    'px';
 
   const blockList =
     blocks.length === 0
@@ -409,15 +801,20 @@ function renderSchedule() {
     '<div class="studio-cal__weekstrip">' +
     weekStripHtml(selectedDate) +
     '</div>' +
-    (isWeekdayClosed(selectedDate, store.bookingHours)
+    (closedDay
       ? '<div class="studio-cal__banner">Closed on this day — you can still block the full day.</div>'
       : '') +
     '<div class="studio-cal__timeline-wrap"><div class="studio-cal__timeline-scroll" id="sched-scroll">' +
-    '<div class="studio-cal__timeline"><div class="studio-cal__hours">' +
-    renderHourLabels() +
+    '<div class="studio-cal__timeline" style="' +
+    timelineStyle +
+    '"><div class="studio-cal__hours">' +
+    renderHourLabels(bounds, HOUR_HEIGHT) +
     '</div><div class="studio-cal__track" id="sched-track" data-sched-track="1">' +
-    renderTimelineLayers(key, events, { draft: scheduleDraft }) +
-    '</div></div></div></div>' +
+    renderHourGrid(HOUR_HEIGHT, bounds) +
+    renderTimelineLayers(key, events, { draft: scheduleDraft, bounds: bounds, showClosedOverlays: closedDay }) +
+    '</div>' +
+    renderNowLine(selectedDate, HOUR_HEIGHT, bounds) +
+    '</div></div></div>' +
     '<p class="studio-cal__legend">Tip: click once for start, click again for end · or drag to select · snaps to 30 min</p>' +
     '<section class="studio-section"><div class="studio-section__head"><h2>Blocked times (' +
     blocks.length +
@@ -671,10 +1068,13 @@ function showComposerModal(startMin, endMin) {
 
 function minutesFromPointer(track, clientY) {
   const rect = track.getBoundingClientRect();
+  const bounds = scheduleTimelineBounds(selectedDate);
+  const min = bounds.timelineStartMinutes;
+  const max = bounds.timelineEndMinutes - SNAP_MINUTES;
   const y = clampMinutes(
-    snapMinutes(Math.round(((clientY - rect.top) / HOUR_HEIGHT) * 60) + TIMELINE_START),
-    TIMELINE_START,
-    TIMELINE_END - SNAP_MINUTES,
+    snapMinutes(Math.round(((clientY - rect.top) / HOUR_HEIGHT) * 60) + min),
+    min,
+    max,
   );
   return y;
 }
@@ -779,10 +1179,17 @@ function bindEvents(routeInfo) {
 
   document.querySelectorAll('[data-cal-day]').forEach(function (el) {
     el.addEventListener('click', function (e) {
+      if (e.target.closest('.studio-cal__month-event')) return;
       e.preventDefault();
       selectedDate = parseDateKey(el.getAttribute('data-cal-day'));
-      if (viewMode === 'month') viewMode = 'day';
+      if (viewMode === 'month' || viewMode === 'week') viewMode = 'day';
       paint();
+    });
+  });
+
+  document.querySelectorAll('.studio-cal__month-event').forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      e.stopPropagation();
     });
   });
 
@@ -804,25 +1211,33 @@ function bindEvents(routeInfo) {
       scheduleDraft = { start: 10 * 60, end: 11 * 60 };
     }
   }
-
-  if (viewMode === 'day' && routeInfo.view === 'home') {
-    const scroll = document.getElementById('cal-scroll');
-    if (scroll && isToday(selectedDate)) {
-      const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-      scroll.scrollTop = Math.max(0, (nowMin / 60) * HOUR_HEIGHT - scroll.clientHeight / 3);
-    }
-  }
 }
 
 function paint() {
   const main = document.getElementById('studio-main');
   if (!main || !store) return;
+  fittedHourHeight = null;
+  homeDayFitAttempts = 0;
   const routeInfo = parseCalendarRoute(route);
+  const content = document.querySelector('.studio-content');
+  if (content) {
+    content.classList.toggle('studio-content--calendar-home', isCalendarHomeRoute(route));
+  }
+  const topbar = document.getElementById('studio-topbar');
+  if (topbar) topbar.hidden = isCalendarHomeRoute(route);
   const banner = main.querySelector('.studio-banner');
   const bannerHtml = banner ? banner.outerHTML : '';
   const body = routeInfo.view === 'schedule' ? renderSchedule() : renderHome();
   main.innerHTML = bannerHtml + body;
   bindEvents(routeInfo);
+  if (isHomeTimelineView()) {
+    requestAnimationFrame(function () {
+      syncHomeDayFit();
+      observeHomeDayFit();
+    });
+  } else {
+    disconnectHomeDayFit();
+  }
 }
 
 export async function mountCalendar(mountCtx, mountRoute) {
@@ -854,6 +1269,8 @@ export async function mountCalendar(mountCtx, mountRoute) {
 }
 
 export function disposeCalendar() {
+  disconnectHomeDayFit();
+  fittedHourHeight = null;
   if (store) {
     store.dispose();
     store = null;

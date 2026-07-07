@@ -56,6 +56,11 @@ export function isAnalyticsRoute(r) {
   return path === '/studio/analytics' || path.startsWith('/studio/analytics/');
 }
 
+export function isAnalyticsHomeRoute(r) {
+  const clean = String(r || '').replace(/\/$/, '');
+  return clean === '/studio/analytics';
+}
+
 export function analyticsPageTitle(r) {
   return parseAnalyticsRoute(r).view === 'earnings' ? 'Earnings' : 'Analytics';
 }
@@ -165,17 +170,51 @@ function linkSiteEmpty() {
   );
 }
 
+function overviewCountLabel() {
+  if (!hasLinkedSite()) return 'Analytics';
+  const bookings = store?.snapshot?.bookings || [];
+  const clients = store?.snapshot?.clients || [];
+  const periodStats = getPeriodBookingStats(bookings, period, clients);
+  const periodLabel = PERIODS.find(function (p) {
+    return p.id === period;
+  });
+  return (
+    (periodLabel ? periodLabel.label : 'Month') +
+    ' · ' +
+    fmtCount(periodStats.newBookings) +
+    ' booking' +
+    (periodStats.newBookings === 1 ? '' : 's')
+  );
+}
+
+function overviewToolbarHtml() {
+  return (
+    '<div class="studio-analytics__toolbar">' +
+    '<span class="studio-analytics__count">' +
+    esc(overviewCountLabel()) +
+    '</span>' +
+    '<div class="studio-analytics__toolbar-actions">' +
+    '<a class="studio-analytics__pill-btn" href="/studio/analytics/earnings">Earnings</a>' +
+    '<button type="button" class="studio-analytics__pill-btn" id="analytics-refresh">Refresh</button>' +
+    '<button type="button" class="studio-analytics__pill-btn' +
+    (privacy ? ' is-active' : '') +
+    '" id="analytics-privacy" title="Hide dollar amounts">' +
+    (privacy ? 'Privacy on' : 'Privacy off') +
+    '</button></div></div>'
+  );
+}
+
 function toolbarHtml(view) {
   const earningsLink =
     view === 'overview'
-      ? '<a class="studio-btn studio-btn--ghost" href="/studio/analytics/earnings">Earnings</a>'
-      : '<a class="studio-btn studio-btn--ghost" href="/studio/analytics">← Analytics</a>';
+      ? '<a class="studio-analytics__pill-btn" href="/studio/analytics/earnings">Earnings</a>'
+      : '<a class="studio-analytics__pill-btn" href="/studio/analytics">← Analytics</a>';
   return (
     '<div class="studio-analytics__toolbar">' +
-    '<div class="studio-analytics__actions">' +
+    '<div class="studio-analytics__toolbar-actions">' +
     earningsLink +
-    '<button type="button" class="studio-btn studio-btn--ghost" id="analytics-refresh">Refresh</button>' +
-    '<button type="button" class="studio-analytics-privacy' +
+    '<button type="button" class="studio-analytics__pill-btn" id="analytics-refresh">Refresh</button>' +
+    '<button type="button" class="studio-analytics__pill-btn' +
     (privacy ? ' is-active' : '') +
     '" id="analytics-privacy" title="Hide dollar amounts">' +
     (privacy ? 'Privacy on' : 'Privacy off') +
@@ -236,9 +275,7 @@ function trafficSection() {
   );
 }
 
-function renderOverview() {
-  if (!hasLinkedSite()) return linkSiteEmpty();
-
+function renderOverviewContent() {
   const bookings = store?.snapshot?.bookings || [];
   const clients = store?.snapshot?.clients || [];
   const overview = getBookingOverview(bookings);
@@ -252,8 +289,8 @@ function renderOverview() {
     return (
       '<button type="button" data-period="' +
       esc(p.id) +
-      '" class="' +
-      (period === p.id ? 'is-active' : '') +
+      '" class="studio-analytics__pill-btn' +
+      (period === p.id ? ' is-active' : '') +
       '">' +
       esc(p.label) +
       '</button>'
@@ -261,7 +298,6 @@ function renderOverview() {
   }).join('');
 
   return (
-    toolbarHtml('overview') +
     '<section class="studio-analytics-panel"><h3>Overview</h3>' +
     '<div class="studio-analytics__grid">' +
     statTile('Total bookings', fmtCount(overview.total)) +
@@ -305,8 +341,8 @@ function renderOverview() {
     fmtCount(money30.pendingBookings) +
     '</span></div></div></section>' +
     trafficSection() +
-    '<section class="studio-analytics-panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.85rem"><h3 style="margin:0">Bookings</h3>' +
-    '<div class="studio-periods" role="tablist">' +
+    '<section class="studio-analytics-panel"><div class="studio-analytics__section-head"><h3>Bookings</h3>' +
+    '<div class="studio-analytics__periods" role="tablist">' +
     periodsHtml +
     '</div></div>' +
     '<div class="studio-analytics-list">' +
@@ -348,6 +384,17 @@ function renderOverview() {
         '</div>'
       : '<p>No clients yet.</p>') +
     '</section>'
+  );
+}
+
+function renderOverviewHome() {
+  const panelBody = hasLinkedSite() ? renderOverviewContent() : linkSiteEmpty();
+  return (
+    '<div class="studio-analytics studio-analytics--home">' +
+    overviewToolbarHtml() +
+    '<div class="studio-analytics__panel">' +
+    panelBody +
+    '</div></div>'
   );
 }
 
@@ -463,10 +510,23 @@ function renderEarnings() {
 }
 
 function paint() {
-  const root = document.querySelector('.studio-analytics');
-  if (!root) return;
+  const main = document.getElementById('studio-main');
+  if (!main || !store) return;
   const info = parseAnalyticsRoute(route);
-  root.innerHTML = info.view === 'earnings' ? renderEarnings() : renderOverview();
+  const isHome = isAnalyticsHomeRoute(route);
+  const content = document.querySelector('.studio-content');
+  if (content) {
+    content.classList.toggle('studio-content--analytics-home', isHome);
+  }
+  const topbar = document.getElementById('studio-topbar');
+  if (topbar) topbar.hidden = isHome;
+  const banner = main.querySelector('.studio-banner');
+  const bannerHtml = banner ? banner.outerHTML : '';
+  const body =
+    info.view === 'earnings'
+      ? '<div class="studio-analytics">' + renderEarnings() + '</div>'
+      : renderOverviewHome();
+  main.innerHTML = bannerHtml + body;
   bindEvents();
 }
 
@@ -510,8 +570,8 @@ export async function mountAnalytics(mountCtx, mountRoute) {
   route = mountRoute || '/studio/analytics';
   privacy = isPrivacyMode();
 
-  const root = document.querySelector('.studio-analytics');
-  if (!root) return;
+  const main = document.getElementById('studio-main');
+  if (!main) return;
 
   if (!store) {
     store = await createBookingsStore(ctx, function () {

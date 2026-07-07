@@ -62,22 +62,6 @@ function listBackHref(routeInfo) {
   return '/studio/dashboard';
 }
 
-function dashGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
-}
-
-function formatLongDate(date) {
-  return date.toLocaleDateString(undefined, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
 function clientInitials(name) {
   const parts = String(name || 'C').trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -235,21 +219,24 @@ function kpiCard(label, value, hint, tone) {
   );
 }
 
-function revenuePanel(storeRef) {
+function revenuePanel(storeRef, opts) {
+  opts = opts || {};
   const stripe = storeRef.stripe;
   const loading = storeRef.stripeLoading;
   const revenue = getRevenueForPeriod(storeRef.snapshot.bookings, period);
-  const periodsHtml = PERIODS.map(function (p) {
-    return (
-      '<button type="button" data-period="' +
-      esc(p.id) +
-      '" class="dash-periods__btn' +
-      (period === p.id ? ' is-active' : '') +
-      '">' +
-      esc(p.label) +
-      '</button>'
-    );
-  }).join('');
+  const periodsHtml = opts.hidePeriods
+    ? ''
+    : PERIODS.map(function (p) {
+        return (
+          '<button type="button" data-period="' +
+          esc(p.id) +
+          '" class="dash-periods__btn' +
+          (period === p.id ? ' is-active' : '') +
+          '">' +
+          esc(p.label) +
+          '</button>'
+        );
+      }).join('');
 
   let amountHtml = '';
   let subHtml = '';
@@ -286,12 +273,47 @@ function revenuePanel(storeRef) {
   return (
     '<section class="dash-revenue">' +
     '<header class="dash-revenue__head"><h2>Revenue</h2>' +
-    '<div class="dash-periods" role="tablist">' +
-    periodsHtml +
-    '</div></header>' +
+    (periodsHtml ? '<div class="dash-periods" role="tablist">' + periodsHtml + '</div>' : '') +
+    '</header>' +
     amountHtml +
     subHtml +
     '</section>'
+  );
+}
+
+function homeCountLabel(storeRef) {
+  const stats = storeRef.snapshot.todayStats;
+  const pending = storeRef.snapshot.pending.length;
+  let label = stats.total + ' appointment' + (stats.total === 1 ? '' : 's') + ' today';
+  if (pending) {
+    label += ' · ' + pending + ' pending';
+  }
+  return label;
+}
+
+function homeToolbarHtml(storeRef) {
+  const periodsHtml = PERIODS.map(function (p) {
+    return (
+      '<button type="button" data-period="' +
+      esc(p.id) +
+      '" class="dash__pill-btn' +
+      (period === p.id ? ' is-active' : '') +
+      '">' +
+      esc(p.label) +
+      '</button>'
+    );
+  }).join('');
+
+  return (
+    '<div class="dash__toolbar">' +
+    '<span class="dash__count">' +
+    esc(homeCountLabel(storeRef)) +
+    '</span>' +
+    '<div class="dash__toolbar-actions">' +
+    periodsHtml +
+    '<a class="dash__pill-btn" href="/studio/calendar">Calendar</a>' +
+    '<a class="dash__pill-btn" href="/studio/dashboard/upcoming">Upcoming</a>' +
+    '</div></div>'
   );
 }
 
@@ -329,7 +351,6 @@ function renderHome(storeRef) {
   const stats = snap.todayStats;
   const todayList = getTodayAppointments(snap.bookings);
   const revenue = getRevenueForPeriod(snap.bookings, period);
-  const now = new Date();
 
   const todaySubtitle =
     stats.total === 0
@@ -366,19 +387,9 @@ function renderHome(storeRef) {
     kpiCard('Revenue', fmtMoney(revenue), PERIODS.find(function (p) { return p.id === period; })?.label || 'This period', 'revenue');
 
   return (
-    '<div class="dash">' +
-    '<header class="dash-header">' +
-    '<div class="dash-header__copy">' +
-    '<h1 class="dash-header__title">' +
-    esc(dashGreeting()) +
-    '</h1>' +
-    '<p class="dash-header__sub">' +
-    esc(formatLongDate(now)) +
-    '</p></div>' +
-    '<div class="dash-header__actions">' +
-    '<a class="studio-btn studio-btn--ghost" href="/studio/calendar">Calendar</a>' +
-    '<a class="studio-btn studio-btn--primary" href="/studio/dashboard/upcoming">All upcoming</a>' +
-    '</div></header>' +
+    '<div class="dash dash--home">' +
+    homeToolbarHtml(storeRef) +
+    '<div class="dash__panel">' +
     '<div class="dash-kpis">' +
     kpis +
     '</div>' +
@@ -401,17 +412,13 @@ function renderHome(storeRef) {
     ) +
     '</div>' +
     '<aside class="dash-layout__aside">' +
-    revenuePanel(storeRef) +
+    revenuePanel(storeRef, { hidePeriods: true }) +
     dashPanel(
       'Recent bookings',
       snap.recent.length ? '/studio/dashboard/bookings' : null,
       recentListHtml(storeRef, snap.recent),
     ) +
-    '<nav class="dash-quick" aria-label="Quick links">' +
-    '<a href="/studio/calendar">Open calendar</a>' +
-    '<a href="/studio/clients">View clients</a>' +
-    '<a href="/studio/analytics">Analytics</a>' +
-    '</nav></aside></div></div>'
+    '</aside></div></div></div>'
   );
 }
 
@@ -717,6 +724,13 @@ async function paint() {
   const main = document.getElementById('studio-main');
   if (!main || !store) return;
   const routeInfo = parseDashboardRoute(mountRoute);
+  const isHome = isDashboardHomeRoute(mountRoute);
+  const content = document.querySelector('.studio-content');
+  if (content) {
+    content.classList.toggle('studio-content--dashboard-home', isHome);
+  }
+  const topbar = document.getElementById('studio-topbar');
+  if (topbar) topbar.hidden = isHome;
   let extra = {};
   if (routeInfo.view === 'detail' || routeInfo.view === 'session') {
     const booking = store.findBooking(routeInfo.id);
@@ -907,4 +921,9 @@ export function isDashboardRoute(route) {
   const r = String(route || '');
   if (isAppointmentRoute(r) && r.indexOf('/studio/calendar/') === 0) return false;
   return r === '/studio/dashboard' || r.startsWith('/studio/dashboard/');
+}
+
+export function isDashboardHomeRoute(route) {
+  const clean = String(route || '').replace(/\/$/, '');
+  return clean === '/studio/dashboard';
 }

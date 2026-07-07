@@ -633,12 +633,14 @@
   function layoutProfileInfo(profileInfo, heroGrid, siteMain, isCoverSplash, isSplit) {
     if (!profileInfo || !siteMain) return;
     if (isBookPage()) {
-      var introWrap = document.getElementById('profile-book-intro') ||
-        siteMain.querySelector('.profile-book-intro') ||
+      var bookIntro = document.getElementById('profile-book-intro') ||
+        siteMain.querySelector('.profile-book-intro');
+      var introWrap = (bookIntro && bookIntro.querySelector('.profile-main-intro')) ||
         siteMain.querySelector('.profile-main-intro') ||
+        bookIntro ||
         siteMain;
       if (profileInfo.parentElement !== introWrap) {
-        introWrap.insertBefore(profileInfo, introWrap.firstChild);
+        introWrap.appendChild(profileInfo);
       }
       profileInfo.hidden = false;
       profileInfo.style.display = '';

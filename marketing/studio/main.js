@@ -1,5 +1,7 @@
 import {
   bootstrapStudio,
+  loadSiteEditorState,
+  marketingCfg,
   requireSession,
   signOut,
 } from '/js/studio-api.js';
@@ -10,18 +12,21 @@ import {
 } from '/js/studio-nav.js';
 import {
   liveSiteUrl,
+  marketingHomeUrl,
   studioRoutePath,
 } from '/js/studio-access.js';
 import {
   dashboardPageTitle,
   disposeDashboard,
   isAppointmentRoute,
+  isDashboardHomeRoute,
   isDashboardRoute,
   mountDashboard,
 } from '/marketing/studio/dashboard.js';
 import {
   calendarPageTitle,
   disposeCalendar,
+  isCalendarHomeRoute,
   isCalendarRoute,
   mountCalendar,
 } from '/marketing/studio/calendar.js';
@@ -29,6 +34,7 @@ import {
   clientsPageTitle,
   disposeClients,
   isClientsRoute,
+  isClientsHomeRoute,
   mountClients,
 } from '/marketing/studio/clients.js';
 import {
@@ -40,6 +46,7 @@ import {
 import {
   analyticsPageTitle,
   disposeAnalytics,
+  isAnalyticsHomeRoute,
   isAnalyticsRoute,
   mountAnalytics,
 } from '/marketing/studio/analytics.js';
@@ -48,6 +55,7 @@ import {
   isSubscribeRoute,
   mountSubscribe,
 } from '/marketing/studio/subscribe.js';
+import { buildSitePreviewHtml } from '/js/site-preview.js';
 import { startSubscriptionSiteSync, stopSubscriptionSiteSync } from '/js/subscription-sync.js';
 import { subscriptionLabel } from '/js/studio-subscription.js';
 
@@ -116,38 +124,27 @@ function navLinkHtml(item, activePath, locked) {
     esc(item.id) +
     '" data-studio-nav' +
     disabled +
-    '><span class="studio-nav__icon">' +
-    icon +
-    '</span><span class="studio-nav__copy"><span class="studio-nav__label">' +
+    ' aria-label="' +
     esc(item.label) +
-    '</span><span class="studio-nav__desc">' +
-    esc(item.desc || '') +
-    '</span></span></a>'
+    '" title="' +
+    esc(item.label) +
+    '"><span class="studio-nav__icon">' +
+    icon +
+    '</span></a>'
   );
 }
 
 function navHtml(activePath, accessPhase) {
   const locked = accessPhase === 'paywall';
   const groups = visibleNavGroups(accessPhase);
-  const sidebar = groups
-    .map(function (group) {
-      return (
-        '<div class="studio-nav-group"><div class="studio-nav-group__label">' +
-        esc(group.label) +
-        '</div>' +
-        group.items
-          .map(function (item) {
-            return navLinkHtml(item, activePath, locked);
-          })
-          .join('') +
-        '</div>'
-      );
-    })
-    .join('');
-
   const flatItems = groups.flatMap(function (g) {
     return g.items;
   });
+  const sidebar = flatItems
+    .map(function (item) {
+      return navLinkHtml(item, activePath, locked);
+    })
+    .join('');
   const mobile = flatItems
     .map(function (item) {
       const active = navItemActive(item, activePath) ? ' is-active' : '';
@@ -161,10 +158,12 @@ function navHtml(activePath, accessPhase) {
         esc(item.id) +
         '" data-studio-nav' +
         (locked && item.id !== 'settings' ? ' aria-disabled="true"' : '') +
-        '><span class="studio-mobile-nav__icon">' +
-        icon +
-        '</span><span class="studio-mobile-nav__label">' +
+        ' aria-label="' +
         esc(item.label) +
+        '" title="' +
+        esc(item.label) +
+        '"><span class="studio-mobile-nav__icon">' +
+        icon +
         '</span></a>'
       );
     })
@@ -179,6 +178,7 @@ function pageTitle(activePath) {
   if (isClientsRoute(activePath)) return clientsPageTitle(activePath);
   if (isSettingsRoute(activePath)) return settingsPageTitle(activePath);
   if (isAnalyticsRoute(activePath)) return analyticsPageTitle(activePath);
+  if (isWebsiteRoute(activePath)) return websitePageTitle(activePath);
   if (isSubscribeRoute(activePath)) return 'Subscribe';
   if (isAppointmentRoute(activePath)) {
     return activePath.includes('/session') ? 'Session' : 'Appointment';
@@ -260,15 +260,15 @@ function sidebarQuickLinks(ctx) {
       : null;
   return (
     '<div class="studio-sidebar__quick">' +
-    '<a class="studio-quick-link" href="/studio/website/edit">' +
+    '<a class="studio-quick-link studio-quick-link--icon" href="/studio/website/edit" aria-label="Edit website" title="Edit website">' +
     STUDIO_ICONS.edit +
-    ' Edit website</a>' +
+    '</a>' +
     (liveUrl
-      ? '<a class="studio-quick-link studio-quick-link--accent" href="' +
+      ? '<a class="studio-quick-link studio-quick-link--icon studio-quick-link--accent" href="' +
         esc(liveUrl) +
-        '" target="_blank" rel="noopener noreferrer">' +
+        '" target="_blank" rel="noopener noreferrer" aria-label="View live site" title="View live site">' +
         STUDIO_ICONS.external +
-        ' View live site</a>'
+        '</a>'
       : '') +
     '</div>'
   );
@@ -277,17 +277,14 @@ function sidebarQuickLinks(ctx) {
 function sidebarUserCard(ctx, route) {
   const active = route.startsWith('/studio/settings/account') ? ' is-active' : '';
   return (
-    '<a href="/studio/settings/account" class="studio-user-card' +
+    '<a href="/studio/settings/account" class="studio-user-card studio-user-card--icon' +
     active +
-    '" data-studio-nav data-nav-id="account">' +
+    '" data-studio-nav data-nav-id="account" aria-label="Account settings" title="' +
+    esc(businessLabel(ctx)) +
+    '">' +
     '<span class="studio-user-card__avatar">' +
     esc(businessInitials(ctx)) +
-    '</span>' +
-    '<span class="studio-user-card__copy"><strong>' +
-    esc(businessLabel(ctx)) +
-    '</strong><span>' +
-    esc(subscriptionLabel(ctx.subscription || {})) +
-    '</span></span></a>'
+    '</span></a>'
   );
 }
 
@@ -317,38 +314,6 @@ function sectionPlaceholder(title, part) {
     esc(part) +
     '. The studio shell and navigation are ready.</p>' +
     '</section>'
-  );
-}
-
-function websiteOverview(ctx) {
-  const slug = ctx.subdomain?.subdomain || ctx.sitePublish?.subdomain || '';
-  const live = ctx.publishedAt && slug ? liveSiteUrl(slug, ctx.rootDomain) : null;
-  return (
-    '<div class="studio-page-header">' +
-    '<h1>Your booking site</h1>' +
-    '<p>Customize your brand and publish to <strong>' +
-    esc(slug ? slug + '.' + ctx.rootDomain : 'yourname.' + ctx.rootDomain) +
-    '</strong>.</p></div>' +
-    '<section class="studio-panel">' +
-    '<div class="studio-grid">' +
-    '<article class="studio-stat"><span class="studio-stat__label">Status</span><strong class="studio-stat__value">' +
-    esc(ctx.publishedAt ? 'Live' : 'Draft') +
-    '</strong></article>' +
-    '<article class="studio-stat"><span class="studio-stat__label">Subdomain</span><strong class="studio-stat__value">' +
-    esc(slug || 'Not set') +
-    '</strong></article>' +
-    '</div>' +
-    '<div class="studio-gate__actions" style="margin-top:1.25rem;justify-content:flex-start">' +
-    '<a class="studio-btn studio-btn--primary" href="/studio/website/edit">Edit site</a>' +
-    (ctx.publishedAt
-      ? '<a class="studio-btn studio-btn--ghost" href="/studio/analytics">View analytics</a>'
-      : '') +
-    (live
-      ? '<a class="studio-btn studio-btn--ghost" href="' +
-        esc(live) +
-        '" target="_blank" rel="noopener noreferrer">View live site</a>'
-      : '') +
-    '</div></section>'
   );
 }
 
@@ -383,6 +348,7 @@ function mountRouteModule(ctx, route) {
     disposeClients();
     disposeSettings();
     disposeAnalytics();
+    disposeWebsite();
     disposeSubscribe();
     mountDashboard(ctx, route).catch(handleMountError(ctx));
     return;
@@ -393,6 +359,7 @@ function mountRouteModule(ctx, route) {
     disposeCalendar();
     disposeClients();
     disposeAnalytics();
+    disposeWebsite();
     disposeSubscribe();
     mountSettings(ctx, route).catch(handleMountError(ctx));
     return;
@@ -403,8 +370,20 @@ function mountRouteModule(ctx, route) {
     disposeCalendar();
     disposeClients();
     disposeSettings();
+    disposeWebsite();
     disposeSubscribe();
     mountAnalytics(ctx, route).catch(handleMountError(ctx));
+    return;
+  }
+
+  if (isWebsiteHomeRoute(route)) {
+    disposeDashboard();
+    disposeCalendar();
+    disposeClients();
+    disposeSettings();
+    disposeAnalytics();
+    disposeSubscribe();
+    mountWebsite(ctx, route).catch(handleMountError(ctx));
     return;
   }
 
@@ -413,6 +392,7 @@ function mountRouteModule(ctx, route) {
     disposeCalendar();
     disposeSettings();
     disposeAnalytics();
+    disposeWebsite();
     disposeSubscribe();
     mountClients(ctx, route).catch(handleMountError(ctx));
     return;
@@ -423,6 +403,7 @@ function mountRouteModule(ctx, route) {
     disposeClients();
     disposeSettings();
     disposeAnalytics();
+    disposeWebsite();
     disposeSubscribe();
     mountCalendar(ctx, route).catch(handleMountError(ctx));
     return;
@@ -433,6 +414,7 @@ function mountRouteModule(ctx, route) {
     disposeClients();
     disposeSettings();
     disposeAnalytics();
+    disposeWebsite();
     disposeSubscribe();
     mountDashboard(ctx, route).catch(handleMountError(ctx));
     return;
@@ -443,18 +425,44 @@ function mountRouteModule(ctx, route) {
   disposeClients();
   disposeSettings();
   disposeAnalytics();
+  disposeWebsite();
   disposeSubscribe();
 }
 
 function updateMain(ctx, route) {
-  const mainInner = document.querySelector('.studio-main__inner');
-  if (!mainInner) return;
-  mainInner.innerHTML = bannerHtml(ctx) + renderMain(ctx, route);
+  const main = document.getElementById('studio-main');
+  if (!main) return;
+  const html = bannerHtml(ctx) + renderMain(ctx, route);
+  const inner = main.querySelector(':scope > .studio-main__inner');
+  if (inner) {
+    inner.innerHTML = html;
+  } else {
+    main.innerHTML = html;
+  }
 }
 
 function updateTopbar(ctx, route) {
   const topbar = document.getElementById('studio-topbar');
+  const content = document.querySelector('.studio-content');
+  if (content) {
+    content.classList.toggle('studio-content--calendar-home', isCalendarHomeRoute(route));
+    content.classList.toggle('studio-content--clients-home', isClientsHomeRoute(route));
+    content.classList.toggle('studio-content--analytics-home', isAnalyticsHomeRoute(route));
+    content.classList.toggle('studio-content--website-home', isWebsiteHomeRoute(route));
+    content.classList.toggle('studio-content--dashboard-home', isDashboardHomeRoute(route));
+  }
   if (!topbar) return;
+  if (
+    isCalendarHomeRoute(route) ||
+    isClientsHomeRoute(route) ||
+    isAnalyticsHomeRoute(route) ||
+    isWebsiteHomeRoute(route) ||
+    isDashboardHomeRoute(route)
+  ) {
+    topbar.hidden = true;
+    return;
+  }
+  topbar.hidden = false;
   topbar.innerHTML = topbarHtml(ctx, route);
 }
 
@@ -505,6 +513,9 @@ function renderMain(ctx, route) {
   }
 
   if (isDashboardRoute(route)) {
+    if (isDashboardHomeRoute(route)) {
+      return '<div class="dash dash--home"><div class="dash-loading">Loading bookings…</div></div>';
+    }
     return '<div class="dash"><div class="dash-loading">Loading bookings…</div></div>';
   }
 
@@ -525,16 +536,24 @@ function renderMain(ctx, route) {
   }
 
   if (isAnalyticsRoute(route)) {
+    if (isAnalyticsHomeRoute(route)) {
+      return '<div class="studio-analytics studio-analytics--home"><div class="studio-empty">Loading analytics…</div></div>';
+    }
     return '<div class="studio-analytics"><div class="studio-empty">Loading analytics…</div></div>';
   }
 
+  if (isWebsiteHomeRoute(route)) {
+    return '<div class="studio-website studio-website--home"><div class="studio-empty">Loading your site…</div></div>';
+  }
+
   switch (route) {
-    case '/studio/website':
-      return websiteOverview(ctx);
     case '/studio/settings/account':
       return '<div class="studio-settings"><div class="studio-empty">Loading settings…</div></div>';
     default:
       if (isDashboardRoute(route)) {
+        if (isDashboardHomeRoute(route)) {
+          return '<div class="dash dash--home"><div class="dash-loading">Loading bookings…</div></div>';
+        }
         return '<div class="dash"><div class="dash-loading">Loading bookings…</div></div>';
       }
       if (isCalendarRoute(route)) {
@@ -547,7 +566,13 @@ function renderMain(ctx, route) {
         return '<div class="studio-settings"><div class="studio-empty">Loading settings…</div></div>';
       }
       if (isAnalyticsRoute(route)) {
+        if (isAnalyticsHomeRoute(route)) {
+          return '<div class="studio-analytics studio-analytics--home"><div class="studio-empty">Loading analytics…</div></div>';
+        }
         return '<div class="studio-analytics"><div class="studio-empty">Loading analytics…</div></div>';
+      }
+      if (isWebsiteHomeRoute(route)) {
+        return '<div class="studio-website studio-website--home"><div class="studio-empty">Loading your site…</div></div>';
       }
       return sectionPlaceholder('Dashboard', 'Part 3');
   }
@@ -592,9 +617,11 @@ function renderShell(ctx) {
     '<div class="studio-backdrop" id="studio-backdrop" hidden></div>' +
     '<aside class="studio-sidebar" id="studio-sidebar">' +
     '<div class="studio-sidebar__inner">' +
-    '<a href="/studio/dashboard" class="studio-brand" data-studio-nav data-nav-id="dashboard">' +
-    '<img src="/assets/styld-icon.png" width="36" height="36" alt="">' +
-    '<div><strong>Styld</strong><small>Studio</small></div></a>' +
+    '<a href="' +
+    esc(marketingHomeUrl(ctx.rootDomain)) +
+    '" class="studio-brand" aria-label="Styld marketing site" title="Styld home">' +
+    '<img src="/assets/styld-icon.png" width="36" height="36" alt="Styld">' +
+    '</a>' +
     sidebarQuickLinks(ctx) +
     '<nav class="studio-nav" aria-label="Studio">' +
     nav.sidebar +
@@ -616,6 +643,7 @@ function renderShell(ctx) {
     '</nav></div>';
 
   bindShellEvents(ctx);
+  updateTopbar(ctx, route);
   startSubscriptionSiteSync(ctx);
   document.title = pageTitle(route) + ' — Styld Studio';
   mountRouteModule(ctx, route);
@@ -625,11 +653,17 @@ function handleMountError(ctx) {
   return function (err) {
     const main = document.getElementById('studio-main');
     if (!main) return;
-    main.innerHTML =
+    const html =
       bannerHtml(ctx) +
       '<section class="studio-panel"><h2>Could not load</h2><p>' +
       esc(err && err.message ? err.message : 'Something went wrong.') +
       '</p></section>';
+    const inner = main.querySelector(':scope > .studio-main__inner');
+    if (inner) {
+      inner.innerHTML = html;
+    } else {
+      main.innerHTML = html;
+    }
   };
 }
 
@@ -717,6 +751,249 @@ function bindShellEvents(ctx) {
       link.addEventListener('click', closeMobileNav);
     });
   }
+}
+
+const WEBSITE_HERO_LAYOUT_LABELS = {
+  stack: 'Photo Stack',
+  split: 'Split Hero',
+  cover: 'Cover Hero',
+  'image-below': 'Image Below',
+  minimal: 'Minimal',
+};
+
+const WEBSITE_PREVIEW_PAGES = [
+  { id: 'home', label: 'Home', path: '/' },
+  { id: 'book', label: 'Book', path: '/booking' },
+  { id: 'products', label: 'Shop', path: '/products', section: 'products' },
+  { id: 'portfolio', label: 'Portfolio', path: '/portfolio', section: 'portfolio' },
+];
+
+let websiteCtx = null;
+let websiteRoute = '/studio/website';
+let websiteSiteState = null;
+let websitePreviewView = 'desktop';
+
+function isWebsiteRoute(r) {
+  const clean = String(r || '').replace(/\/$/, '');
+  return clean === '/studio/website';
+}
+
+function isWebsiteHomeRoute(r) {
+  return isWebsiteRoute(r);
+}
+
+function websitePageTitle() {
+  return 'Website';
+}
+
+function websiteSlug() {
+  return (
+    websiteCtx?.subdomain?.subdomain ||
+    websiteCtx?.sitePublish?.subdomain ||
+    websiteSiteState?.subdomain?.subdomain ||
+    ''
+  );
+}
+
+function websiteLiveBase() {
+  const s = websiteSlug();
+  return websiteCtx?.publishedAt && s ? liveSiteUrl(s, websiteCtx.rootDomain) : null;
+}
+
+function websiteLayoutLabel() {
+  const layout = websiteSiteState?.theme?.heroLayout || 'split';
+  return WEBSITE_HERO_LAYOUT_LABELS[layout] || 'Custom layout';
+}
+
+function websiteStatusLabel() {
+  const s = websiteSlug();
+  if (websiteCtx?.publishedAt && s) return 'Live · ' + s + '.' + websiteCtx.rootDomain;
+  if (s) return 'Draft · ' + s + '.' + websiteCtx.rootDomain;
+  return 'Draft · subdomain not set';
+}
+
+function websiteVisiblePreviewPages() {
+  const hidden = websiteSiteState?.content?.hiddenSections || [];
+  if (!websiteLiveBase()) {
+    return [{ id: 'home', label: 'Home preview', path: '/' }];
+  }
+  return WEBSITE_PREVIEW_PAGES.filter(function (page) {
+    if (!page.section) return true;
+    return hidden.indexOf(page.section) === -1;
+  });
+}
+
+function websitePreviewUrl(path) {
+  const base = websiteLiveBase();
+  if (!base) return '';
+  if (!path || path === '/') return base;
+  return base.replace(/\/$/, '') + path;
+}
+
+function websiteBrowserBarUrl(path) {
+  const s = websiteSlug() || 'yourname';
+  const host = s + '.' + (websiteCtx?.rootDomain || 'styldd.com');
+  if (!path || path === '/') return host;
+  return host + path;
+}
+
+function websitePreviewBrowserHtml(page, options) {
+  options = options || {};
+  const mobileClass = websitePreviewView === 'mobile' ? ' is-mobile' : '';
+  const live = websiteLiveBase();
+  const pageUrl = websitePreviewUrl(page.path);
+  const inner =
+    '<div class="studio-website-preview__browser">' +
+    '<div class="studio-website-preview__bar">' +
+    '<span class="studio-website-preview__dots" aria-hidden="true"><i></i><i></i><i></i></span>' +
+    '<span class="studio-website-preview__url">' +
+    esc(websiteBrowserBarUrl(page.path)) +
+    '</span></div>' +
+    '<div class="studio-website-preview__viewport" data-website-viewport>' +
+    (live
+      ? '<iframe src="' +
+        esc(pageUrl) +
+        '" title="' +
+        esc(page.label + ' preview') +
+        '" loading="lazy" tabindex="-1"></iframe>'
+      : '<iframe data-website-srcdoc title="' +
+        esc(page.label + ' preview') +
+        '" tabindex="-1"></iframe>') +
+    '</div></div>' +
+    '<div class="studio-website-preview__caption">' +
+    '<span class="studio-website-preview__type">' +
+    esc(page.id === 'home' && !live ? websiteLayoutLabel() : page.label) +
+    '</span>' +
+    (page.id === 'home' && live
+      ? '<span class="studio-website-preview__hint">' + esc(websiteLayoutLabel()) + '</span>'
+      : '') +
+    '</div>';
+
+  if (live && !options.noLink) {
+    return (
+      '<a class="studio-website-preview' +
+      mobileClass +
+      '" href="' +
+      esc(pageUrl) +
+      '" target="_blank" rel="noopener noreferrer" aria-label="Open ' +
+      esc(page.label) +
+      ' page">' +
+      inner +
+      '</a>'
+    );
+  }
+
+  return '<article class="studio-website-preview' + mobileClass + '">' + inner + '</article>';
+}
+
+function websiteToolbarHtml() {
+  const live = websiteLiveBase();
+  return (
+    '<div class="studio-website__toolbar">' +
+    '<span class="studio-website__status">' +
+    esc(websiteStatusLabel()) +
+    '</span>' +
+    '<div class="studio-website__toolbar-actions">' +
+    '<button type="button" class="studio-website__pill-btn' +
+    (websitePreviewView === 'desktop' ? ' is-active' : '') +
+    '" data-website-view="desktop">Desktop</button>' +
+    '<button type="button" class="studio-website__pill-btn' +
+    (websitePreviewView === 'mobile' ? ' is-active' : '') +
+    '" data-website-view="mobile">Mobile</button>' +
+    '<a class="studio-website__pill-btn studio-website__pill-btn--accent" href="/studio/website/edit">Edit site</a>' +
+    (live
+      ? '<a class="studio-website__pill-btn" href="' +
+        esc(live) +
+        '" target="_blank" rel="noopener noreferrer">View live</a>'
+      : '') +
+    (websiteCtx?.publishedAt
+      ? '<a class="studio-website__pill-btn" href="/studio/analytics">Analytics</a>'
+      : '') +
+    '</div></div>'
+  );
+}
+
+function renderWebsiteHome() {
+  const pages = websiteVisiblePreviewPages();
+  const previews = pages
+    .map(function (page) {
+      return websitePreviewBrowserHtml(page);
+    })
+    .join('');
+
+  return (
+    '<div class="studio-website studio-website--home">' +
+    websiteToolbarHtml() +
+    '<div class="studio-website__panel">' +
+    '<div class="studio-website__previews">' +
+    previews +
+    '</div>' +
+    '<p class="studio-website__footnote">' +
+    (websiteLiveBase()
+      ? 'Tap a preview to open that page on your live site.'
+      : 'Draft preview from your current editor content — publish to share your link.') +
+    '</p></div></div>'
+  );
+}
+
+function applyWebsiteDraftPreviews() {
+  if (websiteLiveBase()) return;
+  const cfg = marketingCfg();
+  const html = buildSitePreviewHtml({
+    content: websiteSiteState.content,
+    theme: websiteSiteState.theme,
+    styles: websiteSiteState.styles || [],
+    supabaseUrl: cfg.supabaseUrl || '',
+  });
+  document.querySelectorAll('[data-website-srcdoc]').forEach(function (frame) {
+    frame.srcdoc = html;
+  });
+}
+
+function bindWebsiteEvents() {
+  document.querySelectorAll('[data-website-view]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      websitePreviewView = btn.getAttribute('data-website-view') === 'mobile' ? 'mobile' : 'desktop';
+      paintWebsite();
+    });
+  });
+}
+
+function paintWebsite() {
+  const main = document.getElementById('studio-main');
+  if (!main || !websiteSiteState) return;
+  const content = document.querySelector('.studio-content');
+  if (content) {
+    content.classList.toggle('studio-content--website-home', isWebsiteHomeRoute(websiteRoute));
+  }
+  const topbar = document.getElementById('studio-topbar');
+  if (topbar) topbar.hidden = isWebsiteHomeRoute(websiteRoute);
+  const banner = main.querySelector('.studio-banner');
+  const bannerHtml = banner ? banner.outerHTML : '';
+  main.innerHTML = bannerHtml + renderWebsiteHome();
+  applyWebsiteDraftPreviews();
+  bindWebsiteEvents();
+}
+
+async function mountWebsite(mountCtx, mountRoute) {
+  websiteCtx = mountCtx;
+  websiteRoute = mountRoute || '/studio/website';
+
+  const main = document.getElementById('studio-main');
+  if (!main) return;
+
+  main.innerHTML =
+    (main.querySelector('.studio-banner')?.outerHTML || '') +
+    '<div class="studio-website studio-website--home"><div class="studio-empty">Loading your site…</div></div>';
+
+  websiteSiteState = await loadSiteEditorState(websiteCtx.session.user.id);
+  paintWebsite();
+}
+
+function disposeWebsite() {
+  websiteCtx = null;
+  websiteSiteState = null;
+  websitePreviewView = 'desktop';
 }
 
 async function init() {

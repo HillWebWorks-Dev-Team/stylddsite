@@ -2,6 +2,7 @@
  * Web Studio Paywall — Part 8.
  */
 import { bootstrapStudio, signOut } from '/js/studio-api.js';
+import { marketingHomeUrl } from '/js/studio-access.js';
 import {
   PAYWALL_FEATURES,
   PAYWALL_PLANS,
@@ -74,7 +75,9 @@ function renderPaywall(mandatory, embedded) {
       '">' +
       (embedded
         ? ''
-        : '<header class="studio-paywall__header"><a href="/studio/dashboard" class="studio-paywall__brand"><img src="/assets/styld-icon.png" alt=""> Styld</a><button type="button" class="studio-btn studio-btn--ghost" id="paywall-signout">Sign out</button></header>') +
+        : '<header class="studio-paywall__header"><a href="' +
+          esc(marketingHomeUrl(ctx?.rootDomain)) +
+          '" class="studio-paywall__brand"><img src="/assets/styld-icon.png" alt=""> Styld</a><button type="button" class="studio-btn studio-btn--ghost" id="paywall-signout">Sign out</button></header>') +
       '<main class="studio-paywall__main"><span class="studio-paywall__tag">Subscribed</span>' +
       '<h1>You&rsquo;re on Styld Pro</h1>' +
       '<p class="studio-paywall__lead">Plan: <strong>' +
@@ -95,7 +98,9 @@ function renderPaywall(mandatory, embedded) {
     '">' +
     (embedded
       ? ''
-      : '<header class="studio-paywall__header"><span class="studio-paywall__brand"><img src="/assets/styld-icon.png" alt=""> Styld Pro</span>' +
+      : '<header class="studio-paywall__header"><a href="' +
+        esc(marketingHomeUrl(ctx?.rootDomain)) +
+        '" class="studio-paywall__brand"><img src="/assets/styld-icon.png" alt=""> Styld Pro</a>' +
         '<button type="button" class="studio-btn studio-btn--ghost" id="paywall-signout">Sign out</button></header>') +
     '<main class="studio-paywall__main">' +
     '<span class="studio-paywall__tag">' +
