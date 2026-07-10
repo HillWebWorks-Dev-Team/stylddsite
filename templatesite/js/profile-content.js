@@ -1054,10 +1054,15 @@
     return defaultValue;
   }
 
+  function isCoverLayout(theme) {
+    return String((theme && theme.heroLayout) || 'split').trim() === 'cover';
+  }
+
   function resolveHeroSidebarSections(order, theme, options) {
     options = options || {};
     var treatAsSplit = options.treatAsSplit === true;
     var heroLayout = String((theme && theme.heroLayout) || 'split').trim();
+    if (isCoverLayout(theme)) return [];
     if (heroLayout !== 'split' && !treatAsSplit) return [];
     if (!themeFlagEnabled(theme, 'heroAboutBesidePhoto', true)) return [];
     if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return [];
@@ -1083,6 +1088,7 @@
     options = options || {};
     var treatAsSplit = options.treatAsSplit === true;
     var heroLayout = String((theme && theme.heroLayout) || 'split').trim();
+    if (isCoverLayout(theme)) return false;
     if (heroLayout !== 'split' && !treatAsSplit) return false;
     if (!themeFlagEnabled(theme, 'heroAboutBesidePhoto', true)) return false;
     if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return false;
