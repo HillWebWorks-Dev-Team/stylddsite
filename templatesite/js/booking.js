@@ -260,6 +260,101 @@
     });
   }
 
+  var addressAutocompleteByPrefix = {};
+
+  function parseGoogleAddressComponents(components) {
+    var parts = { street: '', unit: '', city: '', state: '', zip: '' };
+    var streetNumber = '';
+    var route = '';
+    (components || []).forEach(function (component) {
+      var types = component.types || [];
+      if (types.indexOf('street_number') !== -1) streetNumber = component.long_name || '';
+      if (types.indexOf('route') !== -1) route = component.long_name || '';
+      if (types.indexOf('subpremise') !== -1) parts.unit = component.long_name || '';
+      if (types.indexOf('locality') !== -1) parts.city = component.long_name || '';
+      if (!parts.city && types.indexOf('postal_town') !== -1) {
+        parts.city = component.long_name || '';
+      }
+      if (!parts.city && types.indexOf('sublocality') !== -1) {
+        parts.city = component.long_name || '';
+      }
+      if (types.indexOf('administrative_area_level_1') !== -1) {
+        parts.state = (component.short_name || component.long_name || '').toUpperCase();
+      }
+      if (types.indexOf('postal_code') !== -1) parts.zip = component.long_name || '';
+    });
+    parts.street = [streetNumber, route].filter(Boolean).join(' ').trim();
+    return parts;
+  }
+
+  function applyParsedAddress(prefix, parts) {
+    function set(part, value) {
+      var el = document.getElementById(prefix + '-' + part);
+      if (el) el.value = value || '';
+    }
+    set('street', parts.street);
+    set('unit', parts.unit);
+    set('city', parts.city);
+    set('state', parts.state);
+    set('zip', parts.zip);
+  }
+
+  function bindAddressAutocomplete(prefix) {
+    var streetEl = document.getElementById(prefix + '-street');
+    if (!streetEl || addressAutocompleteByPrefix[prefix]) return;
+    if (!getGoogleMapsApiKey()) return;
+
+    ensureGoogleMapsLoaded()
+      .then(function () {
+        if (!streetEl.isConnected || addressAutocompleteByPrefix[prefix]) return;
+        streetEl.setAttribute('autocomplete', 'off');
+        if (!streetEl.getAttribute('placeholder')) {
+          streetEl.setAttribute('placeholder', 'Start typing your address…');
+        }
+        var autocomplete = new google.maps.places.Autocomplete(streetEl, {
+          types: ['address'],
+          componentRestrictions: { country: 'us' },
+          fields: ['address_components', 'formatted_address'],
+        });
+        addressAutocompleteByPrefix[prefix] = autocomplete;
+        autocomplete.addListener('place_changed', function () {
+          var place = autocomplete.getPlace();
+          if (!place || !place.address_components) return;
+          applyParsedAddress(prefix, parseGoogleAddressComponents(place.address_components));
+          scheduleTravelFeeRefresh();
+        });
+      })
+      .catch(function () {
+        /* manual entry still works without suggestions */
+      });
+  }
+
+  function syncAddressAutocompleteBindings() {
+    var houseWrap = document.getElementById('house-address-field-wrap');
+    var travelAddrWrap = document.getElementById('travel-address-field-wrap');
+    if (houseWrap && !houseWrap.hidden) bindAddressAutocomplete('house-addr');
+    if (travelAddrWrap && !travelAddrWrap.hidden) bindAddressAutocomplete('travel-addr');
+  }
+
+  function updateAddressAutocompleteHints(showHouse, showTravelAddr) {
+    var hasKey = !!getGoogleMapsApiKey();
+    var houseHint = document.getElementById('house-addr-maps-hint');
+    var travelHint = document.getElementById('travel-addr-maps-hint');
+    if (houseHint) houseHint.hidden = !showHouse || hasKey;
+    if (!travelHint) return;
+    if (!showTravelAddr) {
+      travelHint.hidden = true;
+      return;
+    }
+    travelHint.hidden = false;
+    if (!hasKey) {
+      travelHint.innerHTML =
+        'Add <code>googleMapsApiKey</code> in booking config for address suggestions and per-mile travel fees.';
+      return;
+    }
+    travelHint.textContent = 'Start typing your street address to see suggestions.';
+  }
+
   function travelHomeOrigin() {
     if (!travelStylist) return '';
     if (travelStylist.homeBaseLat != null && travelStylist.homeBaseLng != null) {
@@ -455,9 +550,8 @@
     setAddressFieldsRequired('house-addr', showHouse);
     setAddressFieldsRequired('travel-addr', showTravelAddr);
 
-    if (mapsHint) {
-      mapsHint.hidden = !(showTravelAddr && travelStylist && travelStylist.feeMode === 'per_mile');
-    }
+    updateAddressAutocompleteHints(showHouse, showTravelAddr);
+    syncAddressAutocompleteBindings();
 
     refreshTravelFee();
   }
@@ -482,6 +576,12 @@
     });
 
     updateTravelUi();
+
+    if (getGoogleMapsApiKey()) {
+      ensureGoogleMapsLoaded().catch(function () {
+        /* suggestions optional */
+      });
+    }
   }
 
   function formatDurationLabel(minutes) {

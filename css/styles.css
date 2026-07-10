@@ -5825,6 +5825,13 @@ body.page-booking .booking-calendar__selected {
   color: var(--text-muted, var(--muted));
 }
 
+.pac-container {
+  z-index: 12000;
+  font-family: var(--font-body);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+}
+
 .house-address-block .house-address-fields {
   margin: 0;
   padding: 0;
