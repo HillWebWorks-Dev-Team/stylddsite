@@ -30,9 +30,26 @@
     return 'https://www.google.com/maps?q=' + encodeURIComponent(address) + '&output=embed';
   }
 
+  function resolveAboutTitle(content) {
+    content = content && typeof content === 'object' ? content : {};
+    return String(content.aboutTitle || 'About Me').trim() || 'About Me';
+  }
+
+  function resolveAboutBody(content) {
+    content = content && typeof content === 'object' ? content : {};
+    return String(content.aboutBody || content.heroDescription || '').trim();
+  }
+
   function isSectionHidden(content, section) {
     if (!content || !Array.isArray(content.hiddenSections)) return false;
-    return content.hiddenSections.indexOf(section) !== -1;
+    if (content.hiddenSections.indexOf(section) !== -1) return true;
+    if (section === 'aboutMe') {
+      return (
+        content.hiddenSections.indexOf('about') !== -1 ||
+        content.hiddenSections.indexOf('about_me') !== -1
+      );
+    }
+    return false;
   }
 
   function isLocationPartHidden(content, part) {
@@ -760,11 +777,19 @@
       });
     }
 
-    var aboutHidden = isSectionHidden(content, 'aboutMe');
+    var aboutText = resolveAboutBody(content);
+    var aboutHidden = isSectionHidden(content, 'aboutMe') || !aboutText;
     var policiesHidden = isSectionHidden(content, 'policies') || bullets.length === 0;
 
     if (aboutBlock) aboutBlock.hidden = aboutHidden;
     if (policyBlock) policyBlock.hidden = policiesHidden;
+
+    var aboutTitleEl = document.getElementById('profile-about-title');
+    if (aboutTitleEl) aboutTitleEl.textContent = resolveAboutTitle(content);
+    if (aboutBlock) {
+      var aboutBodyEl = document.getElementById('profile-about-body');
+      if (aboutBodyEl) aboutBodyEl.textContent = aboutText;
+    }
 
     if (isBookPage() && bookIntro) {
       bookIntro.hidden = aboutHidden && policiesHidden;
@@ -2086,7 +2111,9 @@
     }
 
     var aboutEl = document.getElementById('profile-about-body');
-    if (aboutEl) aboutEl.textContent = content.heroDescription || '';
+    var aboutTitleEl = document.getElementById('profile-about-title');
+    if (aboutTitleEl) aboutTitleEl.textContent = resolveAboutTitle(content);
+    if (aboutEl) aboutEl.textContent = resolveAboutBody(content);
 
     applyAboutPolicyVisibility(content, theme, isSplit, isCoverSplash);
 
