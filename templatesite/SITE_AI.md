@@ -500,6 +500,112 @@ supabase functions deploy booking-client-email
 
 **Do not change** slot blocking or `resolveBookingStatus()` unless fixing a bug. Accept/decline stays in the mobile app.
 
+## Travel stylist (`travel_stylist`)
+
+Stylists configure travel in the app: **Profile → Payments → Booking → Travel** tab. Saved to Supabase `styld_site_records` as `site_setting` → `record_key: travel_stylist`.
+
+### App settings
+
+| Setting | Purpose |
+|---------|---------|
+| **I'm a travel stylist** (`enabled`) | Turns on travel booking UI on the live site |
+| **Travel fee** | `flat` (`flatFeeUsd`) or `per_mile` (`perMileRateUsd`) |
+| **Home base address** | Origin for distance (required for per-mile; must be set for travel UI to show) |
+| **Extra travel minutes** | Added to `duration_minutes` on travel bookings |
+
+**Rule:** Travel bookings **always** require stylist approval — even when `requireBookingApproval` is off. Status → `pending_approval`; no client confirmation email until accepted.
+
+House-call styles (`style_id` starting with `house-`) count as travel when travel mode is enabled.
+
+### Data shape (`travel_stylist`)
+
+```json
+{
+  "enabled": true,
+  "feeType": "flat",
+  "flatFeeUsd": 35,
+  "perMileRateUsd": 2.5,
+  "homeBaseAddress": {
+    "street": "108 Main St",
+    "unit": "",
+    "city": "Norwich",
+    "state": "CT",
+    "zip": "06360"
+  },
+  "extraTravelMinutes": 30
+}
+```
+
+Snake_case aliases (`fee_type`, `flat_fee_usd`, `home_base_address`, `extra_travel_minutes`) should be normalized in `styld-tenant-shared.js`.
+
+### Loader (`js/styld-tenant-shared.js` + `js/styld-tenant-booking.js`)
+
+1. `loadPublishedSite()` reads `travel_stylist` from `styld_site_records`.
+2. Normalize via `normalizeTravelStylist(value)`.
+3. Expose on the booking page:
+
+```js
+window.__SALON_SITE_BOOKING__.travelStylist = { enabled, feeType, flatFeeUsd, perMileRateUsd, homeBaseAddress, extraTravelMinutes };
+```
+
+Travel is active only when `enabled === true` **and** `homeBaseAddress` is complete enough to geocode.
+
+### Booking form (`booking.html` + `js/booking.js`)
+
+When travel is active:
+
+1. **Studio services** (not `house-*`): show checkbox `#travel-request-toggle` — *"I want the stylist to travel to me"*.
+2. When checked: show `#travel-address-field-wrap` (reuse house-address field pattern: street, unit, city, state, zip).
+3. **Flat fee:** show immediately in `#travel-fee-preview` (service step) and `#line-travel-fee-row` (pricing step).
+4. **Per mile:** call Google Distance Matrix from `homeBaseAddress` → client address. Requires `googleMapsApiKey` in `js/booking-config.js` / `booking-config.local.js` (Distance Matrix API enabled).
+5. Add travel fee to `estimated_total` / pricing `grandTotal`.
+6. Add `extraTravelMinutes` to slot `duration_minutes` when travel applies.
+7. On submit, save booking fields:
+   - `is_travel_booking` (boolean)
+   - `travel_fee_usd`
+   - `travel_distance_miles` (per-mile only)
+   - `travel_extra_minutes`
+   - `service_address` (formatted client address)
+
+### Approval + email (coordinate with manual approval section)
+
+- `requiresBookingApproval()` must return `true` when `isTravelBooking()` — even if `booking_payment.requireBookingApproval` is false.
+- `resolveBookingStatus()` → `pending_approval` for travel bookings (after payment or pay-in-person submit).
+- Success redirect: `?pending_approval=1`.
+- **Do not** invoke `booking-client-email` on submit for travel bookings.
+
+### Copy-paste prompt for Site AI
+
+```
+Travel stylist is configured in styld_site_records site_setting record_key travel_stylist.
+
+When value.enabled is true and homeBaseAddress is set:
+- Expose window.__SALON_SITE_BOOKING__.travelStylist on the tenant booking page (styld-tenant-booking.js).
+- On booking.html / booking.js, show checkbox #travel-request-toggle: "I want the stylist to travel to me" for non-house-call styles.
+- When checked, show #travel-address-field-wrap; client enters address; calculate travel fee from homeBaseAddress using Google Distance Matrix (per_mile) or flatFeeUsd (flat).
+- Add travel fee to estimated_total; show in #line-travel-fee-row and #travel-fee-preview.
+- Add extraTravelMinutes to duration_minutes for travel bookings.
+- Save booking fields: is_travel_booking, travel_fee_usd, travel_distance_miles, travel_extra_minutes, service_address.
+- Travel bookings ALWAYS use requiresBookingApproval() → booking_status pending_approval, skip confirmation email until stylist accepts, success URL ?pending_approval=1.
+
+See templatesite/SITE_AI.md section "Travel stylist (travel_stylist)" for full spec.
+```
+
+### Deploy
+
+1. Run migration: `supabase/migrations/20260710120000_travel_booking_approval.sql`
+2. Per-mile pricing: set `googleMapsApiKey` in tenant booking config
+3. Republish/deploy tenant site; bump `booking.js` / `styld-tenant-booking.js` cache versions on `booking.html`
+
+### Regression checklist
+
+- [ ] Travel off → no checkbox; normal auto-confirm if approval off
+- [ ] Travel on + studio style + checkbox → address + fee + extra minutes + `pending_approval`
+- [ ] Travel on + `house-*` style → travel flow without checkbox
+- [ ] Flat fee shows without Maps key
+- [ ] Per-mile requires Maps key; fee updates when address complete
+- [ ] Deposit / pay-in-person paths both skip client email until accept
+
 ## Promo codes (booking checkout)
 
 Stylists manage promo codes in the mobile app: **Profile → Payments → Booking → Promos** tab. Codes are stored in Supabase as `site_setting` → `booking_promo_codes` on `styld_site_records`. **Never load the full promo list in the browser.**
