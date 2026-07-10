@@ -1378,7 +1378,13 @@
     });
   }
 
-  function populateReviews() {
+  function populateReviews(content) {
+    content = content && typeof content === 'object' ? content : {};
+    var section = document.getElementById('profile-reviews-section');
+    if (section && isSectionHidden(content, 'reviews')) {
+      section.hidden = true;
+      return;
+    }
     if (window.initStyldSiteReviews) {
       window.initStyldSiteReviews();
     }
