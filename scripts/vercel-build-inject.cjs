@@ -2,6 +2,7 @@
  * Injects public runtime config from Vercel / local env into js/*.local.js files.
  * Reads: STYLD_SUPABASE_URL, STYLD_SUPABASE_ANON_KEY, STYLD_ROOT_DOMAIN, STRIPE_PUBLISHABLE_KEY
  * Also accepts NEXT_PUBLIC_* aliases for compatibility.
+ * Google Maps (Distance Matrix / Places): EXPO_PUBLIC_GOOGLE_MAPS_API_KEY or GOOGLE_MAPS_API_KEY
  */
 const fs = require('fs');
 const path = require('path');
@@ -38,6 +39,10 @@ const supabaseUrl = env('STYLD_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL');
 const supabaseAnonKey = env('STYLD_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY');
 const rootDomain = env('STYLD_ROOT_DOMAIN', 'EXPO_PUBLIC_STYLD_ROOT_DOMAIN') || 'styldd.com';
 const stripePk = env('STRIPE_PUBLISHABLE_KEY', 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY');
+const googleMapsApiKey = env(
+  'EXPO_PUBLIC_GOOGLE_MAPS_API_KEY',
+  'GOOGLE_MAPS_API_KEY',
+);
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
@@ -67,4 +72,18 @@ const marketingLocal = `/* Generated at build — do not edit. See scripts/verce
 
 fs.writeFileSync(path.join(root, 'js', 'styld-tenant-config.local.js'), tenantLocal);
 fs.writeFileSync(path.join(root, 'js', 'marketing-config.local.js'), marketingLocal);
+
+const bookingLocal = `/* Generated at build — do not edit. See scripts/vercel-build-inject.cjs */
+(function () {
+  window.BOOKING_CONFIG = window.BOOKING_CONFIG || {};
+  window.BOOKING_CONFIG.googleMapsApiKey = ${JSON.stringify(googleMapsApiKey)};
+})();
+`;
+
+fs.writeFileSync(path.join(root, 'js', 'booking-config.local.js'), bookingLocal);
 console.log('Injected runtime config for root domain:', rootDomain);
+if (!googleMapsApiKey) {
+  console.warn(
+    'vercel-build-inject: EXPO_PUBLIC_GOOGLE_MAPS_API_KEY missing — per-mile travel fees and address autocomplete will not work.',
+  );
+}

@@ -8,3 +8,4 @@ _prod-index.html
 .env.local
 js/styld-tenant-config.local.js
 js/marketing-config.local.js
+js/booking-config.local.js
