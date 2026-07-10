@@ -16,7 +16,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=84" />
+    <link rel="stylesheet" href="/css/styles.css?v=83" />
     <!-- Vercel Web Analytics: enable in Vercel Project Settings > Analytics -->
     <script src="/js/vercel-analytics.bundle.js" defer></script>
   </head>
@@ -151,15 +151,14 @@
                 <input type="hidden" id="travel-addr-state" name="travel-addr-state" value="" />
                 <input type="hidden" id="travel-addr-zip" name="travel-addr-zip" value="" />
                 <p class="house-address-hint" id="travel-addr-maps-hint">
-                  Start typing, pick your address from the list, and your travel fee will appear below.
+                  Start typing, then pick an address from the list.
                 </p>
+                <p class="booking-travel-fee-preview" id="travel-fee-preview" hidden aria-live="polite"></p>
                 <small class="house-address-note"
                   >We need your full location so your stylist can travel to you. Travel bookings require stylist approval.</small
                 >
               </fieldset>
               </div>
-
-              <p class="booking-travel-fee-preview" id="travel-fee-preview" hidden aria-live="polite"></p>
 
               <div class="field house-address-block house-address-block--autocomplete" id="house-address-field-wrap" hidden>
               <fieldset class="house-address-fields">
@@ -182,6 +181,7 @@
                 <p class="house-address-hint" id="house-addr-maps-hint" hidden>
                   Add <code>googleMapsApiKey</code> in booking config for address suggestions.
                 </p>
+                <p class="booking-travel-fee-preview" id="house-travel-fee-preview" hidden aria-live="polite"></p>
                 <small class="house-address-note"
                   >We need your full location for house calls. Details may be confirmed before your appointment.</small
                 >
@@ -518,7 +518,7 @@
     <script src="/js/styld-tenant-shared.js?v=81"></script>
     <script src="/js/profile-content.js?v=29"></script>
     <script src="/js/tenant-site.js?v=68"></script>
-    <script src="/js/styld-tenant-booking.js?v=75"></script>
+    <script src="/js/styld-tenant-booking.js?v=74"></script>
     <script src="/js/supabase-config.js?v=52"></script>
     <script src="/js/supabase-config.local.js?v=52"></script>
     <script id="booking-fallback-bootstrap">
@@ -544,7 +544,7 @@
           'avail.src = "/js/booking-availability.js?v=4";' +
           'avail.onload = function () {' +
           'const booking = document.createElement("script");' +
-          'booking.src = "/js/booking.js?v=81";' +
+          'booking.src = "/js/booking.js?v=78";' +
           'booking.defer = true;' +
           'document.body.appendChild(booking);' +
           '};' +

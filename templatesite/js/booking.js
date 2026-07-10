@@ -260,12 +260,6 @@
     );
   }
 
-  function hasUsableAddress(address) {
-    if (!address) return false;
-    if (isAddressComplete(address)) return true;
-    return String(address.street || address.formatted || '').trim().length >= 8;
-  }
-
   function getServiceAddress() {
     if (!selectedStyle) return null;
     if (isHouseCallStyle(selectedStyle)) return readAddressFields('house-addr');
@@ -287,39 +281,8 @@
 
   var addressAutocompleteBound = {};
 
-  function ensureAddressLookupStatus(prefix) {
-    var statusId = prefix + '-lookup-status';
-    var existing = document.getElementById(statusId);
-    if (existing) return existing;
-    var streetEl = document.getElementById(prefix + '-street');
-    var parent = streetEl && streetEl.closest('.house-address-search');
-    if (!parent) return null;
-    var status = document.createElement('p');
-    status.id = statusId;
-    status.className = 'booking-address-lookup-status';
-    status.hidden = true;
-    status.setAttribute('aria-live', 'polite');
-    parent.appendChild(status);
-    return status;
-  }
-
-  function setAddressLookupStatus(prefix, message, isError) {
-    var status = ensureAddressLookupStatus(prefix);
-    if (!status) return;
-    if (!message) {
-      status.hidden = true;
-      status.textContent = '';
-      status.classList.remove('is-error');
-      return;
-    }
-    status.hidden = false;
-    status.textContent = message;
-    status.classList.toggle('is-error', !!isError);
-  }
-
-  function fetchAddressSuggestions(query, prefix) {
+  function fetchAddressSuggestions(query) {
     if (!query || query.length < 3) return Promise.resolve([]);
-    if (prefix) setAddressLookupStatus(prefix, 'Looking up addresses…', false);
     return edgeFunction('booking-places', {
       action: 'autocomplete',
       input: query,
@@ -327,22 +290,12 @@
       if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
         throw new Error(data.error_message || data.error || 'Address lookup failed.');
       }
-      if (prefix) setAddressLookupStatus(prefix, '', false);
       return (data.predictions || []).map(function (prediction) {
         return {
           placeId: prediction.place_id,
           description: prediction.description,
         };
       });
-    }).catch(function (err) {
-      if (prefix) {
-        setAddressLookupStatus(
-          prefix,
-          (err && err.message) || 'Address suggestions are unavailable right now.',
-          true,
-        );
-      }
-      throw err;
     });
   }
 
@@ -490,12 +443,9 @@
         return;
       }
       debounceTimer = setTimeout(function () {
-        fetchAddressSuggestions(query, prefix)
+        fetchAddressSuggestions(query)
           .then(function (items) {
             renderAddressSuggestions(prefix, items);
-            if (!items.length) {
-              setAddressLookupStatus(prefix, 'No matching addresses — keep typing or check spelling.', false);
-            }
           })
           .catch(function () {
             hideAddressSuggestions(prefix);
@@ -512,7 +462,7 @@
     streetEl.addEventListener('focus', function () {
       var query = streetEl.value.trim();
       if (query.length < 3) return;
-      fetchAddressSuggestions(query, prefix)
+      fetchAddressSuggestions(query)
         .then(function (items) {
           renderAddressSuggestions(prefix, items);
         })
@@ -529,27 +479,14 @@
     if (travelAddrWrap && !travelAddrWrap.hidden) bindAddressAutocomplete('travel-addr');
   }
 
-  function updateAddressFieldHints(showHouse, showTravelAddr) {
+  function updateAddressAutocompleteHints(showHouse, showTravelAddr) {
     var houseHint = document.getElementById('house-addr-maps-hint');
     var travelHint = document.getElementById('travel-addr-maps-hint');
-    if (houseHint) {
-      houseHint.hidden = !showHouse;
-      if (showHouse) {
-        houseHint.textContent = 'Start typing, then pick your address from the list.';
-      }
-    }
+    if (houseHint) houseHint.hidden = !showHouse;
     if (travelHint) {
       travelHint.hidden = !showTravelAddr;
-      if (showTravelAddr && travelStylist) {
-        if (travelStylist.feeMode === 'per_mile') {
-          travelHint.textContent =
-            'Start typing, pick your address from the list, and your travel fee will appear below.';
-        } else {
-          travelHint.textContent =
-            'Start typing, pick your address from the list. Travel fee: ' +
-            moneyPrecise(travelStylist.flatFeeUsd || 0) +
-            '.';
-        }
+      if (showTravelAddr) {
+        travelHint.textContent = 'Start typing, then pick an address from the list.';
       }
     }
   }
@@ -594,62 +531,73 @@
     });
   }
 
-  function setTravelFeePreview(state, html) {
-    var preview = document.getElementById('travel-fee-preview');
-    if (!preview) return;
-    preview.className = 'booking-travel-fee-preview' + (state ? ' is-' + state : '');
-    if (!state) {
-      preview.hidden = true;
-      preview.innerHTML = '';
-      return;
-    }
-    preview.hidden = false;
-    preview.innerHTML = html || '';
+  function getTravelFeePreviewTargets() {
+    return [
+      {
+        wrap: document.getElementById('travel-address-field-wrap'),
+        el: document.getElementById('travel-fee-preview'),
+      },
+      {
+        wrap: document.getElementById('house-address-field-wrap'),
+        el: document.getElementById('house-travel-fee-preview'),
+      },
+    ].filter(function (target) {
+      return target.el;
+    });
+  }
+
+  function setTravelFeePreviewText(text, showOnVisibleWrapOnly) {
+    getTravelFeePreviewTargets().forEach(function (target) {
+      var show = !!text;
+      if (showOnVisibleWrapOnly && target.wrap && target.wrap.hidden) show = false;
+      target.el.hidden = !show;
+      target.el.textContent = show ? text : '';
+      target.el.classList.toggle('booking-travel-fee-preview--ready', !!text && !travelFeeLoading && !travelFeeError && travelFeeUsd > 0);
+    });
   }
 
   function updateTravelFeePreviewText() {
     if (!isTravelBooking()) {
-      setTravelFeePreview('', '');
+      setTravelFeePreviewText('');
       return;
     }
     if (travelFeeLoading) {
-      setTravelFeePreview('loading', 'Calculating travel fee…');
+      setTravelFeePreviewText('Calculating travel fee…', true);
       return;
     }
     if (travelFeeError) {
-      setTravelFeePreview('error', travelFeeError);
+      setTravelFeePreviewText(travelFeeError, true);
       return;
     }
-    if (travelFeeUsd > 0) {
+
+    var address = getServiceAddress();
+    var addressReady = isAddressComplete(address);
+
+    if (addressReady && travelStylist && travelStylist.feeMode === 'flat' && travelFeeUsd > 0) {
+      setTravelFeePreviewText('Travel fee: ' + moneyPrecise(travelFeeUsd), true);
+      return;
+    }
+
+    if (addressReady && travelFeeUsd > 0) {
       var milesText =
         travelDistanceMiles != null
-          ? '<span class="booking-travel-fee-preview__meta">' + travelDistanceMiles.toFixed(1) + ' mi</span>'
+          ? ' (' + travelDistanceMiles.toFixed(1) + ' mi)'
           : '';
-      setTravelFeePreview(
-        'ready',
-        '<span class="booking-travel-fee-preview__label">Estimated travel fee</span>' +
-          '<span class="booking-travel-fee-preview__amount">' +
-          moneyPrecise(travelFeeUsd) +
-          '</span>' +
-          milesText,
-      );
+      setTravelFeePreviewText('Estimated travel fee: ' + moneyPrecise(travelFeeUsd) + milesText, true);
       return;
     }
+
+    if (travelStylist && travelStylist.feeMode === 'flat') {
+      setTravelFeePreviewText('Pick an address from the list to see your travel fee.', true);
+      return;
+    }
+
     if (travelStylist && travelStylist.feeMode === 'per_mile') {
-      setTravelFeePreview('hint', 'Enter your full address to see your travel fee.');
+      setTravelFeePreviewText('Pick an address from the list to calculate your per-mile travel fee.', true);
       return;
     }
-    if (travelStylist && travelStylist.feeMode === 'flat' && travelFeeUsd > 0) {
-      setTravelFeePreview(
-        'ready',
-        '<span class="booking-travel-fee-preview__label">Travel fee</span>' +
-          '<span class="booking-travel-fee-preview__amount">' +
-          moneyPrecise(travelFeeUsd) +
-          '</span>',
-      );
-      return;
-    }
-    setTravelFeePreview('', '');
+
+    setTravelFeePreviewText('');
   }
 
   function refreshTravelFee() {
@@ -666,6 +614,13 @@
 
     if (!travelStylist) return Promise.resolve();
 
+    var address = getServiceAddress();
+    if (!isAddressComplete(address)) {
+      updateTravelFeePreviewText();
+      updatePricingDisplay();
+      return Promise.resolve();
+    }
+
     if (travelStylist.feeMode === 'flat') {
       travelFeeUsd = Math.max(0, Number(travelStylist.flatFeeUsd) || 0);
       updateTravelFeePreviewText();
@@ -673,16 +628,9 @@
       return Promise.resolve();
     }
 
-    var address = getServiceAddress();
-    if (!hasUsableAddress(address)) {
-      updateTravelFeePreviewText();
-      updatePricingDisplay();
-      return Promise.resolve();
-    }
-
     travelFeeLoading = true;
     updateTravelFeePreviewText();
-    return fetchTravelDistanceMiles(address.formatted || address.street)
+    return fetchTravelDistanceMiles(address.formatted)
       .then(function (miles) {
         travelDistanceMiles = Math.max(0, Number(miles) || 0);
         travelFeeUsd = Math.round(travelDistanceMiles * (Number(travelStylist.perMileRateUsd) || 0) * 100) / 100;
@@ -730,7 +678,7 @@
     setAddressFieldsRequired('house-addr', showHouse);
     setAddressFieldsRequired('travel-addr', showTravelAddr);
 
-    updateAddressFieldHints(showHouse, showTravelAddr);
+    updateAddressAutocompleteHints(showHouse, showTravelAddr);
     syncAddressAutocompleteBindings();
 
     refreshTravelFee();
@@ -2004,8 +1952,8 @@
       }
       if (isTravelBooking()) {
         var travelAddress = getServiceAddress();
-        if (!hasUsableAddress(travelAddress)) {
-          showFeedback('Enter your full address to continue.', true);
+        if (!isAddressComplete(travelAddress)) {
+          showFeedback('Pick your address from the suggestions to continue.', true);
           var travelStreet = document.getElementById(
             isHouseCallStyle(selectedStyle) ? 'house-addr-street' : 'travel-addr-street',
           );

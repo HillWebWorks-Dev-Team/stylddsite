@@ -5820,64 +5820,14 @@ body.page-booking .booking-calendar__selected {
   flex-shrink: 0;
 }
 .booking-travel-fee-preview {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.45rem 0.65rem;
-  margin: 0.75rem 0 0;
-  padding: 0.85rem 1rem;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  line-height: 1.4;
-  color: var(--text-body, var(--ink));
-  background: color-mix(in srgb, var(--text-body, var(--ink)) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text-body, var(--ink)) 14%, transparent);
-}
-
-.booking-travel-fee-preview__label {
-  font-size: 0.92rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--text-heading, var(--ink));
-}
-
-.booking-travel-fee-preview__amount {
-  font-size: 1.35rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text-heading, var(--ink));
-}
-
-.booking-travel-fee-preview__meta {
+  margin: 0.5rem 0 0;
   font-size: 0.88rem;
-  font-weight: 500;
   color: var(--text-muted, var(--muted));
 }
 
-.booking-travel-fee-preview.is-ready {
-  background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
-  border-color: color-mix(in srgb, var(--accent, #2563eb) 28%, transparent);
-}
-
-.booking-travel-fee-preview.is-loading,
-.booking-travel-fee-preview.is-hint {
-  font-size: 0.92rem;
-  color: var(--text-muted, var(--muted));
-  background: color-mix(in srgb, var(--text-body, var(--ink)) 4%, transparent);
-}
-
-.booking-travel-fee-preview.is-error {
-  font-size: 0.92rem;
-  color: #f87171;
-  background: color-mix(in srgb, #f87171 10%, transparent);
-  border-color: color-mix(in srgb, #f87171 24%, transparent);
-}
-
-.house-address-block--autocomplete,
-.house-address-block--autocomplete .house-address-fields,
-.house-address-block--autocomplete .house-address-search,
-body.page-booking .field.house-address-block {
-  overflow: visible;
+.booking-travel-fee-preview--ready {
+  color: var(--text-heading, var(--ink));
+  font-weight: 600;
 }
 
 .house-address-block--autocomplete .house-address-fields {
@@ -5929,32 +5879,6 @@ body.page-booking .field.house-address-block {
 .booking-address-suggestions__item:focus-visible {
   background: rgba(0, 0, 0, 0.04);
   outline: none;
-}
-
-body.page-booking .booking-address-suggestions {
-  background: var(--card-surface, #fff);
-  border-color: color-mix(in srgb, var(--text-body, var(--ink)) 18%, transparent);
-  color: var(--text-body, var(--ink));
-}
-
-body.page-booking .booking-address-suggestions__item {
-  color: var(--text-body, var(--ink));
-  border-bottom-color: color-mix(in srgb, var(--text-body, var(--ink)) 10%, transparent);
-}
-
-body.page-booking .booking-address-suggestions__item:hover,
-body.page-booking .booking-address-suggestions__item:focus-visible {
-  background: color-mix(in srgb, var(--text-body, var(--ink)) 8%, transparent);
-}
-
-.booking-address-lookup-status {
-  margin: 0.4rem 0 0;
-  font-size: 0.82rem;
-  color: var(--text-muted, var(--muted));
-}
-
-.booking-address-lookup-status.is-error {
-  color: #f87171;
 }
 
 .house-address-block--autocomplete .house-address-search label {
