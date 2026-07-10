@@ -739,7 +739,7 @@
     if (overlay) overlay.hidden = true;
   }
 
-  function applyAboutPolicyVisibility(content, isSplit, isCoverSplash) {
+  function applyAboutPolicyVisibility(content, theme, isSplit, isCoverSplash) {
     var aboutBlock = document.getElementById('profile-about-block');
     var policyBlock = document.getElementById('profile-policy-block');
     var policyEl = document.getElementById('profile-policy-body');
@@ -766,7 +766,7 @@
     if (aboutBlock) aboutBlock.hidden = aboutHidden;
     if (policyBlock) policyBlock.hidden = policiesHidden;
 
-    if (isBookPage() && bookIntro) {
+    if (isBookPage() && bookIntro && !isCoverLayout(theme)) {
       bookIntro.hidden = aboutHidden && policiesHidden;
     }
 
@@ -1079,9 +1079,16 @@
       if (MAIN_FLOW_SECTION_IDS.indexOf(order[i]) !== -1) return [];
     }
 
-    return order.filter(function (id) {
-      return HERO_INLINE_SECTION_IDS.indexOf(id) !== -1;
-    });
+    var sidebarIds = [];
+    for (var j = firstHeroIndex; j < order.length; j++) {
+      var sectionId = order[j];
+      if (HERO_INLINE_SECTION_IDS.indexOf(sectionId) !== -1) {
+        sidebarIds.push(sectionId);
+        continue;
+      }
+      if (MAIN_FLOW_SECTION_IDS.indexOf(sectionId) !== -1) break;
+    }
+    return sidebarIds;
   }
 
   function isHeroProfileGroupInMain(order, theme, options) {
@@ -1102,6 +1109,45 @@
     return order.filter(function (id) {
       return HERO_INLINE_SECTION_IDS.indexOf(id) !== -1;
     });
+  }
+
+  function hasVisibleHeroInlineSection(order) {
+    return getHeroProfileGroupSectionIds(order).some(function (sectionId) {
+      var block = getMainSectionElement(sectionId);
+      return block && !block.hidden;
+    });
+  }
+
+  function ensureHeroInlineSectionInMain(sectionId, main, profileInfo) {
+    var block = getMainSectionElement(sectionId);
+    if (!block) return null;
+    detachOrderedBlockWrap(sectionId, profileInfo);
+    return ensureOrderedBlockWrap(block, sectionId);
+  }
+
+  function updateBookIntroVisibility(order, theme, profileInfo, profileGroupInMain, sidebarIds) {
+    var bookIntro = document.getElementById('profile-book-intro');
+    if (!bookIntro || !isBookPage()) return;
+
+    if (profileGroupInMain) {
+      bookIntro.hidden = true;
+      return;
+    }
+
+    if (isCoverLayout(theme)) {
+      bookIntro.hidden = true;
+      if (profileInfo) {
+        profileInfo.hidden = true;
+        profileInfo.style.display = 'none';
+      }
+      return;
+    }
+
+    var visibleInIntro = sidebarIds.some(function (sectionId) {
+      var block = getMainSectionElement(sectionId);
+      return block && block.parentElement === profileInfo && !block.hidden;
+    });
+    bookIntro.hidden = !visibleInIntro;
   }
 
   function teardownProfileHeaderMainSection(heroSection, heroGrid, photoWrap, profileInfo) {
@@ -1270,21 +1316,13 @@
       });
       profileInfo.hidden = !showIntro;
       profileInfo.style.display = showIntro ? '' : 'none';
-    } else if (profileInfo && !profileGroupInMain) {
+    } else if (profileInfo && !profileGroupInMain && !(isBookPage() && isCoverLayout(theme))) {
       profileInfo.hidden = false;
       profileInfo.style.display = '';
     }
 
     var bookIntro = document.getElementById('profile-book-intro');
-    if (bookIntro && isBookPage() && profileInfo && !profileGroupInMain) {
-      var visibleInIntro = sidebarIds.some(function (sectionId) {
-        var block = getMainSectionElement(sectionId);
-        return block && block.parentElement === profileInfo && !block.hidden;
-      });
-      bookIntro.hidden = !visibleInIntro;
-    } else if (bookIntro && isBookPage() && profileGroupInMain) {
-      bookIntro.hidden = true;
-    }
+    updateBookIntroVisibility(order, theme, profileInfo, profileGroupInMain, sidebarIds);
 
     var siteMain = document.getElementById('site-main-content');
     var introShell = siteMain && siteMain.querySelector('.profile-main-intro');
@@ -1307,16 +1345,15 @@
 
       var node;
       if (HERO_INLINE_SECTION_IDS.indexOf(sectionId) !== -1) {
-        node = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
-        if (!node) {
-          var block = getMainSectionElement(sectionId);
-          node = ensureOrderedBlockWrap(block, sectionId);
-        }
+        node = ensureHeroInlineSectionInMain(sectionId, main, profileInfo);
       } else {
         node = getMainSectionElement(sectionId);
       }
 
-      if (node) main.appendChild(node);
+      if (node) {
+        node.hidden = false;
+        main.appendChild(node);
+      }
     });
   }
 
@@ -2056,7 +2093,7 @@
     var aboutEl = document.getElementById('profile-about-body');
     if (aboutEl) aboutEl.textContent = content.heroDescription || '';
 
-    applyAboutPolicyVisibility(content, isSplit, isCoverSplash);
+    applyAboutPolicyVisibility(content, theme, isSplit, isCoverSplash);
 
     // Menu
     var menuTitleEl = document.getElementById('profile-menu-title');
