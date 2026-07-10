@@ -125,6 +125,86 @@
                 </fieldset>
               </div>
 
+              <div class="field booking-travel-request" id="travel-request-wrap" hidden>
+                <label class="booking-travel-request__label">
+                  <input type="checkbox" id="travel-request-toggle" name="travel-request" />
+                  <span>I want the stylist to travel to me</span>
+                </label>
+              </div>
+
+              <div class="field house-address-block" id="travel-address-field-wrap" hidden>
+              <fieldset class="house-address-fields">
+                <legend class="house-address-legend">Your address <span aria-hidden="true">*</span></legend>
+                <div class="field">
+                  <label for="travel-addr-street">Street address <span aria-hidden="true">*</span></label>
+                  <input
+                    type="text"
+                    id="travel-addr-street"
+                    name="travel-addr-street"
+                    autocomplete="address-line1"
+                    inputmode="text"
+                    placeholder="e.g. 108 Main Street"
+                  />
+                </div>
+                <div class="field">
+                  <label for="travel-addr-unit">Apartment / unit <span class="house-address-optional">(optional)</span></label>
+                  <input
+                    type="text"
+                    id="travel-addr-unit"
+                    name="travel-addr-unit"
+                    autocomplete="address-line2"
+                    placeholder="Apt, suite, unit, etc."
+                  />
+                </div>
+                <div class="house-address-grid">
+                  <div class="field">
+                    <label for="travel-addr-city">City <span aria-hidden="true">*</span></label>
+                    <input
+                      type="text"
+                      id="travel-addr-city"
+                      name="travel-addr-city"
+                      autocomplete="address-level2"
+                      placeholder="City"
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="travel-addr-state">State <span aria-hidden="true">*</span></label>
+                    <input
+                      type="text"
+                      id="travel-addr-state"
+                      name="travel-addr-state"
+                      autocomplete="address-level1"
+                      maxlength="2"
+                      class="house-address-input-state"
+                      placeholder="CT"
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="travel-addr-zip">ZIP <span aria-hidden="true">*</span></label>
+                    <input
+                      type="text"
+                      id="travel-addr-zip"
+                      name="travel-addr-zip"
+                      autocomplete="postal-code"
+                      inputmode="numeric"
+                      class="house-address-input-zip"
+                      placeholder="06360"
+                      maxlength="10"
+                      pattern="[0-9]{5}(-[0-9]{4})?"
+                    />
+                  </div>
+                </div>
+                <p class="house-address-hint" id="travel-addr-maps-hint" hidden>
+                  Add <code>googleMapsApiKey</code> in booking config for per-mile travel fee estimates.
+                </p>
+                <small class="house-address-note"
+                  >We need your full location so your stylist can travel to you. Travel bookings require stylist approval.</small
+                >
+              </fieldset>
+              </div>
+
+              <p class="booking-travel-fee-preview" id="travel-fee-preview" hidden aria-live="polite"></p>
+
               <div class="field house-address-block" id="house-address-field-wrap" hidden>
               <fieldset class="house-address-fields">
                 <legend class="house-address-legend">House-call service address <span aria-hidden="true">*</span></legend>
@@ -333,6 +413,10 @@
                       <span class="booking-pricing__label">Service after promo</span>
                       <span class="booking-pricing__value" id="line-service-after-promo">$0.00</span>
                     </div>
+                    <div class="booking-pricing__row" id="line-travel-fee-row" hidden>
+                      <span class="booking-pricing__label">Travel fee</span>
+                      <span class="booking-pricing__value" id="line-travel-fee">$0</span>
+                    </div>
                   </div>
                 </div>
 
@@ -521,10 +605,10 @@
     <script src="/js/booking-config.local.js?v=53"></script>
     <script src="/js/styld-tenant-config.js?v=39"></script>
     <script src="/js/styld-tenant-config.local.js?v=39"></script>
-    <script src="/js/styld-tenant-shared.js?v=78"></script>
+    <script src="/js/styld-tenant-shared.js?v=81"></script>
     <script src="/js/profile-content.js?v=29"></script>
     <script src="/js/tenant-site.js?v=68"></script>
-    <script src="/js/styld-tenant-booking.js?v=73"></script>
+    <script src="/js/styld-tenant-booking.js?v=74"></script>
     <script src="/js/supabase-config.js?v=52"></script>
     <script src="/js/supabase-config.local.js?v=52"></script>
     <script id="booking-fallback-bootstrap">

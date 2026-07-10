@@ -540,16 +540,95 @@
     };
   }
 
-  function requiresBookingApproval(bookingPayment) {
+  function requiresBookingApproval(bookingPayment, isTravelBooking) {
+    if (isTravelBooking === true) return true;
     var settings = bookingPayment && typeof bookingPayment === 'object' ? bookingPayment : {};
     var requireApproval = settings.requireBookingApproval;
     if (requireApproval == null) requireApproval = settings.require_booking_approval;
     return requireApproval === true;
   }
 
-  function resolveBookingStatus(bookingPayment, awaitingPayment) {
+  function resolveBookingStatus(bookingPayment, awaitingPayment, isTravelBooking) {
     if (awaitingPayment) return 'pending';
-    return requiresBookingApproval(bookingPayment) ? 'pending_approval' : 'confirmed';
+    if (isTravelBooking === true || requiresBookingApproval(bookingPayment)) {
+      return 'pending_approval';
+    }
+    return 'confirmed';
+  }
+
+  function formatTravelAddressParts(parts) {
+    parts = parts && typeof parts === 'object' ? parts : {};
+    var street = trimContactValue(parts.street || parts.line1 || parts.addressLine1);
+    var unit = trimContactValue(parts.unit || parts.line2 || parts.addressLine2);
+    var city = trimContactValue(parts.city);
+    var state = trimContactValue(parts.state).toUpperCase();
+    var zip = trimContactValue(parts.zip || parts.postalCode || parts.postal_code);
+    var line1 = street + (unit ? ', ' + unit : '');
+    var formatted = [line1, city, state, zip].filter(Boolean).join(', ');
+    return {
+      street: street,
+      unit: unit,
+      city: city,
+      state: state,
+      zip: zip,
+      formatted: formatted,
+    };
+  }
+
+  function normalizeTravelStylist(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var value = raw.value && typeof raw.value === 'object' ? raw.value : raw;
+    if (!value || typeof value !== 'object') return null;
+
+    var feeMode = trimContactValue(
+      value.feeMode || value.fee_mode || value.feeType || value.fee_type || 'flat',
+    ).toLowerCase();
+    if (feeMode === 'permile' || feeMode === 'per-mile') feeMode = 'per_mile';
+    if (feeMode !== 'per_mile') feeMode = 'flat';
+
+    var homeRaw = value.homeBaseAddress || value.home_base_address || null;
+    var homeBase = { street: '', unit: '', city: '', state: '', zip: '', formatted: '' };
+    if (typeof homeRaw === 'string' && trimContactValue(homeRaw)) {
+      homeBase.formatted = trimContactValue(homeRaw);
+    } else if (homeRaw && typeof homeRaw === 'object') {
+      homeBase = formatTravelAddressParts(homeRaw);
+    }
+
+    var homeBaseLat = value.homeBaseLat != null ? value.homeBaseLat : value.home_base_lat;
+    var homeBaseLng = value.homeBaseLng != null ? value.homeBaseLng : value.home_base_lng;
+    var lat = typeof homeBaseLat === 'number' && Number.isFinite(homeBaseLat) ? homeBaseLat : null;
+    var lng = typeof homeBaseLng === 'number' && Number.isFinite(homeBaseLng) ? homeBaseLng : null;
+
+    return {
+      enabled: value.enabled === true,
+      feeMode: feeMode,
+      flatFeeUsd: Math.max(0, Number(value.flatFeeUsd != null ? value.flatFeeUsd : value.flat_fee_usd) || 0),
+      perMileRateUsd: Math.max(
+        0,
+        Number(value.perMileRateUsd != null ? value.perMileRateUsd : value.per_mile_rate_usd) || 0,
+      ),
+      homeBaseAddress: homeBase,
+      homeBaseLat: lat,
+      homeBaseLng: lng,
+      extraTravelMinutes: Math.max(
+        0,
+        Math.round(
+          Number(
+            value.extraTravelMinutes != null ? value.extraTravelMinutes : value.extra_travel_minutes,
+          ) || 0,
+        ),
+      ),
+    };
+  }
+
+  function isTravelStylistActive(settings) {
+    settings = normalizeTravelStylist(settings) || settings;
+    if (!settings || !settings.enabled) return false;
+    if (settings.homeBaseLat != null && settings.homeBaseLng != null) return true;
+    var home = settings.homeBaseAddress;
+    if (home && typeof home === 'object' && trimContactValue(home.formatted)) return true;
+    if (typeof home === 'string' && trimContactValue(home)) return true;
+    return false;
   }
 
   function resolveCancellationPolicySummary(cancellationPolicy, siteContent) {
@@ -1182,6 +1261,8 @@
     getBookingFormRequirements: getBookingFormRequirements,
     requiresBookingApproval: requiresBookingApproval,
     resolveBookingStatus: resolveBookingStatus,
+    normalizeTravelStylist: normalizeTravelStylist,
+    isTravelStylistActive: isTravelStylistActive,
     resolveEffectiveBookingPayment: resolveEffectiveBookingPayment,
     applyBookingFormSettings: applyBookingFormSettings,
     resolveCancellationPolicySummary: resolveCancellationPolicySummary,
@@ -1246,6 +1327,7 @@
             var cancellationPolicy = null;
             var productsCatalog = [];
             var productsSettings = {};
+            var travelStylist = null;
 
             records.forEach(function (record) {
               var value = settingValue(record);
@@ -1277,6 +1359,9 @@
               if (record.record_type === 'site_setting' && record.record_key === 'products_settings') {
                 productsSettings = value && typeof value === 'object' ? value : {};
               }
+              if (record.record_type === 'site_setting' && record.record_key === 'travel_stylist') {
+                travelStylist = normalizeTravelStylist(value);
+              }
               if (record.record_type === 'style_cover_image' && record.record_key) {
                 var coverPath = coverStoragePath(value);
                 if (typeof coverPath === 'string') covers[record.record_key] = coverPath;
@@ -1301,6 +1386,7 @@
               catalogCards: buildCatalogCards(meta, prices, covers, cfg.supabaseUrl, theme.logoImagePath),
               productsCatalog: productsCatalog,
               productsSettings: productsSettings,
+              travelStylist: travelStylist,
             };
           });
         });

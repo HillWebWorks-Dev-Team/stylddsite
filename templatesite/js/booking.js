@@ -92,6 +92,17 @@
   var preselectedStyleId = bookingUrlParams.get('style') || '';
   var preselectedVariantId = bookingUrlParams.get('variant') || '';
 
+  var travelStylist =
+    window.StyldTenant && window.StyldTenant.normalizeTravelStylist
+      ? window.StyldTenant.normalizeTravelStylist(tenantBooking.travelStylist)
+      : tenantBooking.travelStylist || null;
+  var travelFeeUsd = 0;
+  var travelDistanceMiles = null;
+  var travelFeeLoading = false;
+  var travelFeeError = '';
+  var travelFeeDebounceTimer = null;
+  var mapsLoadPromise = null;
+
   function money(n) {
     return '$' + (Math.round(Number(n) || 0)).toFixed(0);
   }
@@ -182,6 +193,295 @@
     var duration = style && style.durationMinutes;
     if (typeof duration === 'number' && duration > 0) return Math.round(duration);
     return 120;
+  }
+
+  function getGoogleMapsApiKey() {
+    return (window.BOOKING_CONFIG && window.BOOKING_CONFIG.googleMapsApiKey) || '';
+  }
+
+  function isHouseCallStyle(style) {
+    return !!(style && String(style.id || '').toLowerCase().indexOf('house-') === 0);
+  }
+
+  function isTravelStylistConfigured() {
+    if (window.StyldTenant && window.StyldTenant.isTravelStylistActive) {
+      return window.StyldTenant.isTravelStylistActive(travelStylist);
+    }
+    return !!(travelStylist && travelStylist.enabled);
+  }
+
+  function isTravelRequestChecked() {
+    var toggle = document.getElementById('travel-request-toggle');
+    return !!(toggle && toggle.checked);
+  }
+
+  function isTravelBooking() {
+    if (!isTravelStylistConfigured() || !selectedStyle) return false;
+    if (isHouseCallStyle(selectedStyle)) return true;
+    return isTravelRequestChecked();
+  }
+
+  function readAddressFields(prefix) {
+    function val(id) {
+      var el = document.getElementById(id);
+      return el && el.value ? String(el.value).trim() : '';
+    }
+    var street = val(prefix + '-street');
+    var unit = val(prefix + '-unit');
+    var city = val(prefix + '-city');
+    var state = val(prefix + '-state').toUpperCase();
+    var zip = val(prefix + '-zip');
+    var line1 = street + (unit ? ', ' + unit : '');
+    var formatted = [line1, city, state, zip].filter(Boolean).join(', ');
+    return { street: street, unit: unit, city: city, state: state, zip: zip, formatted: formatted };
+  }
+
+  function isAddressComplete(address) {
+    return !!(
+      address &&
+      address.street &&
+      address.city &&
+      address.state &&
+      address.zip
+    );
+  }
+
+  function getServiceAddress() {
+    if (!selectedStyle) return null;
+    if (isHouseCallStyle(selectedStyle)) return readAddressFields('house-addr');
+    if (isTravelRequestChecked()) return readAddressFields('travel-addr');
+    return null;
+  }
+
+  function setAddressFieldsRequired(prefix, required) {
+    ['street', 'city', 'state', 'zip'].forEach(function (part) {
+      var el = document.getElementById(prefix + '-' + part);
+      if (el) el.required = !!required;
+    });
+  }
+
+  function travelHomeOrigin() {
+    if (!travelStylist) return '';
+    if (travelStylist.homeBaseLat != null && travelStylist.homeBaseLng != null) {
+      return { lat: travelStylist.homeBaseLat, lng: travelStylist.homeBaseLng };
+    }
+    var home = travelStylist.homeBaseAddress;
+    var formatted =
+      home && typeof home === 'object'
+        ? String(home.formatted || '').trim()
+        : String(home || '').trim();
+    return formatted || '';
+  }
+
+  function ensureGoogleMapsLoaded() {
+    var key = getGoogleMapsApiKey();
+    if (!key) {
+      return Promise.reject(new Error('Google Maps API key is not configured.'));
+    }
+    if (window.google && window.google.maps) return Promise.resolve();
+    if (mapsLoadPromise) return mapsLoadPromise;
+    mapsLoadPromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src =
+        'https://maps.googleapis.com/maps/api/js?key=' +
+        encodeURIComponent(key) +
+        '&libraries=places';
+      script.async = true;
+      script.defer = true;
+      script.onload = function () {
+        resolve();
+      };
+      script.onerror = function () {
+        reject(new Error('Could not load Google Maps.'));
+      };
+      document.head.appendChild(script);
+    });
+    return mapsLoadPromise;
+  }
+
+  function fetchTravelDistanceMiles(destinationAddress) {
+    return ensureGoogleMapsLoaded().then(function () {
+      return new Promise(function (resolve, reject) {
+        var service = new google.maps.DistanceMatrixService();
+        var origin = travelHomeOrigin();
+        var origins = [];
+        if (origin && typeof origin === 'object') {
+          origins.push(new google.maps.LatLng(origin.lat, origin.lng));
+        } else if (origin) {
+          origins.push(origin);
+        } else {
+          reject(new Error('Stylist home base is not configured.'));
+          return;
+        }
+        service.getDistanceMatrix(
+          {
+            origins: origins,
+            destinations: [destinationAddress],
+            travelMode: google.maps.TravelMode.DRIVING,
+            unitSystem: google.maps.UnitSystem.IMPERIAL,
+          },
+          function (response, status) {
+            if (status !== 'OK' || !response || !response.rows || !response.rows[0]) {
+              reject(new Error('Could not calculate travel distance.'));
+              return;
+            }
+            var element = response.rows[0].elements && response.rows[0].elements[0];
+            if (!element || element.status !== 'OK' || !element.distance) {
+              reject(new Error('Could not calculate travel distance for that address.'));
+              return;
+            }
+            resolve(element.distance.value / 1609.344);
+          },
+        );
+      });
+    });
+  }
+
+  function updateTravelFeePreviewText() {
+    var preview = document.getElementById('travel-fee-preview');
+    if (!preview) return;
+    if (!isTravelBooking()) {
+      preview.hidden = true;
+      preview.textContent = '';
+      return;
+    }
+    preview.hidden = false;
+    if (travelFeeLoading) {
+      preview.textContent = 'Calculating travel fee…';
+      return;
+    }
+    if (travelFeeError) {
+      preview.textContent = travelFeeError;
+      return;
+    }
+    if (travelFeeUsd > 0) {
+      var milesText =
+        travelDistanceMiles != null
+          ? ' (' + travelDistanceMiles.toFixed(1) + ' mi)'
+          : '';
+      preview.textContent = 'Estimated travel fee: ' + moneyPrecise(travelFeeUsd) + milesText;
+      return;
+    }
+    if (travelStylist && travelStylist.feeMode === 'per_mile') {
+      preview.textContent = 'Enter your full address to calculate the travel fee.';
+      return;
+    }
+    preview.textContent = '';
+    preview.hidden = true;
+  }
+
+  function refreshTravelFee() {
+    travelFeeError = '';
+    travelDistanceMiles = null;
+    travelFeeUsd = 0;
+
+    if (!isTravelBooking()) {
+      travelFeeLoading = false;
+      updateTravelFeePreviewText();
+      updatePricingDisplay();
+      return Promise.resolve();
+    }
+
+    if (!travelStylist) return Promise.resolve();
+
+    if (travelStylist.feeMode === 'flat') {
+      travelFeeUsd = Math.max(0, Number(travelStylist.flatFeeUsd) || 0);
+      updateTravelFeePreviewText();
+      updatePricingDisplay();
+      return Promise.resolve();
+    }
+
+    var address = getServiceAddress();
+    if (!isAddressComplete(address)) {
+      updateTravelFeePreviewText();
+      updatePricingDisplay();
+      return Promise.resolve();
+    }
+
+    if (!getGoogleMapsApiKey()) {
+      travelFeeError = 'Per-mile travel fees need a Google Maps API key on this site.';
+      updateTravelFeePreviewText();
+      updatePricingDisplay();
+      return Promise.resolve();
+    }
+
+    travelFeeLoading = true;
+    updateTravelFeePreviewText();
+    return fetchTravelDistanceMiles(address.formatted)
+      .then(function (miles) {
+        travelDistanceMiles = Math.max(0, Number(miles) || 0);
+        travelFeeUsd = Math.round(travelDistanceMiles * (Number(travelStylist.perMileRateUsd) || 0) * 100) / 100;
+        travelFeeLoading = false;
+        updateTravelFeePreviewText();
+        updatePricingDisplay();
+        if (selectedDate) refreshSlotsAvailability(false);
+      })
+      .catch(function (err) {
+        travelFeeLoading = false;
+        travelFeeError =
+          (err && err.message) || 'Could not calculate travel fee. Check your address and try again.';
+        updateTravelFeePreviewText();
+        updatePricingDisplay();
+      });
+  }
+
+  function scheduleTravelFeeRefresh() {
+    if (travelFeeDebounceTimer) clearTimeout(travelFeeDebounceTimer);
+    travelFeeDebounceTimer = setTimeout(function () {
+      refreshTravelFee();
+    }, 450);
+  }
+
+  function updateTravelUi() {
+    var travelWrap = document.getElementById('travel-request-wrap');
+    var travelAddrWrap = document.getElementById('travel-address-field-wrap');
+    var houseWrap = document.getElementById('house-address-field-wrap');
+    var mapsHint = document.getElementById('travel-addr-maps-hint');
+    var active = isTravelStylistConfigured();
+    var style = selectedStyle;
+    var showHouse = !!(active && style && isHouseCallStyle(style));
+    var showTravelCheckbox = !!(active && style && !isHouseCallStyle(style));
+    var showTravelAddr = showTravelCheckbox && isTravelRequestChecked();
+
+    if (travelWrap) travelWrap.hidden = !showTravelCheckbox;
+    if (houseWrap) houseWrap.hidden = !showHouse;
+    if (travelAddrWrap) travelAddrWrap.hidden = !showTravelAddr;
+
+    if (!showTravelCheckbox) {
+      var toggle = document.getElementById('travel-request-toggle');
+      if (toggle) toggle.checked = false;
+    }
+
+    setAddressFieldsRequired('house-addr', showHouse);
+    setAddressFieldsRequired('travel-addr', showTravelAddr);
+
+    if (mapsHint) {
+      mapsHint.hidden = !(showTravelAddr && travelStylist && travelStylist.feeMode === 'per_mile');
+    }
+
+    refreshTravelFee();
+  }
+
+  function setupTravelBookingUi() {
+    var toggle = document.getElementById('travel-request-toggle');
+    if (toggle && toggle.dataset.bound !== '1') {
+      toggle.dataset.bound = '1';
+      toggle.addEventListener('change', function () {
+        updateTravelUi();
+      });
+    }
+
+    ['house-addr', 'travel-addr'].forEach(function (prefix) {
+      ['street', 'unit', 'city', 'state', 'zip'].forEach(function (part) {
+        var el = document.getElementById(prefix + '-' + part);
+        if (!el || el.dataset.travelBound === '1') return;
+        el.dataset.travelBound = '1';
+        el.addEventListener('input', scheduleTravelFeeRefresh);
+        el.addEventListener('change', scheduleTravelFeeRefresh);
+      });
+    });
+
+    updateTravelUi();
   }
 
   function formatDurationLabel(minutes) {
@@ -1096,7 +1396,7 @@
     var base = effectiveStyleBase(style);
     var addon = getSelectedAddon(style);
     var addonPrice = addon && typeof addon.price === 'number' ? addon.price : 0;
-    var duration = durationMinutesForStyle(style);
+    var duration = durationMinutesForStyle(style) + travelExtraMinutes;
     var rawSubtotal = base + addonPrice;
     var promoDiscount =
       appliedPromo && typeof appliedPromo.discountCents === 'number'
@@ -1105,7 +1405,10 @@
     promoDiscount = Math.min(rawSubtotal, Math.max(0, promoDiscount));
     var total = Math.max(0, rawSubtotal - promoDiscount);
     var productsSubtotal = getProductsSubtotal();
-    var grandTotal = total + productsSubtotal;
+    var travelFee = isTravelBooking() ? Math.max(0, Number(travelFeeUsd) || 0) : 0;
+    var travelExtraMinutes =
+      isTravelBooking() && travelStylist ? Math.max(0, Number(travelStylist.extraTravelMinutes) || 0) : 0;
+    var grandTotal = total + productsSubtotal + travelFee;
     var mode = paymentSettings.mode || 'none';
     var deposit = 0;
 
@@ -1141,6 +1444,9 @@
       promoCode: appliedPromo ? appliedPromo.code : null,
       total: total,
       productsSubtotal: productsSubtotal,
+      travelFee: travelFee,
+      travelExtraMinutes: travelExtraMinutes,
+      travelDistanceMiles: travelDistanceMiles,
       grandTotal: grandTotal,
       duration: duration,
       deposit: deposit,
@@ -1233,6 +1539,16 @@
     if (p.productsSubtotal > 0) {
       setText('line-products-total', money(p.productsSubtotal));
       setText('side-products-total', money(p.productsSubtotal));
+    }
+
+    var lineTravelRow = document.getElementById('line-travel-fee-row');
+    var sideTravelRow = document.getElementById('side-travel-fee-row');
+    var showTravelFee = p.travelFee > 0;
+    if (lineTravelRow) lineTravelRow.hidden = !showTravelFee;
+    if (sideTravelRow) sideTravelRow.hidden = !showTravelFee;
+    if (showTravelFee) {
+      setText('line-travel-fee', moneyPrecise(p.travelFee));
+      setText('side-travel-fee', moneyPrecise(p.travelFee));
     }
 
     var lineOnlinePayment = document.getElementById('line-online-payment');
@@ -1415,6 +1731,28 @@
         showFeedback('Choose your service option to continue.', true);
         return false;
       }
+      if (isTravelBooking()) {
+        var travelAddress = getServiceAddress();
+        if (!isAddressComplete(travelAddress)) {
+          showFeedback('Enter your full address so your stylist can travel to you.', true);
+          return false;
+        }
+        if (travelFeeLoading) {
+          showFeedback('Calculating travel fee — please wait a moment.', true);
+          return false;
+        }
+        if (
+          travelStylist &&
+          travelStylist.feeMode === 'per_mile' &&
+          travelFeeUsd <= 0
+        ) {
+          showFeedback(
+            travelFeeError || 'Enter a valid address to calculate the per-mile travel fee.',
+            true,
+          );
+          return false;
+        }
+      }
       var serviceFields = fieldsInWizardStep('service');
       for (var j = 0; j < serviceFields.length; j++) {
         var field = serviceFields[j];
@@ -1524,6 +1862,7 @@
     }
 
     updateDueBreakdown(p);
+    updateTravelFeePreviewText();
 
     if (durationStrip) {
       durationStrip.textContent = 'Estimated duration: ' + formatDurationLabel(p.duration);
@@ -1544,7 +1883,7 @@
 
   function currentDurationMinutes() {
     if (!selectedStyle) return 0;
-    return durationMinutesForStyle(selectedStyle);
+    return computePricing(selectedStyle).duration;
   }
 
   function formatAppointmentRange(slotStart, durationMinutes) {
@@ -1781,6 +2120,7 @@
       stopSlotsPoll();
       updateSelectedSummary();
       updateCancellationPolicyDisplay();
+      updateTravelUi();
       return;
     }
 
@@ -1792,6 +2132,7 @@
       renderVariantPicker(selectedStyle);
     }
     renderAddonPicker(selectedStyle);
+    updateTravelUi();
     updatePricingDisplay();
     if (lockedStyleSelection) updateStyleSelectionSummary();
     refreshCalendar().then(function () {
@@ -1828,8 +2169,9 @@
   }
 
   function requiresBookingApprovalSetting() {
+    if (isTravelBooking()) return true;
     if (window.StyldTenant && window.StyldTenant.requiresBookingApproval) {
-      return window.StyldTenant.requiresBookingApproval(paymentSettings);
+      return window.StyldTenant.requiresBookingApproval(paymentSettings, isTravelBooking());
     }
     var v = paymentSettings.requireBookingApproval;
     if (v == null) v = paymentSettings.require_booking_approval;
@@ -1838,7 +2180,11 @@
 
   function resolveBookingStatus(awaitingPayment) {
     if (window.StyldTenant && window.StyldTenant.resolveBookingStatus) {
-      return window.StyldTenant.resolveBookingStatus(paymentSettings, !!awaitingPayment);
+      return window.StyldTenant.resolveBookingStatus(
+        paymentSettings,
+        !!awaitingPayment,
+        isTravelBooking(),
+      );
     }
     if (awaitingPayment) return 'pending';
     return requiresBookingApprovalSetting() ? 'pending_approval' : 'confirmed';
@@ -1975,6 +2321,8 @@
     var phone = (document.getElementById('phone') || {}).value || '';
     var notes = (document.getElementById('notes') || {}).value || '';
     var awaitingPayment = !!options.awaitingPayment;
+    var serviceAddress = getServiceAddress();
+    var travelBooking = isTravelBooking();
 
     return {
       id: requireBookingUuid(options.bookingId, 'Booking id'),
@@ -2017,6 +2365,12 @@
       reference_photo_path: options.refPath || null,
       source: 'website',
       notes: notes.trim() || null,
+      service_address: travelBooking && serviceAddress ? serviceAddress.formatted : null,
+      is_travel_booking: travelBooking,
+      travel_fee_usd: travelBooking && pricing.travelFee > 0 ? pricing.travelFee : null,
+      travel_distance_miles:
+        travelBooking && pricing.travelDistanceMiles != null ? pricing.travelDistanceMiles : null,
+      travel_extra_minutes: travelBooking ? pricing.travelExtraMinutes : null,
     };
   }
 
@@ -2301,6 +2655,7 @@
   setupPromoCode();
   setupBookingProducts();
   setupBookingProductModal();
+  setupTravelBookingUi();
 
   lockedStyleSelection = !!preselectedStyleId;
   if (preselectedVariantId) selectedVariantId = preselectedVariantId;

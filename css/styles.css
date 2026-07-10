@@ -5803,6 +5803,28 @@ body.page-booking .booking-calendar__selected {
 }
 
 /* House-call structured address (booking form) */
+.booking-travel-request {
+  margin-top: 0.35rem;
+}
+.booking-travel-request__label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-heading, var(--ink));
+  cursor: pointer;
+}
+.booking-travel-request__label input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+.booking-travel-fee-preview {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  color: var(--text-muted, var(--muted));
+}
+
 .house-address-block .house-address-fields {
   margin: 0;
   padding: 0;
