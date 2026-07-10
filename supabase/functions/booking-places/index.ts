@@ -54,7 +54,6 @@ async function autocompletePlacesNew(input: string, apiKey: string) {
     body: JSON.stringify({
       input,
       includedRegionCodes: ['us'],
-      includedPrimaryTypes: ['street_address', 'premise', 'subpremise'],
     }),
   });
 

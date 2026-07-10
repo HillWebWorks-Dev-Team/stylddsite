@@ -5825,6 +5825,13 @@ body.page-booking .booking-calendar__selected {
   color: var(--text-muted, var(--muted));
 }
 
+.house-address-block--autocomplete,
+.house-address-block--autocomplete .house-address-fields,
+.house-address-block--autocomplete .house-address-search,
+body.page-booking .field.house-address-block {
+  overflow: visible;
+}
+
 .house-address-block--autocomplete .house-address-fields {
   border: none;
   padding: 0;
@@ -5874,6 +5881,32 @@ body.page-booking .booking-calendar__selected {
 .booking-address-suggestions__item:focus-visible {
   background: rgba(0, 0, 0, 0.04);
   outline: none;
+}
+
+body.page-booking .booking-address-suggestions {
+  background: var(--card-surface, #fff);
+  border-color: color-mix(in srgb, var(--text-body, var(--ink)) 18%, transparent);
+  color: var(--text-body, var(--ink));
+}
+
+body.page-booking .booking-address-suggestions__item {
+  color: var(--text-body, var(--ink));
+  border-bottom-color: color-mix(in srgb, var(--text-body, var(--ink)) 10%, transparent);
+}
+
+body.page-booking .booking-address-suggestions__item:hover,
+body.page-booking .booking-address-suggestions__item:focus-visible {
+  background: color-mix(in srgb, var(--text-body, var(--ink)) 8%, transparent);
+}
+
+.booking-address-lookup-status {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted, var(--muted));
+}
+
+.booking-address-lookup-status.is-error {
+  color: #f87171;
 }
 
 .house-address-block--autocomplete .house-address-search label {

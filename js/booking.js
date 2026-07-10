@@ -287,8 +287,39 @@
 
   var addressAutocompleteBound = {};
 
-  function fetchAddressSuggestions(query) {
+  function ensureAddressLookupStatus(prefix) {
+    var statusId = prefix + '-lookup-status';
+    var existing = document.getElementById(statusId);
+    if (existing) return existing;
+    var streetEl = document.getElementById(prefix + '-street');
+    var parent = streetEl && streetEl.closest('.house-address-search');
+    if (!parent) return null;
+    var status = document.createElement('p');
+    status.id = statusId;
+    status.className = 'booking-address-lookup-status';
+    status.hidden = true;
+    status.setAttribute('aria-live', 'polite');
+    parent.appendChild(status);
+    return status;
+  }
+
+  function setAddressLookupStatus(prefix, message, isError) {
+    var status = ensureAddressLookupStatus(prefix);
+    if (!status) return;
+    if (!message) {
+      status.hidden = true;
+      status.textContent = '';
+      status.classList.remove('is-error');
+      return;
+    }
+    status.hidden = false;
+    status.textContent = message;
+    status.classList.toggle('is-error', !!isError);
+  }
+
+  function fetchAddressSuggestions(query, prefix) {
     if (!query || query.length < 3) return Promise.resolve([]);
+    if (prefix) setAddressLookupStatus(prefix, 'Looking up addresses…', false);
     return edgeFunction('booking-places', {
       action: 'autocomplete',
       input: query,
@@ -296,12 +327,22 @@
       if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
         throw new Error(data.error_message || data.error || 'Address lookup failed.');
       }
+      if (prefix) setAddressLookupStatus(prefix, '', false);
       return (data.predictions || []).map(function (prediction) {
         return {
           placeId: prediction.place_id,
           description: prediction.description,
         };
       });
+    }).catch(function (err) {
+      if (prefix) {
+        setAddressLookupStatus(
+          prefix,
+          (err && err.message) || 'Address suggestions are unavailable right now.',
+          true,
+        );
+      }
+      throw err;
     });
   }
 
@@ -449,9 +490,12 @@
         return;
       }
       debounceTimer = setTimeout(function () {
-        fetchAddressSuggestions(query)
+        fetchAddressSuggestions(query, prefix)
           .then(function (items) {
             renderAddressSuggestions(prefix, items);
+            if (!items.length) {
+              setAddressLookupStatus(prefix, 'No matching addresses — keep typing or check spelling.', false);
+            }
           })
           .catch(function () {
             hideAddressSuggestions(prefix);
@@ -468,7 +512,7 @@
     streetEl.addEventListener('focus', function () {
       var query = streetEl.value.trim();
       if (query.length < 3) return;
-      fetchAddressSuggestions(query)
+      fetchAddressSuggestions(query, prefix)
         .then(function (items) {
           renderAddressSuggestions(prefix, items);
         })
