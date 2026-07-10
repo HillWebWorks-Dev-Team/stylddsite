@@ -766,7 +766,7 @@
     if (aboutBlock) aboutBlock.hidden = aboutHidden;
     if (policyBlock) policyBlock.hidden = policiesHidden;
 
-    if (isBookPage() && bookIntro && !isCoverLayout(theme)) {
+    if (isBookPage() && bookIntro) {
       bookIntro.hidden = aboutHidden && policiesHidden;
     }
 
@@ -1062,10 +1062,12 @@
     options = options || {};
     var treatAsSplit = options.treatAsSplit === true;
     var heroLayout = String((theme && theme.heroLayout) || 'split').trim();
-    if (isCoverLayout(theme)) return [];
+    if (isCoverLayout(theme) && !treatAsSplit) return [];
     if (heroLayout !== 'split' && !treatAsSplit) return [];
-    if (!themeFlagEnabled(theme, 'heroAboutBesidePhoto', true)) return [];
-    if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return [];
+    if (!treatAsSplit) {
+      if (!themeFlagEnabled(theme, 'heroAboutBesidePhoto', true)) return [];
+      if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return [];
+    }
 
     var firstHeroIndex = -1;
     order.forEach(function (id, index) {
@@ -1095,10 +1097,12 @@
     options = options || {};
     var treatAsSplit = options.treatAsSplit === true;
     var heroLayout = String((theme && theme.heroLayout) || 'split').trim();
-    if (isCoverLayout(theme)) return false;
+    if (isCoverLayout(theme) && !treatAsSplit) return false;
     if (heroLayout !== 'split' && !treatAsSplit) return false;
-    if (!themeFlagEnabled(theme, 'heroAboutBesidePhoto', true)) return false;
-    if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return false;
+    if (!treatAsSplit) {
+      if (!themeFlagEnabled(theme, 'heroAboutBesidePhoto', true)) return false;
+      if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return false;
+    }
     if (resolveHeroSidebarSections(order, theme, options).length) return false;
     return order.some(function (id) {
       return HERO_INLINE_SECTION_IDS.indexOf(id) !== -1;
@@ -1131,15 +1135,6 @@
 
     if (profileGroupInMain) {
       bookIntro.hidden = true;
-      return;
-    }
-
-    if (isCoverLayout(theme)) {
-      bookIntro.hidden = true;
-      if (profileInfo) {
-        profileInfo.hidden = true;
-        profileInfo.style.display = 'none';
-      }
       return;
     }
 
@@ -1316,7 +1311,7 @@
       });
       profileInfo.hidden = !showIntro;
       profileInfo.style.display = showIntro ? '' : 'none';
-    } else if (profileInfo && !profileGroupInMain && !(isBookPage() && isCoverLayout(theme))) {
+    } else if (profileInfo && !profileGroupInMain) {
       profileInfo.hidden = false;
       profileInfo.style.display = '';
     }
