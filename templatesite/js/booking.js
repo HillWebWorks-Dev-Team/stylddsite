@@ -231,18 +231,33 @@
     var city = val(prefix + '-city');
     var state = val(prefix + '-state').toUpperCase();
     var zip = val(prefix + '-zip');
-    var line1 = street + (unit ? ', ' + unit : '');
-    var formatted = [line1, city, state, zip].filter(Boolean).join(', ');
+    var formatted = formatAddressFromParts({
+      street: street,
+      unit: unit,
+      city: city,
+      state: state,
+      zip: zip,
+    });
+    if (!isAddressComplete({ street: street, unit: unit, city: city, state: state, zip: zip }) && street) {
+      formatted = street;
+    }
     return { street: street, unit: unit, city: city, state: state, zip: zip, formatted: formatted };
+  }
+
+  function formatAddressFromParts(parts) {
+    parts = parts && typeof parts === 'object' ? parts : {};
+    var line1 = [parts.street, parts.unit].filter(Boolean).join(parts.unit ? ', ' : ' ').trim();
+    if (!line1 && parts.street) line1 = parts.street;
+    return [line1, parts.city, parts.state, parts.zip].filter(Boolean).join(', ');
   }
 
   function isAddressComplete(address) {
     return !!(
       address &&
-      address.street &&
       address.city &&
       address.state &&
-      address.zip
+      address.zip &&
+      (address.street || address.formatted)
     );
   }
 
@@ -254,9 +269,14 @@
   }
 
   function setAddressFieldsRequired(prefix, required) {
-    ['street', 'city', 'state', 'zip'].forEach(function (part) {
+    var streetEl = document.getElementById(prefix + '-street');
+    if (streetEl) streetEl.required = !!required;
+  }
+
+  function clearParsedAddress(prefix) {
+    ['unit', 'city', 'state', 'zip'].forEach(function (part) {
       var el = document.getElementById(prefix + '-' + part);
-      if (el) el.required = !!required;
+      if (el) el.value = '';
     });
   }
 
@@ -287,16 +307,20 @@
     return parts;
   }
 
-  function applyParsedAddress(prefix, parts) {
+  function applyParsedAddress(prefix, parts, formattedAddress) {
     function set(part, value) {
       var el = document.getElementById(prefix + '-' + part);
       if (el) el.value = value || '';
     }
-    set('street', parts.street);
     set('unit', parts.unit);
     set('city', parts.city);
     set('state', parts.state);
     set('zip', parts.zip);
+    var streetEl = document.getElementById(prefix + '-street');
+    if (streetEl) {
+      streetEl.value =
+        formattedAddress || formatAddressFromParts(parts) || parts.street || streetEl.value;
+    }
   }
 
   function bindAddressAutocomplete(prefix) {
@@ -304,13 +328,19 @@
     if (!streetEl || addressAutocompleteByPrefix[prefix]) return;
     if (!getGoogleMapsApiKey()) return;
 
+    if (streetEl.dataset.addressInputBound !== '1') {
+      streetEl.dataset.addressInputBound = '1';
+      streetEl.addEventListener('input', function () {
+        clearParsedAddress(prefix);
+        scheduleTravelFeeRefresh();
+      });
+    }
+
     ensureGoogleMapsLoaded()
       .then(function () {
         if (!streetEl.isConnected || addressAutocompleteByPrefix[prefix]) return;
         streetEl.setAttribute('autocomplete', 'off');
-        if (!streetEl.getAttribute('placeholder')) {
-          streetEl.setAttribute('placeholder', 'Start typing your address…');
-        }
+        streetEl.setAttribute('placeholder', 'Start typing your address…');
         var autocomplete = new google.maps.places.Autocomplete(streetEl, {
           types: ['address'],
           componentRestrictions: { country: 'us' },
@@ -320,7 +350,8 @@
         autocomplete.addListener('place_changed', function () {
           var place = autocomplete.getPlace();
           if (!place || !place.address_components) return;
-          applyParsedAddress(prefix, parseGoogleAddressComponents(place.address_components));
+          var parts = parseGoogleAddressComponents(place.address_components);
+          applyParsedAddress(prefix, parts, place.formatted_address || '');
           scheduleTravelFeeRefresh();
         });
       })
@@ -341,18 +372,12 @@
     var houseHint = document.getElementById('house-addr-maps-hint');
     var travelHint = document.getElementById('travel-addr-maps-hint');
     if (houseHint) houseHint.hidden = !showHouse || hasKey;
-    if (!travelHint) return;
-    if (!showTravelAddr) {
-      travelHint.hidden = true;
-      return;
+    if (travelHint) {
+      travelHint.hidden = !showTravelAddr;
+      if (showTravelAddr && hasKey) {
+        travelHint.textContent = 'Pick an address from the suggestions for accurate travel fees.';
+      }
     }
-    travelHint.hidden = false;
-    if (!hasKey) {
-      travelHint.innerHTML =
-        'Add <code>googleMapsApiKey</code> in booking config for address suggestions and per-mile travel fees.';
-      return;
-    }
-    travelHint.textContent = 'Start typing your street address to see suggestions.';
   }
 
   function travelHomeOrigin() {
@@ -566,13 +591,10 @@
     }
 
     ['house-addr', 'travel-addr'].forEach(function (prefix) {
-      ['street', 'unit', 'city', 'state', 'zip'].forEach(function (part) {
-        var el = document.getElementById(prefix + '-' + part);
-        if (!el || el.dataset.travelBound === '1') return;
-        el.dataset.travelBound = '1';
-        el.addEventListener('input', scheduleTravelFeeRefresh);
-        el.addEventListener('change', scheduleTravelFeeRefresh);
-      });
+      var streetEl = document.getElementById(prefix + '-street');
+      if (streetEl && streetEl.dataset.travelBound !== '1') {
+        streetEl.dataset.travelBound = '1';
+      }
     });
 
     updateTravelUi();
@@ -1834,7 +1856,11 @@
       if (isTravelBooking()) {
         var travelAddress = getServiceAddress();
         if (!isAddressComplete(travelAddress)) {
-          showFeedback('Enter your full address so your stylist can travel to you.', true);
+          showFeedback('Pick your address from the suggestions to continue.', true);
+          var travelStreet = document.getElementById(
+            isHouseCallStyle(selectedStyle) ? 'house-addr-street' : 'travel-addr-street',
+          );
+          if (travelStreet) travelStreet.focus();
           return false;
         }
         if (travelFeeLoading) {

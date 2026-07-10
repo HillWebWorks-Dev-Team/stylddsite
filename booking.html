@@ -132,70 +132,26 @@
                 </label>
               </div>
 
-              <div class="field house-address-block" id="travel-address-field-wrap" hidden>
+              <div class="field house-address-block house-address-block--autocomplete" id="travel-address-field-wrap" hidden>
               <fieldset class="house-address-fields">
-                <legend class="house-address-legend">Your address <span aria-hidden="true">*</span></legend>
-                <div class="field">
-                  <label for="travel-addr-street">Street address <span aria-hidden="true">*</span></label>
+                <div class="field house-address-search">
+                  <label for="travel-addr-street">Your address <span aria-hidden="true">*</span></label>
                   <input
                     type="text"
                     id="travel-addr-street"
                     name="travel-addr-street"
-                    autocomplete="address-line1"
+                    autocomplete="off"
                     inputmode="text"
                     placeholder="Start typing your address…"
+                    aria-describedby="travel-addr-maps-hint"
                   />
                 </div>
-                <div class="field">
-                  <label for="travel-addr-unit">Apartment / unit <span class="house-address-optional">(optional)</span></label>
-                  <input
-                    type="text"
-                    id="travel-addr-unit"
-                    name="travel-addr-unit"
-                    autocomplete="address-line2"
-                    placeholder="Apt, suite, unit, etc."
-                  />
-                </div>
-                <div class="house-address-grid">
-                  <div class="field">
-                    <label for="travel-addr-city">City <span aria-hidden="true">*</span></label>
-                    <input
-                      type="text"
-                      id="travel-addr-city"
-                      name="travel-addr-city"
-                      autocomplete="address-level2"
-                      placeholder="City"
-                    />
-                  </div>
-                  <div class="field">
-                    <label for="travel-addr-state">State <span aria-hidden="true">*</span></label>
-                    <input
-                      type="text"
-                      id="travel-addr-state"
-                      name="travel-addr-state"
-                      autocomplete="address-level1"
-                      maxlength="2"
-                      class="house-address-input-state"
-                      placeholder="CT"
-                    />
-                  </div>
-                  <div class="field">
-                    <label for="travel-addr-zip">ZIP <span aria-hidden="true">*</span></label>
-                    <input
-                      type="text"
-                      id="travel-addr-zip"
-                      name="travel-addr-zip"
-                      autocomplete="postal-code"
-                      inputmode="numeric"
-                      class="house-address-input-zip"
-                      placeholder="06360"
-                      maxlength="10"
-                      pattern="[0-9]{5}(-[0-9]{4})?"
-                    />
-                  </div>
-                </div>
-                <p class="house-address-hint" id="travel-addr-maps-hint" hidden>
-                  Start typing your street address to see suggestions.
+                <input type="hidden" id="travel-addr-unit" name="travel-addr-unit" value="" />
+                <input type="hidden" id="travel-addr-city" name="travel-addr-city" value="" />
+                <input type="hidden" id="travel-addr-state" name="travel-addr-state" value="" />
+                <input type="hidden" id="travel-addr-zip" name="travel-addr-zip" value="" />
+                <p class="house-address-hint" id="travel-addr-maps-hint">
+                  Pick an address from the suggestions for accurate travel fees.
                 </p>
                 <small class="house-address-note"
                   >We need your full location so your stylist can travel to you. Travel bookings require stylist approval.</small
@@ -205,72 +161,26 @@
 
               <p class="booking-travel-fee-preview" id="travel-fee-preview" hidden aria-live="polite"></p>
 
-              <div class="field house-address-block" id="house-address-field-wrap" hidden>
+              <div class="field house-address-block house-address-block--autocomplete" id="house-address-field-wrap" hidden>
               <fieldset class="house-address-fields">
-                <legend class="house-address-legend">House-call service address <span aria-hidden="true">*</span></legend>
-                <div class="field">
-                  <label for="house-addr-street">Street address <span aria-hidden="true">*</span></label>
+                <div class="field house-address-search">
+                  <label for="house-addr-street">Your address <span aria-hidden="true">*</span></label>
                   <input
                     type="text"
                     id="house-addr-street"
                     name="house-addr-street"
-                    autocomplete="address-line1"
+                    autocomplete="off"
                     inputmode="text"
                     placeholder="Start typing your address…"
+                    aria-describedby="house-addr-maps-hint"
                   />
                 </div>
-                <div class="field">
-                  <label for="house-addr-unit">Apartment / unit <span class="house-address-optional">(optional)</span></label>
-                  <input
-                    type="text"
-                    id="house-addr-unit"
-                    name="house-addr-unit"
-                    autocomplete="address-line2"
-                    placeholder="Apt, suite, unit, etc."
-                  />
-                </div>
-                <div class="house-address-grid">
-                  <div class="field">
-                    <label for="house-addr-city">City <span aria-hidden="true">*</span></label>
-                    <input
-                      type="text"
-                      id="house-addr-city"
-                      name="house-addr-city"
-                      autocomplete="address-level2"
-                      placeholder="City"
-                    />
-                  </div>
-                  <div class="field">
-                    <label for="house-addr-state">State <span aria-hidden="true">*</span></label>
-                    <input
-                      type="text"
-                      id="house-addr-state"
-                      name="house-addr-state"
-                      autocomplete="address-level1"
-                      maxlength="2"
-                      class="house-address-input-state"
-                      placeholder="CT"
-                      aria-describedby="house-addr-state-hint"
-                    />
-                    <span id="house-addr-state-hint" class="visually-hidden">Two-letter state code, e.g. CT</span>
-                  </div>
-                  <div class="field">
-                    <label for="house-addr-zip">ZIP <span aria-hidden="true">*</span></label>
-                    <input
-                      type="text"
-                      id="house-addr-zip"
-                      name="house-addr-zip"
-                      autocomplete="postal-code"
-                      inputmode="numeric"
-                      class="house-address-input-zip"
-                      placeholder="06360"
-                      maxlength="10"
-                      pattern="[0-9]{5}(-[0-9]{4})?"
-                    />
-                  </div>
-                </div>
+                <input type="hidden" id="house-addr-unit" name="house-addr-unit" value="" />
+                <input type="hidden" id="house-addr-city" name="house-addr-city" value="" />
+                <input type="hidden" id="house-addr-state" name="house-addr-state" value="" />
+                <input type="hidden" id="house-addr-zip" name="house-addr-zip" value="" />
                 <p class="house-address-hint" id="house-addr-maps-hint" hidden>
-                  Add <code>googleMapsApiKey</code> in <code>booking-config.local.js</code> for address suggestions as you type.
+                  Add <code>googleMapsApiKey</code> in booking config for address suggestions.
                 </p>
                 <small class="house-address-note"
                   >We need your full location for house calls. Details may be confirmed before your appointment.</small
