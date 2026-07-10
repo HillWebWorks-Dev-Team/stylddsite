@@ -594,41 +594,62 @@
     });
   }
 
-  function updateTravelFeePreviewText() {
+  function setTravelFeePreview(state, html) {
     var preview = document.getElementById('travel-fee-preview');
     if (!preview) return;
-    if (!isTravelBooking()) {
+    preview.className = 'booking-travel-fee-preview' + (state ? ' is-' + state : '');
+    if (!state) {
       preview.hidden = true;
-      preview.textContent = '';
+      preview.innerHTML = '';
       return;
     }
     preview.hidden = false;
+    preview.innerHTML = html || '';
+  }
+
+  function updateTravelFeePreviewText() {
+    if (!isTravelBooking()) {
+      setTravelFeePreview('', '');
+      return;
+    }
     if (travelFeeLoading) {
-      preview.textContent = 'Calculating travel fee…';
+      setTravelFeePreview('loading', 'Calculating travel fee…');
       return;
     }
     if (travelFeeError) {
-      preview.textContent = travelFeeError;
+      setTravelFeePreview('error', travelFeeError);
       return;
     }
     if (travelFeeUsd > 0) {
       var milesText =
         travelDistanceMiles != null
-          ? ' (' + travelDistanceMiles.toFixed(1) + ' mi)'
+          ? '<span class="booking-travel-fee-preview__meta">' + travelDistanceMiles.toFixed(1) + ' mi</span>'
           : '';
-      preview.textContent = 'Estimated travel fee: ' + moneyPrecise(travelFeeUsd) + milesText;
+      setTravelFeePreview(
+        'ready',
+        '<span class="booking-travel-fee-preview__label">Estimated travel fee</span>' +
+          '<span class="booking-travel-fee-preview__amount">' +
+          moneyPrecise(travelFeeUsd) +
+          '</span>' +
+          milesText,
+      );
       return;
     }
     if (travelStylist && travelStylist.feeMode === 'per_mile') {
-      preview.textContent = 'Enter your full address to see your travel fee.';
+      setTravelFeePreview('hint', 'Enter your full address to see your travel fee.');
       return;
     }
     if (travelStylist && travelStylist.feeMode === 'flat' && travelFeeUsd > 0) {
-      preview.textContent = 'Travel fee: ' + moneyPrecise(travelFeeUsd);
+      setTravelFeePreview(
+        'ready',
+        '<span class="booking-travel-fee-preview__label">Travel fee</span>' +
+          '<span class="booking-travel-fee-preview__amount">' +
+          moneyPrecise(travelFeeUsd) +
+          '</span>',
+      );
       return;
     }
-    preview.textContent = '';
-    preview.hidden = true;
+    setTravelFeePreview('', '');
   }
 
   function refreshTravelFee() {
