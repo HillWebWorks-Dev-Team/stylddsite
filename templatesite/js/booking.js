@@ -101,7 +101,6 @@
   var travelFeeLoading = false;
   var travelFeeError = '';
   var travelFeeDebounceTimer = null;
-  var mapsLoadPromise = null;
 
   function money(n) {
     return '$' + (Math.round(Number(n) || 0)).toFixed(0);
@@ -280,7 +279,103 @@
     });
   }
 
-  var addressAutocompleteByPrefix = {};
+  var addressAutocompleteBound = {};
+
+  function fetchAddressSuggestions(query) {
+    if (!query || query.length < 3) return Promise.resolve([]);
+    return edgeFunction('booking-places', {
+      action: 'autocomplete',
+      input: query,
+    }).then(function (data) {
+      if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+        throw new Error(data.error_message || data.error || 'Address lookup failed.');
+      }
+      return (data.predictions || []).map(function (prediction) {
+        return {
+          placeId: prediction.place_id,
+          description: prediction.description,
+        };
+      });
+    });
+  }
+
+  function fetchPlaceDetails(placeId) {
+    return edgeFunction('booking-places', {
+      action: 'details',
+      placeId: placeId,
+    }).then(function (data) {
+      if (data.status !== 'OK' || !data.result) {
+        throw new Error(data.error_message || data.error || 'Could not load address details.');
+      }
+      return data.result;
+    });
+  }
+
+  function ensureSuggestionList(prefix) {
+    var listId = prefix + '-suggestions';
+    var existing = document.getElementById(listId);
+    if (existing) return existing;
+    var streetEl = document.getElementById(prefix + '-street');
+    var parent = streetEl && streetEl.closest('.house-address-search');
+    if (!parent) return null;
+    var list = document.createElement('div');
+    list.id = listId;
+    list.className = 'booking-address-suggestions';
+    list.hidden = true;
+    list.setAttribute('role', 'listbox');
+    parent.appendChild(list);
+    return list;
+  }
+
+  function hideAddressSuggestions(prefix) {
+    var list = document.getElementById(prefix + '-suggestions');
+    var streetEl = document.getElementById(prefix + '-street');
+    if (list) list.hidden = true;
+    if (streetEl) streetEl.setAttribute('aria-expanded', 'false');
+  }
+
+  function renderAddressSuggestions(prefix, items) {
+    var list = ensureSuggestionList(prefix);
+    var streetEl = document.getElementById(prefix + '-street');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!items.length) {
+      list.hidden = true;
+      if (streetEl) streetEl.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    items.forEach(function (item) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'booking-address-suggestions__item';
+      btn.setAttribute('role', 'option');
+      btn.textContent = item.description;
+      btn.addEventListener('mousedown', function (event) {
+        event.preventDefault();
+      });
+      btn.addEventListener('click', function () {
+        selectAddressSuggestion(prefix, item.placeId);
+      });
+      list.appendChild(btn);
+    });
+    list.hidden = false;
+    if (streetEl) streetEl.setAttribute('aria-expanded', 'true');
+  }
+
+  function selectAddressSuggestion(prefix, placeId) {
+    fetchPlaceDetails(placeId)
+      .then(function (place) {
+        var parts = parseGoogleAddressComponents(place.address_components);
+        applyParsedAddress(prefix, parts, place.formatted_address || '');
+        hideAddressSuggestions(prefix);
+        scheduleTravelFeeRefresh();
+      })
+      .catch(function (err) {
+        hideAddressSuggestions(prefix);
+        travelFeeError = (err && err.message) || 'Could not load that address.';
+        updateTravelFeePreviewText();
+      });
+  }
 
   function parseGoogleAddressComponents(components) {
     var parts = { street: '', unit: '', city: '', state: '', zip: '' };
@@ -324,40 +419,57 @@
   }
 
   function bindAddressAutocomplete(prefix) {
+    if (addressAutocompleteBound[prefix]) return;
     var streetEl = document.getElementById(prefix + '-street');
-    if (!streetEl || addressAutocompleteByPrefix[prefix]) return;
-    if (!getGoogleMapsApiKey()) return;
+    if (!streetEl) return;
+    if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) return;
 
-    if (streetEl.dataset.addressInputBound !== '1') {
-      streetEl.dataset.addressInputBound = '1';
-      streetEl.addEventListener('input', function () {
-        clearParsedAddress(prefix);
-        scheduleTravelFeeRefresh();
-      });
-    }
+    addressAutocompleteBound[prefix] = true;
+    streetEl.setAttribute('autocomplete', 'off');
+    streetEl.setAttribute('placeholder', 'Start typing your address…');
+    streetEl.setAttribute('aria-autocomplete', 'list');
+    streetEl.setAttribute('aria-expanded', 'false');
+    streetEl.setAttribute('aria-controls', prefix + '-suggestions');
 
-    ensureGoogleMapsLoaded()
-      .then(function () {
-        if (!streetEl.isConnected || addressAutocompleteByPrefix[prefix]) return;
-        streetEl.setAttribute('autocomplete', 'off');
-        streetEl.setAttribute('placeholder', 'Start typing your address…');
-        var autocomplete = new google.maps.places.Autocomplete(streetEl, {
-          types: ['address'],
-          componentRestrictions: { country: 'us' },
-          fields: ['address_components', 'formatted_address'],
+    var debounceTimer = null;
+
+    streetEl.addEventListener('input', function () {
+      clearParsedAddress(prefix);
+      scheduleTravelFeeRefresh();
+      var query = streetEl.value.trim();
+      if (debounceTimer) clearTimeout(debounceTimer);
+      if (query.length < 3) {
+        hideAddressSuggestions(prefix);
+        return;
+      }
+      debounceTimer = setTimeout(function () {
+        fetchAddressSuggestions(query)
+          .then(function (items) {
+            renderAddressSuggestions(prefix, items);
+          })
+          .catch(function () {
+            hideAddressSuggestions(prefix);
+          });
+      }, 320);
+    });
+
+    streetEl.addEventListener('blur', function () {
+      setTimeout(function () {
+        hideAddressSuggestions(prefix);
+      }, 180);
+    });
+
+    streetEl.addEventListener('focus', function () {
+      var query = streetEl.value.trim();
+      if (query.length < 3) return;
+      fetchAddressSuggestions(query)
+        .then(function (items) {
+          renderAddressSuggestions(prefix, items);
+        })
+        .catch(function () {
+          hideAddressSuggestions(prefix);
         });
-        addressAutocompleteByPrefix[prefix] = autocomplete;
-        autocomplete.addListener('place_changed', function () {
-          var place = autocomplete.getPlace();
-          if (!place || !place.address_components) return;
-          var parts = parseGoogleAddressComponents(place.address_components);
-          applyParsedAddress(prefix, parts, place.formatted_address || '');
-          scheduleTravelFeeRefresh();
-        });
-      })
-      .catch(function () {
-        /* manual entry still works without suggestions */
-      });
+    });
   }
 
   function syncAddressAutocompleteBindings() {
@@ -368,14 +480,13 @@
   }
 
   function updateAddressAutocompleteHints(showHouse, showTravelAddr) {
-    var hasKey = !!getGoogleMapsApiKey();
     var houseHint = document.getElementById('house-addr-maps-hint');
     var travelHint = document.getElementById('travel-addr-maps-hint');
-    if (houseHint) houseHint.hidden = !showHouse || hasKey;
+    if (houseHint) houseHint.hidden = !showHouse;
     if (travelHint) {
       travelHint.hidden = !showTravelAddr;
-      if (showTravelAddr && hasKey) {
-        travelHint.textContent = 'Pick an address from the suggestions for accurate travel fees.';
+      if (showTravelAddr) {
+        travelHint.textContent = 'Start typing, then pick an address from the list.';
       }
     }
   }
@@ -393,67 +504,30 @@
     return formatted || '';
   }
 
-  function ensureGoogleMapsLoaded() {
-    var key = getGoogleMapsApiKey();
-    if (!key) {
-      return Promise.reject(new Error('Google Maps API key is not configured.'));
-    }
-    if (window.google && window.google.maps) return Promise.resolve();
-    if (mapsLoadPromise) return mapsLoadPromise;
-    mapsLoadPromise = new Promise(function (resolve, reject) {
-      var script = document.createElement('script');
-      script.src =
-        'https://maps.googleapis.com/maps/api/js?key=' +
-        encodeURIComponent(key) +
-        '&libraries=places';
-      script.async = true;
-      script.defer = true;
-      script.onload = function () {
-        resolve();
-      };
-      script.onerror = function () {
-        reject(new Error('Could not load Google Maps.'));
-      };
-      document.head.appendChild(script);
-    });
-    return mapsLoadPromise;
-  }
-
   function fetchTravelDistanceMiles(destinationAddress) {
-    return ensureGoogleMapsLoaded().then(function () {
-      return new Promise(function (resolve, reject) {
-        var service = new google.maps.DistanceMatrixService();
-        var origin = travelHomeOrigin();
-        var origins = [];
-        if (origin && typeof origin === 'object') {
-          origins.push(new google.maps.LatLng(origin.lat, origin.lng));
-        } else if (origin) {
-          origins.push(origin);
-        } else {
-          reject(new Error('Stylist home base is not configured.'));
-          return;
-        }
-        service.getDistanceMatrix(
-          {
-            origins: origins,
-            destinations: [destinationAddress],
-            travelMode: google.maps.TravelMode.DRIVING,
-            unitSystem: google.maps.UnitSystem.IMPERIAL,
-          },
-          function (response, status) {
-            if (status !== 'OK' || !response || !response.rows || !response.rows[0]) {
-              reject(new Error('Could not calculate travel distance.'));
-              return;
-            }
-            var element = response.rows[0].elements && response.rows[0].elements[0];
-            if (!element || element.status !== 'OK' || !element.distance) {
-              reject(new Error('Could not calculate travel distance for that address.'));
-              return;
-            }
-            resolve(element.distance.value / 1609.344);
-          },
-        );
-      });
+    var origin = travelHomeOrigin();
+    var originsParam = '';
+    if (origin && typeof origin === 'object') {
+      originsParam = origin.lat + ',' + origin.lng;
+    } else if (origin) {
+      originsParam = origin;
+    } else {
+      return Promise.reject(new Error('Stylist home base is not configured.'));
+    }
+    return edgeFunction('booking-places', {
+      action: 'distancematrix',
+      origins: originsParam,
+      destinations: destinationAddress,
+    }).then(function (data) {
+      if (data.status !== 'OK') {
+        throw new Error(data.error_message || data.error || 'Could not calculate travel distance.');
+      }
+      var row = data.rows && data.rows[0];
+      var element = row && row.elements && row.elements[0];
+      if (!element || element.status !== 'OK' || !element.distance) {
+        throw new Error('Could not calculate travel distance for that address.');
+      }
+      return element.distance.value / 1609.344;
     });
   }
 
@@ -513,13 +587,6 @@
 
     var address = getServiceAddress();
     if (!isAddressComplete(address)) {
-      updateTravelFeePreviewText();
-      updatePricingDisplay();
-      return Promise.resolve();
-    }
-
-    if (!getGoogleMapsApiKey()) {
-      travelFeeError = 'Per-mile travel fees need a Google Maps API key on this site.';
       updateTravelFeePreviewText();
       updatePricingDisplay();
       return Promise.resolve();
@@ -598,12 +665,6 @@
     });
 
     updateTravelUi();
-
-    if (getGoogleMapsApiKey()) {
-      ensureGoogleMapsLoaded().catch(function () {
-        /* suggestions optional */
-      });
-    }
   }
 
   function formatDurationLabel(minutes) {
