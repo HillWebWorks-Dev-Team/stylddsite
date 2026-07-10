@@ -760,8 +760,6 @@
     var aboutBlock = document.getElementById('profile-about-block');
     var policyBlock = document.getElementById('profile-policy-block');
     var policyEl = document.getElementById('profile-policy-body');
-    var bookIntro = document.getElementById('profile-book-intro');
-    var profileInfo = document.getElementById('profile-info-block');
 
     var policyText = (content.bookingPolicy || '').trim();
     var bullets = policyText
@@ -791,15 +789,6 @@
       if (aboutBodyEl) aboutBodyEl.textContent = aboutText;
     }
 
-    if (isBookPage() && bookIntro) {
-      bookIntro.hidden = aboutHidden && policiesHidden;
-    }
-
-    if (profileInfo && isSplit && !isCoverSplash) {
-      var anyVisible = !aboutHidden || !policiesHidden;
-      profileInfo.hidden = !anyVisible;
-      profileInfo.style.display = anyVisible ? '' : 'none';
-    }
   }
 
   function applySectionVisibility(content) {
@@ -1083,16 +1072,18 @@
     return String((theme && theme.heroLayout) || 'split').trim() === 'cover';
   }
 
+  function isHeroAboutBesidePhotoEnabled(theme) {
+    return themeFlagEnabled(theme, 'heroAboutBesidePhoto', true);
+  }
+
   function resolveHeroSidebarSections(order, theme, options) {
     options = options || {};
     var treatAsSplit = options.treatAsSplit === true;
     var heroLayout = String((theme && theme.heroLayout) || 'split').trim();
+    if (!isHeroAboutBesidePhotoEnabled(theme)) return [];
     if (isCoverLayout(theme) && !treatAsSplit) return [];
     if (heroLayout !== 'split' && !treatAsSplit) return [];
-    if (!treatAsSplit) {
-      if (!themeFlagEnabled(theme, 'heroAboutBesidePhoto', true)) return [];
-      if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return [];
-    }
+    if (!treatAsSplit && !themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return [];
 
     var firstHeroIndex = -1;
     order.forEach(function (id, index) {
@@ -1122,12 +1113,10 @@
     options = options || {};
     var treatAsSplit = options.treatAsSplit === true;
     var heroLayout = String((theme && theme.heroLayout) || 'split').trim();
+    if (!isHeroAboutBesidePhotoEnabled(theme)) return false;
     if (isCoverLayout(theme) && !treatAsSplit) return false;
     if (heroLayout !== 'split' && !treatAsSplit) return false;
-    if (!treatAsSplit) {
-      if (!themeFlagEnabled(theme, 'heroAboutBesidePhoto', true)) return false;
-      if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return false;
-    }
+    if (!treatAsSplit && !themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return false;
     if (resolveHeroSidebarSections(order, theme, options).length) return false;
     return order.some(function (id) {
       return HERO_INLINE_SECTION_IDS.indexOf(id) !== -1;
@@ -1329,13 +1318,23 @@
       heroGrid.classList.remove('profile-hero__grid--photo-only');
     }
 
-    if (profileInfo && isSplitHome && !profileGroupInMain) {
-      var showIntro = sidebarIds.some(function (sectionId) {
+    var aboutBesideOn = isHeroAboutBesidePhotoEnabled(theme);
+
+    function hasVisibleSidebarBlock() {
+      return sidebarIds.some(function (sectionId) {
         var block = getMainSectionElement(sectionId);
         return block && !block.hidden;
       });
+    }
+
+    if (profileInfo && isSplitHome && !profileGroupInMain) {
+      var showIntro = aboutBesideOn && hasVisibleSidebarBlock();
       profileInfo.hidden = !showIntro;
       profileInfo.style.display = showIntro ? '' : 'none';
+    } else if (profileInfo && isBookPage() && !profileGroupInMain) {
+      var showBookIntro = aboutBesideOn && hasVisibleSidebarBlock();
+      profileInfo.hidden = !showBookIntro;
+      profileInfo.style.display = showBookIntro ? '' : 'none';
     } else if (profileInfo && !profileGroupInMain) {
       profileInfo.hidden = false;
       profileInfo.style.display = '';
@@ -1350,6 +1349,8 @@
       introShell.hidden = profileInfo.hidden || profileInfo.children.length === 0;
     } else if (introShell && profileGroupInMain) {
       introShell.hidden = true;
+    } else if (introShell && isBookPage() && bookIntro) {
+      introShell.hidden = bookIntro.hidden;
     }
 
     order.forEach(function (sectionId) {
