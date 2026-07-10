@@ -1651,6 +1651,8 @@
     var base = effectiveStyleBase(style);
     var addon = getSelectedAddon(style);
     var addonPrice = addon && typeof addon.price === 'number' ? addon.price : 0;
+    var travelExtraMinutes =
+      isTravelBooking() && travelStylist ? Math.max(0, Number(travelStylist.extraTravelMinutes) || 0) : 0;
     var duration = durationMinutesForStyle(style) + travelExtraMinutes;
     var rawSubtotal = base + addonPrice;
     var promoDiscount =
@@ -1661,8 +1663,6 @@
     var total = Math.max(0, rawSubtotal - promoDiscount);
     var productsSubtotal = getProductsSubtotal();
     var travelFee = isTravelBooking() ? Math.max(0, Number(travelFeeUsd) || 0) : 0;
-    var travelExtraMinutes =
-      isTravelBooking() && travelStylist ? Math.max(0, Number(travelStylist.extraTravelMinutes) || 0) : 0;
     var grandTotal = total + productsSubtotal + travelFee;
     var mode = paymentSettings.mode || 'none';
     var deposit = 0;
@@ -2283,13 +2283,16 @@
         paintSlots(unavailable, dateIso, pricing);
         return unavailable;
       })
-      .catch(function () {
+      .catch(function (err) {
         if (token !== slotsLoadToken) return null;
         cachedUnavailable = null;
         cachedUnavailableDateIso = null;
         clearSelectedSlot();
+        var message =
+          (err && err.message) ||
+          'Could not load availability. Please refresh the page and try again.';
         slotsContainer.innerHTML =
-          '<p class="booking-slots-placeholder">Could not load availability. Please refresh the page and try again.</p>';
+          '<p class="booking-slots-placeholder">' + escapeHtml(message) + '</p>';
         return null;
       });
   }
