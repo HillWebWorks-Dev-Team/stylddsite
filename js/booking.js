@@ -277,6 +277,7 @@
       var el = document.getElementById(prefix + '-' + part);
       if (el) el.value = '';
     });
+    markAddressResolved(prefix, false);
   }
 
   var addressAutocompleteBound = {};
@@ -309,6 +310,48 @@
       }
       return data.result;
     });
+  }
+
+  function fetchAddressGeocode(query) {
+    return edgeFunction('booking-places', {
+      action: 'geocode',
+      query: query,
+    }).then(function (data) {
+      if (data.status !== 'OK' || !data.result) {
+        throw new Error(data.error_message || data.error || 'Could not find that address.');
+      }
+      return data.result;
+    });
+  }
+
+  function markAddressResolved(prefix, resolved) {
+    var streetEl = document.getElementById(prefix + '-street');
+    if (streetEl) streetEl.dataset.addressResolved = resolved ? '1' : '';
+  }
+
+  function isAddressResolved(prefix) {
+    var streetEl = document.getElementById(prefix + '-street');
+    if (streetEl && streetEl.dataset.addressResolved === '1') return true;
+    return isAddressComplete(readAddressFields(prefix));
+  }
+
+  function applyResolvedPlace(prefix, place) {
+    var parts = parseGoogleAddressComponents(place.address_components);
+    applyParsedAddress(prefix, parts, place.formatted_address || '');
+    markAddressResolved(prefix, isAddressComplete(readAddressFields(prefix)));
+  }
+
+  function resolveTypedAddress(prefix, query) {
+    return fetchAddressGeocode(query)
+      .then(function (place) {
+        applyResolvedPlace(prefix, place);
+        hideAddressSuggestions(prefix);
+        scheduleTravelFeeRefresh();
+      })
+      .catch(function (err) {
+        travelFeeError = (err && err.message) || 'Could not find that address.';
+        updateTravelFeePreviewText();
+      });
   }
 
   function ensureSuggestionList(prefix) {
@@ -365,8 +408,7 @@
   function selectAddressSuggestion(prefix, placeId) {
     fetchPlaceDetails(placeId)
       .then(function (place) {
-        var parts = parseGoogleAddressComponents(place.address_components);
-        applyParsedAddress(prefix, parts, place.formatted_address || '');
+        applyResolvedPlace(prefix, place);
         hideAddressSuggestions(prefix);
         scheduleTravelFeeRefresh();
       })
@@ -432,6 +474,7 @@
     streetEl.setAttribute('aria-controls', prefix + '-suggestions');
 
     var debounceTimer = null;
+    var resolveTimer = null;
 
     streetEl.addEventListener('input', function () {
       clearParsedAddress(prefix);
@@ -447,8 +490,10 @@
           .then(function (items) {
             renderAddressSuggestions(prefix, items);
           })
-          .catch(function () {
+          .catch(function (err) {
             hideAddressSuggestions(prefix);
+            travelFeeError = (err && err.message) || 'Address lookup failed.';
+            updateTravelFeePreviewText();
           });
       }, 320);
     });
@@ -456,6 +501,13 @@
     streetEl.addEventListener('blur', function () {
       setTimeout(function () {
         hideAddressSuggestions(prefix);
+        if (isAddressResolved(prefix)) return;
+        var query = streetEl.value.trim();
+        if (query.length < 8) return;
+        if (resolveTimer) clearTimeout(resolveTimer);
+        resolveTimer = setTimeout(function () {
+          resolveTypedAddress(prefix, query);
+        }, 180);
       }, 180);
     });
 
@@ -483,12 +535,7 @@
     var houseHint = document.getElementById('house-addr-maps-hint');
     var travelHint = document.getElementById('travel-addr-maps-hint');
     if (houseHint) houseHint.hidden = !showHouse;
-    if (travelHint) {
-      travelHint.hidden = !showTravelAddr;
-      if (showTravelAddr) {
-        travelHint.textContent = 'Start typing, then pick an address from the list.';
-      }
-    }
+    if (travelHint) travelHint.hidden = true;
   }
 
   function travelHomeOrigin() {
@@ -573,27 +620,16 @@
     var address = getServiceAddress();
     var addressReady = isAddressComplete(address);
 
-    if (addressReady && travelStylist && travelStylist.feeMode === 'flat' && travelFeeUsd > 0) {
-      setTravelFeePreviewText('Travel fee: ' + moneyPrecise(travelFeeUsd), true);
-      return;
-    }
-
     if (addressReady && travelFeeUsd > 0) {
       var milesText =
         travelDistanceMiles != null
           ? ' (' + travelDistanceMiles.toFixed(1) + ' mi)'
           : '';
-      setTravelFeePreviewText('Estimated travel fee: ' + moneyPrecise(travelFeeUsd) + milesText, true);
-      return;
-    }
-
-    if (travelStylist && travelStylist.feeMode === 'flat') {
-      setTravelFeePreviewText('Pick an address from the list to see your travel fee.', true);
-      return;
-    }
-
-    if (travelStylist && travelStylist.feeMode === 'per_mile') {
-      setTravelFeePreviewText('Pick an address from the list to calculate your per-mile travel fee.', true);
+      var feeLabel =
+        travelStylist && travelStylist.feeMode === 'flat'
+          ? 'Travel fee: '
+          : 'Estimated travel fee: ';
+      setTravelFeePreviewText(feeLabel + moneyPrecise(travelFeeUsd) + milesText, true);
       return;
     }
 

@@ -123,6 +123,50 @@ async function placeDetailsPlacesNew(placeId: string, apiKey: string) {
   };
 }
 
+async function geocodePlacesNew(query: string, apiKey: string) {
+  const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'places.formattedAddress,places.addressComponents,places.id',
+    },
+    body: JSON.stringify({
+      textQuery: query,
+      regionCode: 'US',
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    return {
+      status: 'REQUEST_DENIED',
+      error_message: googleErrorMessage(data, 'Could not find that address.'),
+    };
+  }
+
+  const place = data.places && data.places[0];
+  if (!place) {
+    return {
+      status: 'ZERO_RESULTS',
+      error_message: 'Could not find that address.',
+    };
+  }
+
+  return {
+    status: 'OK',
+    result: {
+      formatted_address: place.formattedAddress || '',
+      address_components: (place.addressComponents || []).map((component: Record<string, unknown>) => ({
+        long_name: component.longText || '',
+        short_name: component.shortText || '',
+        types: component.types || [],
+      })),
+      place_id: String(place.id || '').replace(/^places\//, ''),
+    },
+  };
+}
+
 async function distanceMatrixRoutesNew(origins: string, destinations: string, apiKey: string) {
   const response = await fetch('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', {
     method: 'POST',
@@ -200,6 +244,14 @@ Deno.serve(async (req) => {
     const placeId = String(body.placeId || '').trim();
     if (!placeId) return json({ error: 'placeId is required.' }, 400);
     return json(await placeDetailsPlacesNew(placeId, apiKey));
+  }
+
+  if (action === 'geocode') {
+    const query = String(body.query || body.input || '').trim();
+    if (query.length < 5) {
+      return json({ status: 'ZERO_RESULTS', error_message: 'Enter a full address.' });
+    }
+    return json(await geocodePlacesNew(query, apiKey));
   }
 
   if (action === 'distancematrix') {

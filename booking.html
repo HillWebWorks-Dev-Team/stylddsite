@@ -143,16 +143,14 @@
                     autocomplete="off"
                     inputmode="text"
                     placeholder="Start typing your address…"
-                    aria-describedby="travel-addr-maps-hint"
+                    aria-describedby="travel-fee-preview"
                   />
                 </div>
                 <input type="hidden" id="travel-addr-unit" name="travel-addr-unit" value="" />
                 <input type="hidden" id="travel-addr-city" name="travel-addr-city" value="" />
                 <input type="hidden" id="travel-addr-state" name="travel-addr-state" value="" />
                 <input type="hidden" id="travel-addr-zip" name="travel-addr-zip" value="" />
-                <p class="house-address-hint" id="travel-addr-maps-hint">
-                  Start typing, then pick an address from the list.
-                </p>
+                <p class="house-address-hint" id="travel-addr-maps-hint" hidden></p>
                 <p class="booking-travel-fee-preview" id="travel-fee-preview" hidden aria-live="polite"></p>
                 <small class="house-address-note"
                   >We need your full location so your stylist can travel to you. Travel bookings require stylist approval.</small
@@ -544,7 +542,7 @@
           'avail.src = "/js/booking-availability.js?v=4";' +
           'avail.onload = function () {' +
           'const booking = document.createElement("script");' +
-          'booking.src = "/js/booking.js?v=78";' +
+          'booking.src = "/js/booking.js?v=79";' +
           'booking.defer = true;' +
           'document.body.appendChild(booking);' +
           '};' +
