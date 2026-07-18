@@ -40,6 +40,49 @@
     return content.hiddenLocationParts.indexOf(part) !== -1;
   }
 
+  function isSectionSubtitleHidden(content, sectionId) {
+    if (!content || !sectionId) return false;
+    if (Array.isArray(content.hiddenSectionSubtitles)) {
+      return content.hiddenSectionSubtitles.indexOf(sectionId) !== -1;
+    }
+    if (Array.isArray(content.hidden_section_subtitles)) {
+      return content.hidden_section_subtitles.indexOf(sectionId) !== -1;
+    }
+    return false;
+  }
+
+  function applySectionHeadAndBlurb(options) {
+    options = options || {};
+    var titleEl = options.titleEl;
+    var blurbEl = options.blurbEl;
+    var headEl = options.headEl;
+    var titleText = options.titleText;
+    var blurbText = options.blurbText;
+    var sectionId = options.sectionId;
+    var content = options.content;
+
+    var blurb = String(blurbText == null ? '' : blurbText).trim();
+    var hideSubtitle =
+      !blurb || (sectionId && isSectionSubtitleHidden(content, sectionId));
+
+    if (titleEl && titleText != null) {
+      var title = String(titleText).trim();
+      if (title) titleEl.textContent = title;
+    }
+    if (blurbEl) {
+      blurbEl.textContent = blurb;
+      blurbEl.hidden = hideSubtitle;
+    }
+    if (titleEl) {
+      titleEl.hidden = hideSubtitle;
+    }
+    if (headEl) {
+      headEl.hidden = hideSubtitle;
+    }
+
+    return !hideSubtitle;
+  }
+
   function formatMenuMoney(amount) {
     return '$' + (Math.round(Number(amount) || 0)).toFixed(0);
   }
@@ -1385,12 +1428,22 @@
     }
 
     if (titleEl) {
-      titleEl.textContent = String(content.reelsTitle || 'Previous work').trim() || 'Previous work';
-    }
-    if (blurbEl) {
-      var blurb = String(content.reelsBlurb || '').trim();
-      blurbEl.textContent = blurb;
-      blurbEl.hidden = !blurb;
+      applySectionHeadAndBlurb({
+        titleEl: titleEl,
+        blurbEl: blurbEl,
+        headEl: titleEl.closest('.profile-portfolio-head__text'),
+        titleText: String(content.reelsTitle || 'Previous work').trim() || 'Previous work',
+        blurbText: content.reelsBlurb,
+        sectionId: 'portfolio',
+        content: content,
+      });
+    } else if (blurbEl) {
+      applySectionHeadAndBlurb({
+        blurbEl: blurbEl,
+        blurbText: content.reelsBlurb,
+        sectionId: 'portfolio',
+        content: content,
+      });
     }
 
     var hasMore = items.length > 5;
@@ -1487,14 +1540,15 @@
       locationSection.parentNode.insertBefore(section, locationSection);
     }
 
-    if (titleEl) {
-      titleEl.textContent = String(content.faqTitle || 'FAQ').trim() || 'FAQ';
-    }
-    if (blurbEl) {
-      var blurb = String(content.faqBlurb || '').trim();
-      blurbEl.textContent = blurb;
-      blurbEl.hidden = !blurb;
-    }
+    applySectionHeadAndBlurb({
+      titleEl: titleEl,
+      blurbEl: blurbEl,
+      headEl: titleEl && titleEl.closest('.profile-faq-head'),
+      titleText: String(content.faqTitle || 'FAQ').trim() || 'FAQ',
+      blurbText: content.faqBlurb,
+      sectionId: 'faq',
+      content: content,
+    });
 
     listEl.innerHTML = items
       .map(function (item) {
@@ -1556,12 +1610,15 @@
     }
 
     if (main) main.hidden = false;
-    if (titleEl) titleEl.textContent = title;
-    if (blurbEl) {
-      var blurb = String(content.reelsBlurb || '').trim();
-      blurbEl.textContent = blurb;
-      blurbEl.hidden = !blurb;
-    }
+    applySectionHeadAndBlurb({
+      titleEl: titleEl,
+      blurbEl: blurbEl,
+      headEl: titleEl && titleEl.closest('.profile-portfolio-head'),
+      titleText: title,
+      blurbText: content.reelsBlurb,
+      sectionId: 'portfolio',
+      content: content,
+    });
 
     grid.innerHTML = items
       .map(function (item, index) {
@@ -1860,12 +1917,15 @@
     }
 
     if (main) main.hidden = false;
-    if (titleEl) titleEl.textContent = title;
-    if (blurbEl) {
-      var blurb = String(content.productsBlurb || '').trim();
-      blurbEl.textContent = blurb;
-      blurbEl.hidden = !blurb;
-    }
+    applySectionHeadAndBlurb({
+      titleEl: titleEl,
+      blurbEl: blurbEl,
+      headEl: titleEl && titleEl.closest('.products-catalog-head'),
+      titleText: title,
+      blurbText: content.productsBlurb,
+      sectionId: 'products',
+      content: content,
+    });
 
     stopProductCardCarousels(grid);
     grid.innerHTML = items.map(buildProductCardHtml).join('');
@@ -1892,12 +1952,15 @@
     }
 
     if (main) main.hidden = false;
-    if (titleEl) titleEl.textContent = title;
-    if (blurbEl) {
-      var blurb = String(content.certificationsBlurb || '').trim();
-      blurbEl.textContent = blurb;
-      blurbEl.hidden = !blurb;
-    }
+    applySectionHeadAndBlurb({
+      titleEl: titleEl,
+      blurbEl: blurbEl,
+      headEl: titleEl && titleEl.closest('.certifications-catalog-head'),
+      titleText: title,
+      blurbText: content.certificationsBlurb,
+      sectionId: 'certifications',
+      content: content,
+    });
 
     grid.innerHTML = items
       .map(function (item, index) {
@@ -2102,9 +2165,16 @@
 
     // Menu
     var menuTitleEl = document.getElementById('profile-menu-title');
-    if (menuTitleEl) menuTitleEl.textContent = content.menuTitle || 'Menu';
     var menuBlurbEl = document.getElementById('profile-menu-blurb');
-    if (menuBlurbEl) menuBlurbEl.textContent = content.menuBlurb || '';
+    applySectionHeadAndBlurb({
+      titleEl: menuTitleEl,
+      blurbEl: menuBlurbEl,
+      headEl: menuTitleEl && menuTitleEl.closest('.profile-menu-head'),
+      titleText: content.menuTitle || 'Menu',
+      blurbText: content.menuBlurb,
+      sectionId: 'menu',
+      content: content,
+    });
 
     var serviceGrid = document.getElementById('profile-service-grid');
     if (serviceGrid) {

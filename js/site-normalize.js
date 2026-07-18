@@ -94,6 +94,7 @@ export function normalizeSiteContent(raw) {
     hiddenLocationParts: arr(r.hiddenLocationParts).filter(function (s) {
       return LOCATION_PARTS.indexOf(s) !== -1;
     }),
+    hiddenSectionSubtitles: arr(r.hiddenSectionSubtitles || r.hidden_section_subtitles).filter(Boolean),
     addressLine1: str(r.addressLine1),
     addressLine2: str(r.addressLine2),
     city: str(r.city),
