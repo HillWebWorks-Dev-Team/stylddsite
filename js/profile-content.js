@@ -446,22 +446,59 @@
     );
   }
 
-  function resetHeroLayout(heroSection, heroPhoto, photoWrap) {
+  function resetHeroLayoutState(heroSection, heroPhoto, photoWrap) {
     if (heroSection) {
+      heroSection.hidden = false;
       heroSection.classList.remove(
+        'profile-hero--cover',
         'profile-hero--stack',
         'profile-hero--minimal',
         'profile-hero--image-below',
+        'profile-hero--hidden',
       );
       heroSection.querySelectorAll('.profile-hero-stack').forEach(function (el) {
         el.remove();
       });
     }
+
+    document.body.classList.remove('page-home--cover', 'page-splash', 'page-cover-splash');
+    document.documentElement.classList.remove('page-splash', 'page-cover-splash');
+    setSplashContentHidden(false);
+    updateNavBookLink('/booking');
+
+    var nav = document.getElementById('profile-nav');
+    if (nav) nav.classList.remove('profile-nav--cover-splash');
+
+    var overlay = document.getElementById('profile-cover-overlay');
+    if (overlay) overlay.remove();
+
+    var heroGrid = document.querySelector('.profile-hero__grid');
+    if (heroGrid) {
+      heroGrid.classList.remove(
+        'profile-hero__grid--photo-only',
+        'profile-hero__grid--with-about',
+        'profile-hero__grid--no-photo',
+        'profile-hero__grid--in-main',
+      );
+    }
+
+    var aboutSlot = document.getElementById('profile-hero-about-slot');
+    var aboutSection = document.getElementById('profile-about-section');
+    var main = document.querySelector('#site-main-content main') || document.querySelector('main');
+    if (aboutSlot) aboutSlot.hidden = true;
+    if (aboutSection && aboutSlot && aboutSection.parentElement === aboutSlot && main) {
+      main.insertBefore(aboutSection, main.firstChild);
+    }
+
+    removeLegacyAboutPolicyDom();
+
     var headline = document.getElementById('profile-hero-headline');
     if (headline) headline.remove();
+
     if (heroPhoto) {
       heroPhoto.style.display = '';
       heroPhoto.style.backgroundImage = '';
+      heroPhoto.classList.remove('profile-photo__bg--blurred');
     }
     if (photoWrap) photoWrap.style.display = '';
   }
@@ -643,7 +680,14 @@
   }
 
   function isSplashPage() {
-    return document.body.classList.contains('page-home') && !isBookPage();
+    return document.body.classList.contains('page-cover-splash');
+  }
+
+  function resolveHeroLayout(theme) {
+    theme = theme && typeof theme === 'object' ? theme : {};
+    var raw = String(theme.heroLayout || theme.hero_layout || 'split').trim().toLowerCase();
+    var layouts = ['split', 'stack', 'cover', 'image-below', 'minimal'];
+    return layouts.indexOf(raw) !== -1 ? raw : 'split';
   }
 
   function updateNavBookLink(href) {
@@ -1048,7 +1092,7 @@
   }
 
   function isCoverLayout(theme) {
-    return String((theme && theme.heroLayout) || 'split').trim() === 'cover';
+    return resolveHeroLayout(theme) === 'cover';
   }
 
   function isHeroAboutBesidePhotoEnabled(theme) {
@@ -1060,7 +1104,7 @@
     theme = theme && typeof theme === 'object' ? theme : {};
     order = Array.isArray(order) ? order : [];
     if (isBookPage() || isCoverLayout(theme) || isSplashPage()) return false;
-    if (String(theme.heroLayout || 'split').trim() !== 'split') return false;
+    if (resolveHeroLayout(theme) !== 'split') return false;
     if (!isHeroAboutBesidePhotoEnabled(theme)) return false;
     if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return false;
     if (order.indexOf('aboutMe') !== 0) return false;
@@ -1105,7 +1149,7 @@
     var aboutSection = getMainSectionNode('aboutMe');
     var aboutSlot = document.getElementById('profile-hero-about-slot');
     var heroGrid = document.querySelector('.profile-hero__grid');
-    var isSplitHome = theme.heroLayout === 'split' && !isBookPage() && !isSplashPage();
+    var isSplitHome = resolveHeroLayout(theme) === 'split' && !isBookPage() && !isSplashPage();
 
     order.forEach(function (sectionId) {
       if (sectionId === 'aboutMe' && aboutBeside) return;
@@ -1784,15 +1828,15 @@
     var heroPhoto = document.getElementById('profile-hero-photo');
     var photoWrap = document.getElementById('profile-photo-wrap');
     var heroGrid = document.querySelector('.profile-hero__grid');
-    var isCoverTheme = theme.heroLayout === 'cover';
+    var heroLayout = resolveHeroLayout(theme);
+    var isCoverTheme = heroLayout === 'cover';
     var isCoverSplash = isCoverTheme && isSplashPage();
-    var isStack = theme.heroLayout === 'stack';
-    var isSplit = theme.heroLayout === 'split';
-    var isMinimal = theme.heroLayout === 'minimal';
-    var isImageBelow = theme.heroLayout === 'image-below';
+    var isStack = heroLayout === 'stack';
+    var isSplit = heroLayout === 'split';
+    var isMinimal = heroLayout === 'minimal';
+    var isImageBelow = heroLayout === 'image-below';
 
-    teardownCoverLayout(heroSection, heroPhoto);
-    resetHeroLayout(heroSection, heroPhoto, photoWrap);
+    resetHeroLayoutState(heroSection, heroPhoto, photoWrap);
 
     if (isBookPage()) {
       if (heroSection) heroSection.hidden = true;

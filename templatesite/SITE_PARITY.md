@@ -45,13 +45,13 @@ These two files implement **the same** ordering/hero rules. Any change to one **
 1. `src/data/siteContent.ts` (TypeScript, app repo)
 2. `js/profile-content.js` (JavaScript mirror, this repo)
 
-Functions that must match exactly:
+Functions that must match in **behavior** (preview TS may use different helper names):
 
-- `normalizeMainSectionOrder` / `mergeMainSectionOrder`
 - `resolveMainSectionOrder`
-- `resolveHeroSidebarSections`
-- `isHeroProfileGroupInMain` / `getHeroProfileGroupSectionIds`
+- `shouldPlaceAboutBesidePhoto` / hero sidebar (About Me **only** — not Policies)
 - `reorderMainSections` (live JS) ↔ `orderMainSections` (preview TS)
+- `resetHeroLayoutState` before applying `heroLayout`
+- `normalizeSiteTheme` on load (`heroLayout` / `hero_layout`, lowercase)
 
 After editing either file, diff the algorithms side by side and verify identical behavior.
 
@@ -69,18 +69,19 @@ Default order:
 ['aboutMe', 'policies', 'reviews', 'portfolio', 'menu', 'faq', 'visit']
 ```
 
-### DOM element map
+### DOM element map (live site)
 
-| Section ID | Element ID | Wrapper when moved to main |
-|------------|------------|----------------------------|
-| aboutMe | `#profile-about-block` | `.profile-ordered-block-section` |
-| policies | `#profile-policy-block` | `.profile-ordered-block-section` |
+| Section ID | Element ID | Notes |
+|------------|------------|-------|
+| aboutMe | `#profile-about-section` | May move to `#profile-hero-about-slot` on split home |
+| policies | `#profile-policies-section` | Always in `<main>` at order position |
 | reviews | `#profile-reviews-section` | (none) |
 | portfolio | `#profile-portfolio-section` | (none) |
 | menu | `#profile-menu-section` | (none) |
 | faq | `#profile-faq-section` | (none) |
 | visit | `#profile-location-section` | (none) |
-| profile grp | `#profile-header-main-section` | `.profile-header-main-section` |
+
+**Removed (do not reintroduce):** `#profile-about-block`, `#profile-policy-block`, `#profile-info-block`, `#profile-header-main-section`, `.profile-ordered-block-section` wraps for About/Policies.
 
 ### Normalization (`resolveMainSectionOrder`)
 
@@ -89,42 +90,27 @@ Default order:
 3. If result length ≠ 7, fall back to full default order.
 4. `hiddenSections` hides content but does **not** remove IDs from order.
 
-### Rule A — Hero sidebar vs main (split layout only)
+### Rule A — About Me beside photo (split home only)
 
 Applies when **all** of:
 
 - `heroLayout === 'split'`
-- `heroAboutBesidePhoto !== false` (default: true)
-- `heroPhotoEnabled !== false` (photo visible)
+- Not `/book`, not cover splash (`body.page-cover-splash` only — not all `page-home`)
+- `heroAboutBesidePhoto !== false`
+- `heroPhotoEnabled !== false`
+- `aboutMe` is **index 0** in `mainSectionOrder`
+- About Me has body text and is not hidden
 
-About Me + Policies can live beside the header photo in `.profile-info` inside `.profile-hero`.
+→ Move `#profile-about-section` into `#profile-hero-about-slot`. **Policies never** go beside photo.
 
-`resolveHeroSidebarSections(order)`:
+### Rule B — About beside photo OFF or not first in order
 
-1. Find first index of `aboutMe` or `policies` in order.
-2. If neither exists → sidebar is empty.
-3. If **any** non-hero section (`reviews`, `portfolio`, `menu`, `faq`, `visit`) appears **before** that index → sidebar is empty → about/policies move to `<main>`.
-4. Otherwise → all `aboutMe` + `policies` in order go to hero sidebar.
+- About Me stays in `<main>` at its order position
+- Policies always in `<main>` at their order position
 
-### Rule B — Profile header group in main
+### Rule C — Cover layout
 
-When split + about-beside-photo ON, but sidebar rules fail (another section is above about/policies):
-
-- `isHeroProfileGroupInMain === true`
-- Create composite `#profile-header-main-section` in `<main>`
-- Contains: header photo + about + policies inline (`.profile-header-main-section`)
-- Top hero gets `.profile-hero--hidden` (photo moves into main composite)
-
-### Rule C — About beside photo OFF (`heroAboutBesidePhoto: false`)
-
-- About and policies **never** go in hero sidebar
-- They only appear in `<main>` following `mainSectionOrder`
-- Wrapped in `.profile-ordered-block-section` when in main
-- Hero photo still shows at top (unless `heroPhotoEnabled: false`)
-
-### Rule D — Cover layout
-
-**Home** (`page-splash` / `page-cover-splash`):
+**Home** (`page-cover-splash` only — added by JS, not default HTML):
 
 - Full-screen cover splash only
 - All `.profile-below-hero` content hidden
@@ -133,18 +119,17 @@ When split + about-beside-photo ON, but sidebar rules fail (another section is a
 **Book page** (`page-book`):
 
 - No hero section
-- About/policies use split placement rules with `treatAsSplit: true`
-- All other sections in `<main>` follow `mainSectionOrder`
+- All sections in `<main>` follow `mainSectionOrder` (including About + Policies)
 - Nav Book Now links to `/booking`
 
-### Rule E — Stack layout
+### Rule D — Stack layout
 
 - Pinned banner images at top (`.profile-hero--stack`)
 - Wide: aspect-ratio 3/1 full width; tall: 4/9, max-width 400px centered
 - Photo column in split grid hidden; banner replaces it
 - Sections below follow `mainSectionOrder` in `<main>`
 
-### Rule F — No photo / minimal
+### Rule E — No photo / minimal
 
 - `heroPhotoEnabled: false` → hide photo column, grid gets `--no-photo` modifier
 - `heroLayout: 'minimal'` → entire `.profile-hero` hidden

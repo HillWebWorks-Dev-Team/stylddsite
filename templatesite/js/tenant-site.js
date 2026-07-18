@@ -208,6 +208,9 @@
       if (window.StyldTenant && window.StyldTenant.normalizeSiteContent) {
         content = window.StyldTenant.normalizeSiteContent(content);
       }
+      if (window.StyldTenant && window.StyldTenant.normalizeSiteTheme) {
+        theme = window.StyldTenant.normalizeSiteTheme(theme);
+      }
 
       var templateId = 'profile';
 

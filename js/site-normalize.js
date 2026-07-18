@@ -138,7 +138,8 @@ export function defaultSiteContent(profile) {
 export function normalizeSiteTheme(raw) {
   const r = raw && typeof raw === 'object' ? raw : {};
   const fontFamily = FONT_IDS.indexOf(r.fontFamily) !== -1 ? r.fontFamily : 'cormorant';
-  const heroLayout = HERO_LAYOUTS.indexOf(r.heroLayout) !== -1 ? r.heroLayout : 'split';
+  const layoutRaw = str(r.heroLayout || r.hero_layout).toLowerCase();
+  const heroLayout = HERO_LAYOUTS.indexOf(layoutRaw) !== -1 ? layoutRaw : 'split';
   return {
     primaryColor: str(r.primaryColor) || '#db2777',
     secondaryColor: str(r.secondaryColor) || '#1a1a1a',
