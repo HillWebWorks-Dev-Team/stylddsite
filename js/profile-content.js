@@ -487,6 +487,7 @@
 
     var heroGrid = document.querySelector('.profile-hero__grid');
     if (heroGrid) {
+      heroGrid.hidden = false;
       heroGrid.classList.remove(
         'profile-hero__grid--photo-only',
         'profile-hero__grid--with-about',
@@ -494,6 +495,18 @@
         'profile-hero__grid--in-main',
       );
     }
+
+    if (heroSection) {
+      heroSection.classList.remove('profile-hero--stack-has-banner');
+    }
+
+    document.body.classList.remove(
+      'hero-layout-split',
+      'hero-layout-cover',
+      'hero-layout-stack',
+      'hero-layout-minimal',
+      'hero-layout-image-below',
+    );
 
     var aboutSlot = document.getElementById('profile-hero-about-slot');
     var aboutSection = document.getElementById('profile-about-section');
@@ -1897,7 +1910,13 @@
         }
         if (heroPhoto) heroPhoto.style.display = 'none';
         if (photoWrap) photoWrap.style.display = 'none';
+        if (heroGrid) heroGrid.hidden = true;
+        heroSection.classList.add('profile-hero--stack-has-banner');
       }
+    }
+
+    if (!isBookPage() && !isCoverSplash) {
+      document.body.classList.add('hero-layout-' + heroLayout);
     }
 
     if (isCoverSplash) {

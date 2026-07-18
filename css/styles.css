@@ -2400,6 +2400,7 @@ body.tpl-profile:not(.page-cover-splash) .profile-below-hero {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 body.tpl-profile:not(.page-cover-splash) #site-main-content,
@@ -7889,6 +7890,9 @@ body.profile-nav-drawer-open {
 .profile-policies-section {
   padding: 2.5rem 0;
   background: var(--cream, #fff);
+}
+
+#site-main-content main > section + section {
   border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -7897,8 +7901,19 @@ body.profile-nav-drawer-open {
   justify-content: center;
 }
 
+.profile-hero__grid.profile-hero__grid--with-about {
+  grid-template-columns: 2fr 3fr;
+  align-items: start;
+}
+
 .profile-hero__grid.profile-hero__grid--photo-only .profile-hero-about {
   display: none !important;
+}
+
+.profile-hero-about .profile-about-section .container {
+  width: 100%;
+  max-width: none;
+  padding-inline: 0;
 }
 
 .profile-hero--hidden {
@@ -8106,6 +8121,14 @@ body.page-cover-splash .profile-below-hero {
 .profile-hero--stack {
   overflow: hidden;
 }
+
+.profile-hero--stack.profile-hero--stack-has-banner {
+  padding: 0;
+}
+
+.profile-hero--stack.profile-hero--stack-has-banner .profile-hero__grid {
+  display: none;
+}
 .profile-hero-stack {
   display: block;
   width: 100%;
@@ -8207,7 +8230,6 @@ body.page-cover-splash .profile-below-hero {
 .profile-portfolio-section {
   padding: 2.5rem 0 2rem;
   background: var(--cream, #fff);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .profile-portfolio-head h2,
@@ -9188,7 +9210,6 @@ body.page-booking .booking-product-qty--disabled {
 .profile-menu-section {
   padding: 2.5rem 0;
   background: var(--cream, #fff);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 .profile-menu-head { margin-bottom: 1.35rem; }
 .profile-menu-head h2 {
@@ -9372,7 +9393,6 @@ body.page-booking .booking-product-qty--disabled {
 .profile-faq-section {
   padding: 2.5rem 0;
   background: var(--cream, #fff);
-  border-top: 1px solid var(--card-border, rgba(0, 0, 0, 0.06));
 }
 .profile-faq-section[hidden] {
   display: none !important;
@@ -9453,7 +9473,7 @@ body.page-booking .booking-product-qty--disabled {
   display: none !important;
 }
 
-:root[data-surface-mode='dark'] .profile-faq-section {
+:root[data-surface-mode='dark'] #site-main-content main > section + section {
   border-top-color: var(--card-border, rgba(255, 255, 255, 0.1));
 }
 :root[data-surface-mode='dark'] .profile-faq-item {
@@ -9467,7 +9487,6 @@ body.page-booking .booking-product-qty--disabled {
 .profile-location-section {
   padding: 2.5rem 0;
   background: var(--cream);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 .profile-location-head { margin-bottom: 1.25rem; }
 .profile-location-head h2 {
