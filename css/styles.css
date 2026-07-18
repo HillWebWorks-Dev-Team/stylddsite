@@ -9410,6 +9410,10 @@ body.page-booking .booking-product-qty--disabled {
   display: none !important;
 }
 .profile-faq-head { margin-bottom: 1.35rem; }
+.profile-faq-head[hidden],
+.profile-reviews-head[hidden] {
+  display: none !important;
+}
 .profile-faq-head h2 {
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 3vw, 2.2rem);

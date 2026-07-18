@@ -108,6 +108,8 @@ export function normalizeSiteContent(raw) {
     instagramHandle: str(r.instagramHandle).replace(/^@/, ''),
     faqTitle: str(r.faqTitle) || 'FAQ',
     faqBlurb: str(r.faqBlurb),
+    reviewsTitle: str(r.reviewsTitle) || 'Client Reviews',
+    reviewsBlurb: str(r.reviewsBlurb || r.reviewsSubtitle),
     faqItems: normalizeFaqItems(r.faqItems),
     mainSectionOrder: normalizeMainSectionOrder(
       r.mainSectionOrder || r.main_section_order,

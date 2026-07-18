@@ -83,6 +83,70 @@
     return !hideSubtitle;
   }
 
+  function setMainSectionHidden(sectionId, hidden) {
+    var block = getMainSectionElement(sectionId);
+    if (block) block.hidden = !!hidden;
+    var wrap = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+    if (wrap) wrap.hidden = !!hidden;
+  }
+
+  function shouldHideReviewsSection(content) {
+    if (isSectionHidden(content, 'reviews')) return true;
+    var settings = window.__STYLD_REVIEWS_SETTINGS__ || { enabled: true };
+    if (settings.enabled === false) return true;
+    var reviews = window.__STYLD_SITE_REVIEWS__ || [];
+    var published = reviews.filter(function (r) {
+      return r && r.message;
+    });
+    return !published.length;
+  }
+
+  function syncReviewsSectionHead(content) {
+    var section = document.getElementById('profile-reviews-section');
+    if (!section || section.hidden) return;
+    var head = section.querySelector('.profile-reviews-head');
+    if (!head) return;
+
+    applySectionHeadAndBlurb({
+      titleEl: head.querySelector('h2'),
+      headEl: head,
+      titleText: String(content.reviewsTitle || 'Client Reviews').trim() || 'Client Reviews',
+      blurbText: content.reviewsBlurb || content.reviewsSubtitle || '',
+      sectionId: 'reviews',
+      content: content,
+    });
+  }
+
+  function syncMainSectionVisibility(content, theme) {
+    content = content && typeof content === 'object' ? content : {};
+    theme = theme && typeof theme === 'object' ? theme : {};
+
+    var policyText = (content.bookingPolicy || '').trim();
+    var policyBullets = policyText
+      ? policyText.split('\n').map(function (l) { return l.trim(); }).filter(Boolean)
+      : [];
+
+    setMainSectionHidden('aboutMe', isSectionHidden(content, 'aboutMe') || !resolveAboutMeText(content));
+    setMainSectionHidden(
+      'policies',
+      isSectionHidden(content, 'policies') || !policyBullets.length
+    );
+    setMainSectionHidden('faq', isSectionHidden(content, 'faq') || !normalizeFaqItems(content).length);
+    setMainSectionHidden(
+      'portfolio',
+      isSectionHidden(content, 'portfolio') || !normalizePortfolioItems(theme).length
+    );
+    setMainSectionHidden('menu', isSectionHidden(content, 'menu'));
+    setMainSectionHidden('reviews', shouldHideReviewsSection(content));
+
+    var visitSection = document.getElementById('profile-location-section');
+    if (visitSection) {
+      setMainSectionHidden('visit', !!visitSection.hidden);
+    }
+
+    syncReviewsSectionHead(content);
+  }
+
   function formatMenuMoney(amount) {
     return '$' + (Math.round(Number(amount) || 0)).toFixed(0);
   }
@@ -1399,16 +1463,19 @@
       }
 
       if (node) {
-        node.hidden = false;
         main.appendChild(node);
       }
     });
+
+    syncMainSectionVisibility(content, theme);
   }
 
-  function populateReviews() {
+  function populateReviews(content) {
+    content = content && typeof content === 'object' ? content : {};
     if (window.initStyldSiteReviews) {
       window.initStyldSiteReviews();
     }
+    syncReviewsSectionHead(content);
   }
 
   function populatePortfolio(content, theme) {
@@ -2218,7 +2285,7 @@
     applySectionVisibility(content);
     populatePortfolio(content, theme);
     populateFaq(content);
-    populateReviews();
+    populateReviews(content);
     reorderMainSections(content, theme);
     populateSiteNav(content);
 
