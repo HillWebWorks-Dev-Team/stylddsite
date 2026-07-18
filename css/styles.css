@@ -7868,23 +7868,28 @@ body.profile-nav-drawer-open {
   background-position: center top;
   min-height: 280px;
 }
-.profile-info {
+.profile-hero-about {
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 0.5rem;
   padding-top: 0.5rem;
 }
 
-.profile-ordered-block-section {
+.profile-hero-about[hidden] {
+  display: none !important;
+}
+
+.profile-hero-about .profile-about-section {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.profile-about-section,
+.profile-policies-section {
   padding: 2.5rem 0;
   background: var(--cream, #fff);
   border-top: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.profile-ordered-block-section .container,
-.profile-ordered-block-section .profile-section-block {
-  width: min(1120px, 100% - 2rem);
-  margin-inline: auto;
 }
 
 .profile-hero__grid.profile-hero__grid--photo-only {
@@ -7892,7 +7897,7 @@ body.profile-nav-drawer-open {
   justify-content: center;
 }
 
-.profile-hero__grid.profile-hero__grid--photo-only .profile-info {
+.profile-hero__grid.profile-hero__grid--photo-only .profile-hero-about {
   display: none !important;
 }
 
@@ -7908,23 +7913,6 @@ body.profile-nav-drawer-open {
   display: none !important;
 }
 
-.profile-header-main-section {
-  padding: 2.5rem 0 2rem;
-  background: var(--cream);
-}
-
-.profile-hero__grid.profile-hero__grid--in-main {
-  display: grid;
-  grid-template-columns: 2fr 3fr;
-  gap: 2.5rem;
-  align-items: start;
-}
-
-.profile-section-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
 .profile-about-head,
 .profile-policy-head {
   font-family: var(--font-display);
@@ -9342,24 +9330,8 @@ body.page-booking .booking-product-qty--disabled {
   border-color: var(--card-outline, var(--ink));
 }
 
-.page-book .profile-book-intro {
-  padding: calc(var(--profile-nav-height, 4.25rem) + 1.5rem) 0 2.5rem;
-  background: var(--cream, #fff);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.page-book .profile-main-intro {
-  padding-top: 0;
-}
-
-.page-book .profile-info {
-  gap: 2.25rem;
-  max-width: 42rem;
-  padding-top: 0;
-}
-
-.page-book .profile-section-block {
-  gap: 0.75rem;
+.page-book #site-main-content main {
+  padding-top: calc(var(--profile-nav-height, 4.25rem) + 1.5rem);
 }
 
 .page-book .profile-about-head,
@@ -9371,10 +9343,6 @@ body.page-booking .booking-product-qty--disabled {
 .page-book .profile-policy-body {
   font-size: 1rem;
   line-height: 1.75;
-}
-
-.profile-book-intro[hidden] {
-  display: none !important;
 }
 
 .profile-service-card__expand-btn {

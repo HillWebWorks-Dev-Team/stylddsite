@@ -253,11 +253,15 @@ function renderContentTab() {
 
   return (
     toggles +
-    '<div class="editor-section"><h3>About & policies</h3>' +
+    '<div class="editor-section"><h3>About Me</h3>' +
     field('About title', 'editor-about-title', c.aboutTitle) +
     textarea('About body', 'editor-about-body', c.aboutBody) +
+    '</div>' +
+    '<div class="editor-section"><h3>Visit</h3>' +
     field('Visit title', 'editor-visit-title', c.visitTitle) +
     textarea('Visit blurb', 'editor-visit-body', c.visitBody) +
+    '</div>' +
+    '<div class="editor-section"><h3>Policies</h3>' +
     textarea('Booking policy', 'editor-policy', c.bookingPolicy) +
     '</div>' +
     '<div class="editor-section"><h3>Services menu copy</h3>' +
