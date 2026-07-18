@@ -62,8 +62,7 @@
     var content = options.content;
 
     var blurb = String(blurbText == null ? '' : blurbText).trim();
-    var hideSubtitle =
-      !blurb || (sectionId && isSectionSubtitleHidden(content, sectionId));
+    var subtitleOff = sectionId && isSectionSubtitleHidden(content, sectionId);
 
     if (titleEl && titleText != null) {
       var title = String(titleText).trim();
@@ -71,16 +70,16 @@
     }
     if (blurbEl) {
       blurbEl.textContent = blurb;
-      blurbEl.hidden = hideSubtitle;
+      blurbEl.hidden = !blurb || subtitleOff;
     }
     if (titleEl) {
-      titleEl.hidden = hideSubtitle;
+      titleEl.hidden = subtitleOff;
     }
     if (headEl) {
-      headEl.hidden = hideSubtitle;
+      headEl.hidden = subtitleOff;
     }
 
-    return !hideSubtitle;
+    return !subtitleOff;
   }
 
   function setMainSectionHidden(sectionId, hidden) {
