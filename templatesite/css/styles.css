@@ -7911,6 +7911,18 @@ body.profile-nav-drawer-open {
   display: none !important;
 }
 
+.profile-header-main-section {
+  padding: 2.5rem 0 2rem;
+  background: var(--cream);
+}
+
+.profile-hero__grid.profile-hero__grid--in-main {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+
 .profile-hero__grid--no-photo {
   grid-template-columns: 1fr;
 }
