@@ -1013,8 +1013,14 @@
     'faq',
     'visit',
   ];
-  var HERO_INLINE_SECTION_IDS = ['aboutMe', 'policies'];
+  var ORDERED_PROFILE_BLOCK_IDS = ['aboutMe', 'policies'];
+  var ABOUT_BESIDE_PHOTO_SECTION = 'aboutMe';
+  var SIDEBAR_BLOCKING_SECTION_IDS = ['policies', 'reviews', 'portfolio', 'menu', 'faq', 'visit'];
   var MAIN_FLOW_SECTION_IDS = ['reviews', 'portfolio', 'menu', 'faq', 'visit'];
+
+  function isOrderedProfileBlock(sectionId) {
+    return ORDERED_PROFILE_BLOCK_IDS.indexOf(sectionId) !== -1;
+  }
 
   function resolveMainSectionOrder(content) {
     if (window.StyldTenant && window.StyldTenant.resolveMainSectionOrder) {
@@ -1082,55 +1088,46 @@
 
   function resolveHeroSidebarSections(order, theme, options) {
     options = options || {};
-    var treatAsSplit = options.treatAsSplit === true;
     var heroLayout = String((theme && theme.heroLayout) || 'split').trim();
     if (!isHeroAboutBesidePhotoEnabled(theme)) return [];
-    if (isCoverLayout(theme)) return [];
-    if (heroLayout !== 'split' && !treatAsSplit) return [];
-    if (!treatAsSplit && !themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return [];
+    if (isCoverLayout(theme) || isBookPage()) return [];
+    if (heroLayout !== 'split') return [];
+    if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return [];
 
-    var firstHeroIndex = -1;
-    order.forEach(function (id, index) {
-      if (firstHeroIndex === -1 && HERO_INLINE_SECTION_IDS.indexOf(id) !== -1) {
-        firstHeroIndex = index;
-      }
-    });
-    if (firstHeroIndex === -1) return [];
+    var aboutIndex = order.indexOf(ABOUT_BESIDE_PHOTO_SECTION);
+    if (aboutIndex === -1) return [];
 
-    for (var i = 0; i < firstHeroIndex; i++) {
-      if (MAIN_FLOW_SECTION_IDS.indexOf(order[i]) !== -1) return [];
+    for (var i = 0; i < aboutIndex; i++) {
+      if (SIDEBAR_BLOCKING_SECTION_IDS.indexOf(order[i]) !== -1) return [];
     }
 
-    var sidebarIds = [];
-    for (var j = firstHeroIndex; j < order.length; j++) {
-      var sectionId = order[j];
-      if (HERO_INLINE_SECTION_IDS.indexOf(sectionId) !== -1) {
-        sidebarIds.push(sectionId);
-        continue;
-      }
-      if (MAIN_FLOW_SECTION_IDS.indexOf(sectionId) !== -1) break;
-    }
-    return sidebarIds;
+    var aboutBlock = getMainSectionElement(ABOUT_BESIDE_PHOTO_SECTION);
+    if (aboutBlock && aboutBlock.hidden) return [];
+
+    return [ABOUT_BESIDE_PHOTO_SECTION];
   }
 
   function isHeroProfileGroupInMain(order, theme, options) {
     options = options || {};
-    var treatAsSplit = options.treatAsSplit === true;
     var heroLayout = String((theme && theme.heroLayout) || 'split').trim();
+    if (isBookPage() || isCoverLayout(theme)) return false;
     if (!isHeroAboutBesidePhotoEnabled(theme)) return false;
-    if (isCoverLayout(theme) && !treatAsSplit) return false;
-    if (heroLayout !== 'split' && !treatAsSplit) return false;
-    if (!treatAsSplit && !themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return false;
+    if (heroLayout !== 'split') return false;
+    if (!themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return false;
     if (resolveHeroSidebarSections(order, theme, options).length) return false;
-    return order.some(function (id) {
-      return HERO_INLINE_SECTION_IDS.indexOf(id) !== -1;
-    });
+    if (order.indexOf(ABOUT_BESIDE_PHOTO_SECTION) === -1) return false;
+
+    var aboutIndex = order.indexOf(ABOUT_BESIDE_PHOTO_SECTION);
+    for (var i = 0; i < aboutIndex; i++) {
+      var sectionId = order[i];
+      if (sectionId === 'policies') continue;
+      if (MAIN_FLOW_SECTION_IDS.indexOf(sectionId) !== -1) return true;
+    }
+    return false;
   }
 
   function getHeroProfileGroupSectionIds(order) {
-    return order.filter(function (id) {
-      return HERO_INLINE_SECTION_IDS.indexOf(id) !== -1;
-    });
+    return order.indexOf(ABOUT_BESIDE_PHOTO_SECTION) !== -1 ? [ABOUT_BESIDE_PHOTO_SECTION] : [];
   }
 
   function hasVisibleHeroInlineSection(order) {
@@ -1140,7 +1137,7 @@
     });
   }
 
-  function ensureHeroInlineSectionInMain(sectionId, main, profileInfo) {
+  function ensureOrderedSectionInMain(sectionId, main, profileInfo) {
     var block = getMainSectionElement(sectionId);
     if (!block) return null;
     detachOrderedBlockWrap(sectionId, profileInfo);
@@ -1315,7 +1312,6 @@
     var placementOptions = { treatAsSplit: isBookPage() };
     var sidebarIds = resolveHeroSidebarSections(order, theme, placementOptions);
     var profileGroupInMain = isHeroProfileGroupInMain(order, theme, placementOptions);
-    var heroGroupIds = getHeroProfileGroupSectionIds(order);
     var heroGroupEmitted = false;
 
     var isSplitHome = theme.heroLayout === 'split' && !isBookPage() && !isSplashPage();
@@ -1335,16 +1331,16 @@
       teardownProfileHeaderMainSection(heroSection, heroGrid, photoWrap, profileInfo);
     }
 
-    HERO_INLINE_SECTION_IDS.forEach(function (sectionId) {
+    function prepareOrderedProfileBlock(sectionId) {
       var block = getMainSectionElement(sectionId);
       if (!block) return;
 
-      if (profileGroupInMain) {
+      if (sectionId === ABOUT_BESIDE_PHOTO_SECTION && profileGroupInMain) {
         detachOrderedBlockWrap(sectionId, null);
         return;
       }
 
-      if (belongsInSidebar(sectionId)) {
+      if (sectionId === ABOUT_BESIDE_PHOTO_SECTION && belongsInSidebar(sectionId)) {
         detachOrderedBlockWrap(sectionId, profileInfo);
         if (profileInfo && block.parentElement !== profileInfo) {
           profileInfo.appendChild(block);
@@ -1352,8 +1348,12 @@
         return;
       }
 
+      detachOrderedBlockWrap(sectionId, profileInfo);
       ensureOrderedBlockWrap(block, sectionId);
-    });
+    }
+
+    prepareOrderedProfileBlock('policies');
+    prepareOrderedProfileBlock(ABOUT_BESIDE_PHOTO_SECTION);
 
     if (profileInfo && (isBookPage() || isSplitHome) && !profileGroupInMain) {
       sidebarIds.forEach(function (sectionId) {
@@ -1375,7 +1375,7 @@
     order.forEach(function (sectionId) {
       if (belongsInSidebar(sectionId)) return;
 
-      if (profileGroupInMain && heroGroupIds.indexOf(sectionId) !== -1) {
+      if (profileGroupInMain && sectionId === ABOUT_BESIDE_PHOTO_SECTION) {
         if (heroGroupEmitted) return;
         heroGroupEmitted = true;
         var composite = document.getElementById('profile-header-main-section');
@@ -1384,8 +1384,8 @@
       }
 
       var node;
-      if (HERO_INLINE_SECTION_IDS.indexOf(sectionId) !== -1) {
-        node = ensureHeroInlineSectionInMain(sectionId, main, profileInfo);
+      if (isOrderedProfileBlock(sectionId)) {
+        node = ensureOrderedSectionInMain(sectionId, main, profileInfo);
       } else {
         node = getMainSectionElement(sectionId);
       }
