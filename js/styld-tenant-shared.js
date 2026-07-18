@@ -416,6 +416,15 @@
     var layoutRaw = String(theme.heroLayout || theme.hero_layout || 'split').trim().toLowerCase();
     var heroLayout = HERO_LAYOUTS.indexOf(layoutRaw) !== -1 ? layoutRaw : 'split';
     theme.heroLayout = heroLayout;
+    theme.heroStackImagePaths = resolveHeroStackImagePaths(theme);
+    theme.heroStackImageFocus = resolveHeroStackImageFocus(theme);
+    theme.heroStackImageFormat = resolveHeroStackImageFormat(theme);
+    if (!theme.heroImagePath && theme.hero_image_path) {
+      theme.heroImagePath = theme.hero_image_path;
+    }
+    if (!theme.logoImagePath && theme.logo_image_path) {
+      theme.logoImagePath = theme.logo_image_path;
+    }
     return theme;
   }
 
@@ -704,10 +713,58 @@
     return supabaseUrl.replace(/\/$/, '') + '/storage/v1/object/public/style-covers/' + objectPath;
   }
 
+  function resolveHeroStackImagePaths(theme) {
+    theme = theme && typeof theme === 'object' ? theme : {};
+    var raw =
+      theme.heroStackImagePaths ||
+      theme.hero_stack_image_paths ||
+      theme.stackImagePaths ||
+      theme.stack_image_paths;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map(function (entry) {
+        return coverStoragePath(entry);
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+  }
+
+  function resolveHeroStackImageFocus(theme) {
+    theme = theme && typeof theme === 'object' ? theme : {};
+    var raw = theme.heroStackImageFocus || theme.hero_stack_image_focus;
+    return Array.isArray(raw) ? raw.slice(0, 3) : [];
+  }
+
+  function resolveHeroStackImageFormat(theme) {
+    theme = theme && typeof theme === 'object' ? theme : {};
+    var raw = theme.heroStackImageFormat || theme.hero_stack_image_format;
+    return raw === 'tall' ? 'tall' : 'wide';
+  }
+
+  function resolveHeroStackImageUrls(theme, supabaseUrl) {
+    theme = theme && typeof theme === 'object' ? theme : {};
+    supabaseUrl = supabaseUrl || (window.__STYLD_TENANT__ && window.__STYLD_TENANT__.supabaseUrl) || '';
+    var direct = theme.heroStackImageUrls || theme.hero_stack_image_urls;
+    if (Array.isArray(direct)) {
+      var preset = direct
+        .map(function (url) {
+          return String(url || '').trim();
+        })
+        .filter(Boolean);
+      if (preset.length) return preset.slice(0, 3);
+    }
+    return resolveHeroStackImagePaths(theme)
+      .map(function (path) {
+        return coverUrl(path, supabaseUrl);
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+  }
+
   function resolveShareImageUrl(theme, covers, supabaseUrl) {
     theme = theme && typeof theme === 'object' ? theme : {};
     covers = covers && typeof covers === 'object' ? covers : {};
-    var stackPaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
+    var stackPaths = resolveHeroStackImagePaths(theme);
     var candidates = [theme.logoImagePath, theme.heroImagePath, stackPaths[0]];
     var coverKeys = Object.keys(covers);
     for (var i = 0; i < coverKeys.length; i++) {
@@ -1046,6 +1103,9 @@
       heroImageFocusX: theme.heroImageFocusX != null ? theme.heroImageFocusX : null,
       heroImageFocusY: theme.heroImageFocusY != null ? theme.heroImageFocusY : null,
       logoImageUrl: logoImageUrl,
+      heroStackImageUrls: resolveHeroStackImageUrls(theme, cfg.supabaseUrl),
+      heroStackImageFocus: resolveHeroStackImageFocus(theme),
+      heroStackImageFormat: resolveHeroStackImageFormat(theme),
       primaryColor: theme.primaryColor || null,
       secondaryColor: theme.secondaryColor || null,
       navbarColor: theme.navbarColor || null,
@@ -1259,6 +1319,10 @@
     applySiteContactPhones: applySiteContactPhones,
     normalizeSiteContent: normalizeSiteContent,
     normalizeSiteTheme: normalizeSiteTheme,
+    resolveHeroStackImagePaths: resolveHeroStackImagePaths,
+    resolveHeroStackImageUrls: resolveHeroStackImageUrls,
+    resolveHeroStackImageFocus: resolveHeroStackImageFocus,
+    resolveHeroStackImageFormat: resolveHeroStackImageFormat,
     resolveMainSectionOrder: resolveMainSectionOrder,
     ensureStyldFooterSocial: ensureStyldFooterSocial,
     applySiteTheme: applySiteTheme,

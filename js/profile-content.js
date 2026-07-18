@@ -405,6 +405,19 @@
     return fx + '% ' + fy + '%';
   }
 
+  function resolveHeroStackImageUrls(theme) {
+    theme = theme && typeof theme === 'object' ? theme : {};
+    if (window.StyldTenant && window.StyldTenant.resolveHeroStackImageUrls) {
+      return window.StyldTenant.resolveHeroStackImageUrls(theme);
+    }
+    var urls = Array.isArray(theme.heroStackImageUrls) ? theme.heroStackImageUrls.slice() : [];
+    return urls
+      .map(function (url) {
+        return String(url || '').trim();
+      })
+      .filter(Boolean);
+  }
+
   function stackImageObjectPosition(focus) {
     var fx = 50;
     var fy = 50;
@@ -1856,7 +1869,10 @@
       heroGrid.insertAdjacentHTML('beforeend', buildHeroHeadlineHtml(content));
     } else if (isStack && heroSection) {
       heroSection.classList.add('profile-hero--stack');
-      var stackUrls = Array.isArray(theme.heroStackImageUrls) ? theme.heroStackImageUrls : [];
+      var stackUrls = resolveHeroStackImageUrls(theme);
+      if (!stackUrls.length && theme.heroImageUrl) {
+        stackUrls = [theme.heroImageUrl];
+      }
       var stackFocus = Array.isArray(theme.heroStackImageFocus) ? theme.heroStackImageFocus : [];
       var stackFormat = theme.heroStackImageFormat === 'tall' ? 'tall' : 'wide';
       if (stackUrls.length > 0) {
@@ -1868,7 +1884,8 @@
           img.src = url;
           img.className = 'profile-hero-stack__img';
           img.alt = '';
-          img.loading = 'lazy';
+          img.loading = index === 0 ? 'eager' : 'lazy';
+          img.decoding = 'async';
           img.style.objectPosition = stackImageObjectPosition(stackFocus[index]);
           stackEl.appendChild(img);
         });

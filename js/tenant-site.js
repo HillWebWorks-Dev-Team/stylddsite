@@ -219,8 +219,32 @@
         catalog: productsCatalog,
         settings: productsSettings,
       };
-      var heroStackImagePaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
-      var heroStackImageFocus = Array.isArray(theme.heroStackImageFocus) ? theme.heroStackImageFocus : [];
+      var heroStackImagePaths =
+        window.StyldTenant && window.StyldTenant.resolveHeroStackImagePaths
+          ? window.StyldTenant.resolveHeroStackImagePaths(theme)
+          : Array.isArray(theme.heroStackImagePaths)
+            ? theme.heroStackImagePaths
+            : [];
+      var heroStackImageUrls =
+        window.StyldTenant && window.StyldTenant.resolveHeroStackImageUrls
+          ? window.StyldTenant.resolveHeroStackImageUrls(theme, cfg.supabaseUrl)
+          : heroStackImagePaths
+              .map(function (p) {
+                return coverUrl(p);
+              })
+              .filter(Boolean);
+      var heroStackImageFocus =
+        window.StyldTenant && window.StyldTenant.resolveHeroStackImageFocus
+          ? window.StyldTenant.resolveHeroStackImageFocus(theme)
+          : Array.isArray(theme.heroStackImageFocus)
+            ? theme.heroStackImageFocus
+            : [];
+      var heroStackImageFormat =
+        window.StyldTenant && window.StyldTenant.resolveHeroStackImageFormat
+          ? window.StyldTenant.resolveHeroStackImageFormat(theme)
+          : theme.heroStackImageFormat === 'tall'
+            ? 'tall'
+            : 'wide';
       window.__STYLD_SITE_THEME__ = {
         heroLayout: theme.heroLayout || 'split',
         heroImagePosition: theme.heroImagePosition || 'center top',
@@ -228,9 +252,9 @@
         heroImageFocusY: theme.heroImageFocusY != null ? theme.heroImageFocusY : null,
         heroImageUrl: coverUrl(theme.heroImagePath),
         logoImageUrl: coverUrl(theme.logoImagePath),
-        heroStackImageUrls: heroStackImagePaths.map(function(p) { return coverUrl(p); }),
+        heroStackImageUrls: heroStackImageUrls,
         heroStackImageFocus: heroStackImageFocus,
-        heroStackImageFormat: theme.heroStackImageFormat === 'tall' ? 'tall' : 'wide',
+        heroStackImageFormat: heroStackImageFormat,
         primaryColor: theme.primaryColor || null,
         secondaryColor: theme.secondaryColor || null,
         navbarColor: theme.navbarColor || null,
