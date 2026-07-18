@@ -7869,31 +7869,23 @@ body.profile-nav-drawer-open {
   background-position: center top;
   min-height: 280px;
 }
-.profile-hero-about {
+.profile-info {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1.75rem;
   padding-top: 0.5rem;
 }
 
-.profile-hero-about[hidden] {
-  display: none !important;
-}
-
-.profile-hero-about .profile-about-section {
-  padding: 0;
-  border: none;
-  background: transparent;
-}
-
-.profile-about-section,
-.profile-policies-section {
+.profile-ordered-block-section {
   padding: 2.5rem 0;
   background: var(--cream, #fff);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-#site-main-content main > section + section {
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+.profile-ordered-block-section .container,
+.profile-ordered-block-section .profile-section-block {
+  width: min(1120px, 100% - 2rem);
+  margin-inline: auto;
 }
 
 .profile-hero__grid.profile-hero__grid--photo-only {
@@ -7901,19 +7893,18 @@ body.profile-nav-drawer-open {
   justify-content: center;
 }
 
-.profile-hero__grid.profile-hero__grid--with-about {
-  grid-template-columns: 2fr 3fr;
-  align-items: start;
-}
-
-.profile-hero__grid.profile-hero__grid--photo-only .profile-hero-about {
+.profile-hero__grid.profile-hero__grid--photo-only .profile-info {
   display: none !important;
 }
 
-.profile-hero-about .profile-about-section .container {
-  width: 100%;
-  max-width: none;
-  padding-inline: 0;
+.profile-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+#site-main-content main > section + section {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .profile-hero--hidden {
@@ -8015,6 +8006,30 @@ body.page-cover-splash .profile-below-hero {
 
 .profile-main-intro {
   padding-top: 0.5rem;
+}
+
+.page-book .profile-book-intro {
+  padding: calc(var(--profile-nav-height, 4.25rem) + 1.5rem) 0 2.5rem;
+  background: var(--cream, #fff);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.page-book .profile-main-intro {
+  padding-top: 0;
+}
+
+.page-book .profile-info {
+  gap: 2.25rem;
+  max-width: 42rem;
+  padding-top: 0;
+}
+
+.page-book .profile-section-block {
+  gap: 0.75rem;
+}
+
+.profile-book-intro[hidden] {
+  display: none !important;
 }
 
 .profile-hero--cover {
@@ -9352,6 +9367,14 @@ body.page-booking .booking-product-qty--disabled {
 }
 
 .page-book #site-main-content main {
+  padding-top: 1.5rem;
+}
+
+.page-book .profile-book-intro:not([hidden]) + main {
+  padding-top: 0;
+}
+
+.page-book .profile-book-intro[hidden] + main {
   padding-top: calc(var(--profile-nav-height, 4.25rem) + 1.5rem);
 }
 

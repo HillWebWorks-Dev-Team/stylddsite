@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=65" />
+    <link rel="stylesheet" href="/css/styles.css?v=66" />
     <style>
       #tenant-status {
         position: fixed;
@@ -70,26 +70,25 @@
         <div class="profile-photo" id="profile-photo-wrap">
           <div class="profile-photo__bg" id="profile-hero-photo"></div>
         </div>
-        <div class="profile-hero-about" id="profile-hero-about-slot" hidden></div>
       </div>
     </section>
 
     <div class="profile-below-hero" id="profile-below-hero">
     <div id="site-main-content">
-    <main>
-      <section class="profile-about-section" id="profile-about-section" data-site-section="aboutMe" hidden>
-        <div class="container">
-          <h2 class="profile-about-head" id="profile-about-title">About Me</h2>
-          <p class="profile-about-body" id="profile-about-body"></p>
+      <div class="container profile-main-intro">
+        <div class="profile-info" id="profile-info-block">
+          <div class="profile-section-block" id="profile-about-block" data-site-section="aboutMe" hidden>
+            <h2 class="profile-about-head" id="profile-about-title">About Me</h2>
+            <p class="profile-about-body" id="profile-about-body"></p>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <section class="profile-policies-section" id="profile-policies-section" data-site-section="policies" hidden>
-        <div class="container">
-          <h2 class="profile-policy-head" id="profile-policies-title">Policies</h2>
-          <ul class="profile-policy-body" id="profile-policy-body"></ul>
-        </div>
-      </section>
+    <main>
+      <div class="profile-section-block" id="profile-policy-block" data-site-section="policies" hidden>
+        <h3 class="profile-policy-head" id="profile-policies-title">Policies</h3>
+        <ul class="profile-policy-body" id="profile-policy-body"></ul>
+      </div>
       <section class="profile-reviews-section" id="profile-reviews-section" data-site-section="reviews" hidden>
         <div class="container">
           <div class="profile-reviews-head">
@@ -184,7 +183,7 @@
     <script src="/js/styld-tenant-config.js?v=1780530043880"></script>
     <script src="/js/styld-tenant-config.local.js?v=1780530043880"></script>
     <script src="/js/styld-tenant-shared.js?v=81"></script>
-    <script src="/js/profile-content.js?v=45"></script>
+    <script src="/js/profile-content.js?v=46"></script>
     <script src="/js/site-reviews.js?v=1"></script>
     <script src="/js/tenant-site.js?v=71"></script>
   </body>

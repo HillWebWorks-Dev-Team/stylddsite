@@ -508,12 +508,11 @@
       'hero-layout-image-below',
     );
 
-    var aboutSlot = document.getElementById('profile-hero-about-slot');
-    var aboutSection = document.getElementById('profile-about-section');
-    var main = document.querySelector('#site-main-content main') || document.querySelector('main');
-    if (aboutSlot) aboutSlot.hidden = true;
-    if (aboutSection && aboutSlot && aboutSection.parentElement === aboutSlot && main) {
-      main.insertBefore(aboutSection, main.firstChild);
+    var profileInfo = document.getElementById('profile-info-block');
+    var siteMain = document.getElementById('site-main-content');
+    var introWrap = siteMain && siteMain.querySelector('.profile-main-intro');
+    if (profileInfo && introWrap && profileInfo.parentElement !== introWrap) {
+      introWrap.appendChild(profileInfo);
     }
 
     removeLegacyAboutPolicyDom();
@@ -741,10 +740,13 @@
   function removeLegacyAboutPolicyDom() {
     var composite = document.getElementById('profile-header-main-section');
     if (composite) composite.remove();
-    var bookIntro = document.getElementById('profile-book-intro');
-    if (bookIntro) bookIntro.remove();
-    document.querySelectorAll('[data-ordered-section-wrap]').forEach(function (el) {
-      el.remove();
+    document.querySelectorAll('[data-ordered-section-wrap]').forEach(function (wrap) {
+      var sectionId = wrap.getAttribute('data-ordered-section-wrap');
+      var block = getMainSectionNode(sectionId);
+      if (block && block.parentElement === wrap) {
+        wrap.parentNode.insertBefore(block, wrap);
+      }
+      wrap.remove();
     });
   }
 
@@ -756,24 +758,24 @@
   }
 
   function populateAboutMe(content) {
-    var section = document.getElementById('profile-about-section');
+    var block = document.getElementById('profile-about-block');
     var titleEl = document.getElementById('profile-about-title');
     var bodyEl = document.getElementById('profile-about-body');
-    if (!section) return false;
+    if (!block) return false;
 
     var text = resolveAboutBody(content);
     var hidden = isSectionHidden(content, 'aboutMe') || !text;
     if (titleEl) titleEl.textContent = resolveAboutTitle(content);
     if (bodyEl) bodyEl.textContent = text;
-    section.hidden = hidden;
+    block.hidden = hidden;
     return !hidden;
   }
 
   function populatePolicies(content) {
-    var section = document.getElementById('profile-policies-section');
+    var block = document.getElementById('profile-policy-block');
     var titleEl = document.getElementById('profile-policies-title');
     var listEl = document.getElementById('profile-policy-body');
-    if (!section || !listEl) return false;
+    if (!block || !listEl) return false;
 
     var bullets = resolvePolicyBullets(content);
     var hidden = isSectionHidden(content, 'policies') || !bullets.length;
@@ -786,7 +788,7 @@
       li.textContent = bullet;
       listEl.appendChild(li);
     });
-    section.hidden = hidden;
+    block.hidden = hidden;
     return !hidden;
   }
 
@@ -1139,14 +1141,93 @@
   }
 
   function getMainSectionNode(sectionId) {
-    if (sectionId === 'aboutMe') return document.getElementById('profile-about-section');
-    if (sectionId === 'policies') return document.getElementById('profile-policies-section');
+    if (sectionId === 'aboutMe') return document.getElementById('profile-about-block');
+    if (sectionId === 'policies') return document.getElementById('profile-policy-block');
     if (sectionId === 'reviews') return document.getElementById('profile-reviews-section');
     if (sectionId === 'portfolio') return document.getElementById('profile-portfolio-section');
     if (sectionId === 'menu') return document.getElementById('profile-menu-section');
     if (sectionId === 'faq') return document.getElementById('profile-faq-section');
     if (sectionId === 'visit') return document.getElementById('profile-location-section');
     return null;
+  }
+
+  function ensureOrderedBlockWrap(blockEl, sectionId) {
+    if (!blockEl) return null;
+    var existing = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+    if (existing) {
+      if (blockEl.parentElement !== existing) existing.appendChild(blockEl);
+      return existing;
+    }
+    var wrap = document.createElement('section');
+    wrap.className = 'profile-ordered-block-section';
+    wrap.setAttribute('data-ordered-section-wrap', sectionId);
+    wrap.setAttribute('data-site-section', sectionId);
+    wrap.appendChild(blockEl);
+    return wrap;
+  }
+
+  function detachOrderedBlockWrap(sectionId, profileInfo) {
+    var wrap = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+    if (!wrap) return;
+    var block = getMainSectionNode(sectionId);
+    if (block && block.parentElement === wrap) {
+      if (profileInfo) profileInfo.appendChild(block);
+      else wrap.parentNode && wrap.parentNode.insertBefore(block, wrap);
+    }
+    wrap.remove();
+  }
+
+  function layoutProfileInfo(profileInfo, heroGrid, siteMain, isCoverSplash, isSplitHome, aboutInHero) {
+    if (!profileInfo || !siteMain) return;
+    if (isBookPage()) return;
+
+    var introWrap = siteMain.querySelector('.profile-main-intro') || siteMain;
+
+    if (isCoverSplash) {
+      if (profileInfo.parentElement !== introWrap) introWrap.appendChild(profileInfo);
+      profileInfo.hidden = true;
+      profileInfo.style.display = 'none';
+      return;
+    }
+
+    if (isSplitHome && aboutInHero && heroGrid) {
+      if (profileInfo.parentElement !== heroGrid) heroGrid.appendChild(profileInfo);
+      profileInfo.hidden = false;
+      profileInfo.style.display = '';
+      return;
+    }
+
+    if (profileInfo.parentElement !== introWrap) introWrap.appendChild(profileInfo);
+    if (isSplitHome && !aboutInHero) {
+      profileInfo.hidden = true;
+      profileInfo.style.display = 'none';
+    } else {
+      profileInfo.hidden = false;
+      profileInfo.style.display = '';
+    }
+  }
+
+  function syncIntroShells(profileInfo, siteMain, bookIntro, aboutBeside, aboutVisible, showBookAboutIntro) {
+    var mainIntro = siteMain && siteMain.querySelector('.profile-main-intro');
+    var infoHasVisibleChild =
+      profileInfo &&
+      Array.prototype.some.call(profileInfo.children, function (el) {
+        return el && !el.hidden;
+      });
+
+    if (profileInfo) {
+      profileInfo.hidden = !infoHasVisibleChild;
+      profileInfo.style.display = infoHasVisibleChild ? '' : 'none';
+    }
+
+    if (mainIntro && !isBookPage()) {
+      mainIntro.hidden = !infoHasVisibleChild || aboutBeside;
+      mainIntro.style.display = mainIntro.hidden ? 'none' : '';
+    }
+
+    if (bookIntro && isBookPage()) {
+      bookIntro.hidden = !showBookAboutIntro;
+    }
   }
 
   function reorderMainSections(content, theme) {
@@ -1169,32 +1250,67 @@
     removeLegacyAboutPolicyDom();
 
     var aboutVisible = populateAboutMe(content);
-    populatePolicies(content);
+    var policiesVisible = populatePolicies(content);
 
-    var aboutBeside = shouldPlaceAboutBesidePhoto(content, theme, order);
-    var aboutSection = getMainSectionNode('aboutMe');
-    var aboutSlot = document.getElementById('profile-hero-about-slot');
+    var aboutBeside = shouldPlaceAboutBesidePhoto(content, theme, order) && aboutVisible;
+    var showBookAboutIntro = isBookPage() && aboutVisible && order.indexOf('aboutMe') === 0;
+
+    var profileInfo = document.getElementById('profile-info-block');
+    var aboutBlock = getMainSectionNode('aboutMe');
+    var policyBlock = getMainSectionNode('policies');
     var heroGrid = document.querySelector('.profile-hero__grid');
-    var isSplitHome = resolveHeroLayout(theme) === 'split' && !isBookPage() && !isSplashPage();
+    var siteMain = document.getElementById('site-main-content');
+    var bookIntro = document.getElementById('profile-book-intro');
+    var isCoverSplash = isSplashPage();
+    var isSplitHome = resolveHeroLayout(theme) === 'split' && !isBookPage() && !isCoverSplash;
+
+    detachOrderedBlockWrap('aboutMe', profileInfo);
+    detachOrderedBlockWrap('policies', profileInfo);
+
+    if (policyBlock && profileInfo && policyBlock.parentElement === profileInfo) {
+      main.appendChild(policyBlock);
+    }
+
+    if (aboutBeside && aboutBlock && profileInfo) {
+      if (aboutBlock.parentElement !== profileInfo) profileInfo.appendChild(aboutBlock);
+      layoutProfileInfo(profileInfo, heroGrid, siteMain, isCoverSplash, isSplitHome, true);
+    } else if (showBookAboutIntro && aboutBlock && profileInfo) {
+      if (aboutBlock.parentElement !== profileInfo) profileInfo.appendChild(aboutBlock);
+      var bookIntroWrap =
+        (bookIntro && bookIntro.querySelector('.profile-main-intro')) ||
+        (siteMain && siteMain.querySelector('.profile-main-intro')) ||
+        bookIntro ||
+        siteMain;
+      if (profileInfo.parentElement !== bookIntroWrap) bookIntroWrap.appendChild(profileInfo);
+    } else {
+      layoutProfileInfo(profileInfo, heroGrid, siteMain, isCoverSplash, isSplitHome, false);
+    }
 
     order.forEach(function (sectionId) {
       if (sectionId === 'aboutMe' && aboutBeside) return;
-      var node = getMainSectionNode(sectionId);
+      if (sectionId === 'aboutMe' && showBookAboutIntro) return;
+
+      var node;
+      if (sectionId === 'aboutMe' || sectionId === 'policies') {
+        var block = getMainSectionNode(sectionId);
+        if (!block || block.hidden) return;
+        node = ensureOrderedBlockWrap(block, sectionId);
+      } else {
+        node = getMainSectionNode(sectionId);
+      }
       if (node) main.appendChild(node);
     });
 
-    if (aboutSlot) {
-      if (aboutBeside && aboutSection && aboutVisible) {
-        aboutSlot.appendChild(aboutSection);
-        aboutSlot.hidden = false;
-      } else {
-        aboutSlot.hidden = true;
-      }
-    }
+    syncIntroShells(profileInfo, siteMain, bookIntro, aboutBeside, aboutVisible, showBookAboutIntro);
 
     if (heroGrid && isSplitHome) {
-      heroGrid.classList.toggle('profile-hero__grid--photo-only', !aboutBeside || !aboutVisible);
-      heroGrid.classList.toggle('profile-hero__grid--with-about', aboutBeside && aboutVisible);
+      heroGrid.classList.toggle('profile-hero__grid--photo-only', !aboutBeside);
+      heroGrid.classList.remove('profile-hero__grid--with-about');
+    }
+
+    if (policyBlock) {
+      var policyWrap = document.querySelector('[data-ordered-section-wrap="policies"]');
+      if (policyWrap) policyWrap.hidden = !policiesVisible;
     }
   }
 

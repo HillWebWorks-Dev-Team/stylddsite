@@ -73,15 +73,17 @@ Default order:
 
 | Section ID | Element ID | Notes |
 |------------|------------|-------|
-| aboutMe | `#profile-about-section` | May move to `#profile-hero-about-slot` on split home |
-| policies | `#profile-policies-section` | Always in `<main>` at order position |
+| aboutMe | `#profile-about-block` | May move into `#profile-info-block` beside photo (split home) or `#profile-book-intro` on `/book` when first in order |
+| policies | `#profile-policy-block` | Always in `<main>` at order position (wrapped in `.profile-ordered-block-section`) |
 | reviews | `#profile-reviews-section` | (none) |
 | portfolio | `#profile-portfolio-section` | (none) |
 | menu | `#profile-menu-section` | (none) |
 | faq | `#profile-faq-section` | (none) |
 | visit | `#profile-location-section` | (none) |
 
-**Removed (do not reintroduce):** `#profile-about-block`, `#profile-policy-block`, `#profile-info-block`, `#profile-header-main-section`, `.profile-ordered-block-section` wraps for About/Policies.
+**Shell elements:** `#profile-info-block` (`.profile-info`), `.profile-main-intro`, `#profile-book-intro` (cover `/book`), `.profile-ordered-block-section` wraps for About/Policies in main flow.
+
+**Removed (do not reintroduce):** `#profile-header-main-section` composite, `#profile-hero-about-slot`, `#profile-about-section`, `#profile-policies-section`.
 
 ### Normalization (`resolveMainSectionOrder`)
 
@@ -101,7 +103,7 @@ Applies when **all** of:
 - `aboutMe` is **index 0** in `mainSectionOrder`
 - About Me has body text and is not hidden
 
-→ Move `#profile-about-section` into `#profile-hero-about-slot`. **Policies never** go beside photo.
+→ Move `#profile-about-block` into `#profile-info-block` in the hero grid. **Policies never** go beside photo.
 
 ### Rule B — About beside photo OFF or not first in order
 
@@ -119,7 +121,8 @@ Applies when **all** of:
 **Book page** (`page-book`):
 
 - No hero section
-- All sections in `<main>` follow `mainSectionOrder` (including About + Policies)
+- When `aboutMe` is first in order → About in `#profile-book-intro` > `#profile-info-block`
+- All other sections (including Policies) in `<main>` follow `mainSectionOrder`
 - Nav Book Now links to `/booking`
 
 ### Rule D — Stack layout
@@ -137,12 +140,11 @@ Applies when **all** of:
 
 ### `reorderMainSections` algorithm
 
-For each ID in `resolveMainSectionOrder(content)`:
-
-1. Skip `aboutMe`/`policies` if already in hero sidebar
-2. If `profileGroupInMain` and this is the first hero-group section → emit `#profile-header-main-section` once
-3. Otherwise emit the section's DOM node into `<main>` in order
-4. When `aboutMe`/`policies` are in main (not sidebar, not composite) → wrap in `.profile-ordered-block-section`
+1. `populateAboutMe()` / `populatePolicies()` on `#profile-about-block` / `#profile-policy-block`
+2. If split home + Rule A → About in `#profile-info-block` beside photo via `layoutProfileInfo()`
+3. If `/book` + About first → About in `#profile-book-intro`; else About in main with `.profile-ordered-block-section` wrap
+4. Policies always appended to `<main>` at order position inside `.profile-ordered-block-section`
+5. Other sections appended to `<main>` in `resolveMainSectionOrder` order
 
 **Do not** use `insertBefore` in `populatePortfolio()` or elsewhere — all ordering goes through `reorderMainSections`.
 
