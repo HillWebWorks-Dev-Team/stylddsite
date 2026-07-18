@@ -135,20 +135,10 @@ export function defaultSiteContent(profile) {
   });
 }
 
-function normalizeStackImagePath(entry) {
-  if (entry == null) return '';
-  if (typeof entry === 'string') return str(entry);
-  if (typeof entry === 'object') {
-    return str(entry.storagePath || entry.storage_path || entry.path || entry.url);
-  }
-  return '';
-}
-
 export function normalizeSiteTheme(raw) {
   const r = raw && typeof raw === 'object' ? raw : {};
   const fontFamily = FONT_IDS.indexOf(r.fontFamily) !== -1 ? r.fontFamily : 'cormorant';
-  const layoutRaw = str(r.heroLayout || r.hero_layout).toLowerCase();
-  const heroLayout = HERO_LAYOUTS.indexOf(layoutRaw) !== -1 ? layoutRaw : 'split';
+  const heroLayout = HERO_LAYOUTS.indexOf(r.heroLayout) !== -1 ? r.heroLayout : 'split';
   return {
     primaryColor: str(r.primaryColor) || '#db2777',
     secondaryColor: str(r.secondaryColor) || '#1a1a1a',
@@ -159,14 +149,11 @@ export function normalizeSiteTheme(raw) {
     styleCardLayout: r.styleCardLayout === 'outlined' ? 'outlined' : 'card',
     hideBookNowButton: !!r.hideBookNowButton,
     heroLayout: heroLayout,
-    heroImagePath: str(r.heroImagePath || r.hero_image_path),
-    logoImagePath: str(r.logoImagePath || r.logo_image_path),
-    heroStackImagePaths: arr(r.heroStackImagePaths || r.hero_stack_image_paths)
-      .map(normalizeStackImagePath)
-      .filter(Boolean)
-      .slice(0, 3),
-    heroStackImageFocus: arr(r.heroStackImageFocus || r.hero_stack_image_focus),
-    heroStackImageFormat: r.heroStackImageFormat === 'tall' || r.hero_stack_image_format === 'tall' ? 'tall' : 'wide',
+    heroImagePath: str(r.heroImagePath),
+    logoImagePath: str(r.logoImagePath),
+    heroStackImagePaths: arr(r.heroStackImagePaths).map(str).filter(Boolean).slice(0, 3),
+    heroStackImageFocus: arr(r.heroStackImageFocus),
+    heroStackImageFormat: r.heroStackImageFormat === 'tall' ? 'tall' : 'wide',
     heroImageFocusX: typeof r.heroImageFocusX === 'number' ? r.heroImageFocusX : 0.5,
     heroImageFocusY: typeof r.heroImageFocusY === 'number' ? r.heroImageFocusY : 0.5,
     heroImagePosition: str(r.heroImagePosition) || 'center center',

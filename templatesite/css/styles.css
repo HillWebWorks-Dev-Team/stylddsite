@@ -2400,7 +2400,6 @@ body.tpl-profile:not(.page-cover-splash) .profile-below-hero {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 body.tpl-profile:not(.page-cover-splash) #site-main-content,
@@ -5831,6 +5830,13 @@ body.page-booking .booking-calendar__selected {
   font-weight: 600;
 }
 
+.pac-container {
+  z-index: 12000;
+  font-family: var(--font-body);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+}
+
 .house-address-block--autocomplete .house-address-fields {
   border: none;
   padding: 0;
@@ -7897,17 +7903,15 @@ body.profile-nav-drawer-open {
   display: none !important;
 }
 
-.profile-section-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-#site-main-content main > section + section {
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-}
-
 .profile-hero--hidden {
+  display: none !important;
+}
+
+.profile-hero__grid--no-photo {
+  grid-template-columns: 1fr;
+}
+
+.profile-hero__grid--no-photo .profile-photo {
   display: none !important;
 }
 
@@ -7923,18 +7927,11 @@ body.profile-nav-drawer-open {
   align-items: start;
 }
 
-.profile-hero__grid.profile-hero__grid--in-main .profile-photo {
-  max-width: 320px;
+.profile-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
-
-.profile-hero__grid--no-photo {
-  grid-template-columns: 1fr;
-}
-
-.profile-hero__grid--no-photo .profile-photo {
-  display: none !important;
-}
-
 .profile-about-head,
 .profile-policy-head {
   font-family: var(--font-display);
@@ -8022,34 +8019,6 @@ body.page-cover-splash .profile-below-hero {
 
 .profile-main-intro {
   padding-top: 0.5rem;
-}
-
-.page-book .profile-book-intro {
-  padding: calc(var(--profile-nav-height, 4.25rem) + 1.5rem) 0 2.5rem;
-  background: var(--cream, #fff);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.page-book .profile-main-intro {
-  padding-top: 0;
-}
-
-.page-book .profile-info {
-  gap: 2.25rem;
-  max-width: 42rem;
-  padding-top: 0;
-}
-
-.page-book .profile-brand #profile-brand-name {
-  visibility: hidden;
-}
-
-.page-book .profile-section-block {
-  gap: 0.75rem;
-}
-
-.profile-book-intro[hidden] {
-  display: none !important;
 }
 
 .profile-hero--cover {
@@ -8156,14 +8125,6 @@ body.page-cover-splash .profile-below-hero {
 .profile-hero--stack {
   overflow: hidden;
 }
-
-.profile-hero--stack.profile-hero--stack-has-banner {
-  padding: 0;
-}
-
-.profile-hero--stack.profile-hero--stack-has-banner .profile-hero__grid {
-  display: none;
-}
 .profile-hero-stack {
   display: block;
   width: 100%;
@@ -8265,6 +8226,7 @@ body.page-cover-splash .profile-below-hero {
 .profile-portfolio-section {
   padding: 2.5rem 0 2rem;
   background: var(--cream, #fff);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .profile-portfolio-head h2,
@@ -9245,6 +9207,7 @@ body.page-booking .booking-product-qty--disabled {
 .profile-menu-section {
   padding: 2.5rem 0;
   background: var(--cream, #fff);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 .profile-menu-head { margin-bottom: 1.35rem; }
 .profile-menu-head h2 {
@@ -9386,12 +9349,24 @@ body.page-booking .booking-product-qty--disabled {
   border-color: var(--card-outline, var(--ink));
 }
 
-.page-book #site-main-content main {
+.page-book .profile-book-intro {
+  padding: calc(var(--profile-nav-height, 4.25rem) + 1.5rem) 0 2.5rem;
+  background: var(--cream, #fff);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.page-book .profile-main-intro {
   padding-top: 0;
 }
 
-.page-book .profile-book-intro[hidden] + main {
-  padding-top: calc(var(--profile-nav-height, 4.25rem) + 1.5rem);
+.page-book .profile-info {
+  gap: 2.25rem;
+  max-width: 42rem;
+  padding-top: 0;
+}
+
+.page-book .profile-section-block {
+  gap: 0.75rem;
 }
 
 .page-book .profile-about-head,
@@ -9403,6 +9378,10 @@ body.page-booking .booking-product-qty--disabled {
 .page-book .profile-policy-body {
   font-size: 1rem;
   line-height: 1.75;
+}
+
+.profile-book-intro[hidden] {
+  display: none !important;
 }
 
 .profile-service-card__expand-btn {
@@ -9432,6 +9411,7 @@ body.page-booking .booking-product-qty--disabled {
 .profile-faq-section {
   padding: 2.5rem 0;
   background: var(--cream, #fff);
+  border-top: 1px solid var(--card-border, rgba(0, 0, 0, 0.06));
 }
 .profile-faq-section[hidden] {
   display: none !important;
@@ -9512,7 +9492,7 @@ body.page-booking .booking-product-qty--disabled {
   display: none !important;
 }
 
-:root[data-surface-mode='dark'] #site-main-content main > section + section {
+:root[data-surface-mode='dark'] .profile-faq-section {
   border-top-color: var(--card-border, rgba(255, 255, 255, 0.1));
 }
 :root[data-surface-mode='dark'] .profile-faq-item {
@@ -9526,6 +9506,7 @@ body.page-booking .booking-product-qty--disabled {
 .profile-location-section {
   padding: 2.5rem 0;
   background: var(--cream);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 .profile-location-head { margin-bottom: 1.25rem; }
 .profile-location-head h2 {
@@ -9576,9 +9557,6 @@ body.page-booking .booking-product-qty--disabled {
 /* Responsive */
 @media (max-width: 700px) {
   .profile-hero__grid { grid-template-columns: 1fr; }
-  .profile-hero__grid.profile-hero__grid--in-main .profile-photo {
-    max-width: 220px;
-  }
   .profile-photo {
     aspect-ratio: 4 / 3;
     max-height: 260px;
