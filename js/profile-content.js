@@ -1392,6 +1392,14 @@
       var block = getMainSectionNode(sectionId);
       if (!block) return;
 
+      if (isBookPage()) {
+        detachOrderedBlockWrap(sectionId, profileInfo);
+        if (profileInfo && block.parentElement !== profileInfo) {
+          profileInfo.appendChild(block);
+        }
+        return;
+      }
+
       if (sectionId === 'policies') {
         detachOrderedBlockWrap(sectionId, profileInfo);
         if (profileInfo && block.parentElement === profileInfo) {
@@ -1438,6 +1446,7 @@
     var aboutBesideOn = isHeroAboutBesidePhotoEnabled(theme);
 
     order.forEach(function (sectionId) {
+      if (isBookPage() && (sectionId === 'aboutMe' || sectionId === 'policies')) return;
       if (belongsInSidebar(sectionId)) return;
 
       if (profileGroupInMain && sectionId === ABOUT_BESIDE_PHOTO_SECTION) {
@@ -1470,21 +1479,31 @@
           return block && !block.hidden;
         });
 
-      if (isSplitHome || isBookPage()) {
+      var introShell = siteMain && siteMain.querySelector('.profile-main-intro');
+
+      if (isBookPage()) {
+        var bookIntro = document.getElementById('profile-book-intro');
+        var aboutBlock = getMainSectionNode('aboutMe');
+        var policyBlock = getMainSectionNode('policies');
+        var bookIntroVisible =
+          (aboutBlock && !aboutBlock.hidden && aboutBlock.parentElement === profileInfo) ||
+          (policyBlock && !policyBlock.hidden && policyBlock.parentElement === profileInfo);
+        profileInfo.hidden = !bookIntroVisible;
+        profileInfo.style.display = bookIntroVisible ? '' : 'none';
+        if (bookIntro) bookIntro.hidden = !bookIntroVisible;
+        if (introShell) introShell.hidden = !bookIntroVisible;
+      } else if (isSplitHome) {
         profileInfo.hidden = !introHasVisibleBlock;
         profileInfo.style.display = introHasVisibleBlock ? '' : 'none';
+        if (introShell) {
+          introShell.hidden = profileInfo.hidden || profileInfo.children.length === 0;
+        }
       } else {
         profileInfo.hidden = false;
         profileInfo.style.display = '';
-      }
-
-      var introShell = siteMain && siteMain.querySelector('.profile-main-intro');
-      if (isBookPage()) {
-        var bookIntro = document.getElementById('profile-book-intro');
-        if (bookIntro) bookIntro.hidden = !introHasVisibleBlock;
-        if (introShell) introShell.hidden = !introHasVisibleBlock;
-      } else if (introShell) {
-        introShell.hidden = profileInfo.hidden || profileInfo.children.length === 0;
+        if (introShell) {
+          introShell.hidden = profileInfo.hidden || profileInfo.children.length === 0;
+        }
       }
     } else if (profileGroupInMain) {
       var hiddenIntroShell = siteMain && siteMain.querySelector('.profile-main-intro');
@@ -2172,10 +2191,8 @@
 
     if (isCoverSplash) {
       setupCoverLayout(content, theme, heroSection, heroPhoto);
-    } else if (isMinimal && heroSection && heroGrid) {
-      heroSection.classList.add('profile-hero--minimal');
-      heroGrid.insertAdjacentHTML('beforeend', buildHeroHeadlineHtml(content));
-      if (photoWrap) photoWrap.style.display = 'none';
+    } else if (isMinimal && heroSection) {
+      heroSection.hidden = true;
     } else if (isImageBelow && heroSection && heroGrid) {
       heroSection.classList.add('profile-hero--image-below');
       heroGrid.insertAdjacentHTML('beforeend', buildHeroHeadlineHtml(content));

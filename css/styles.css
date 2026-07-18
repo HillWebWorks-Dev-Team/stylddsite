@@ -7923,6 +7923,10 @@ body.profile-nav-drawer-open {
   align-items: start;
 }
 
+.profile-hero__grid.profile-hero__grid--in-main .profile-photo {
+  max-width: 320px;
+}
+
 .profile-hero__grid--no-photo {
   grid-template-columns: 1fr;
 }
@@ -8034,6 +8038,10 @@ body.page-cover-splash .profile-below-hero {
   gap: 2.25rem;
   max-width: 42rem;
   padding-top: 0;
+}
+
+.page-book .profile-brand #profile-brand-name {
+  visibility: hidden;
 }
 
 .page-book .profile-section-block {
@@ -9379,10 +9387,6 @@ body.page-booking .booking-product-qty--disabled {
 }
 
 .page-book #site-main-content main {
-  padding-top: 1.5rem;
-}
-
-.page-book .profile-book-intro:not([hidden]) + main {
   padding-top: 0;
 }
 
@@ -9572,6 +9576,9 @@ body.page-booking .booking-product-qty--disabled {
 /* Responsive */
 @media (max-width: 700px) {
   .profile-hero__grid { grid-template-columns: 1fr; }
+  .profile-hero__grid.profile-hero__grid--in-main .profile-photo {
+    max-width: 220px;
+  }
   .profile-photo {
     aspect-ratio: 4 / 3;
     max-height: 260px;

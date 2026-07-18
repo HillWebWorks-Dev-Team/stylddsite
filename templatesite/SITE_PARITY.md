@@ -121,9 +121,9 @@ Applies when **all** of:
 **Book page** (`page-book`):
 
 - No hero section
-- When `aboutMe` is first in order → About in `#profile-book-intro` > `#profile-info-block`
-- All other sections (including Policies) in `<main>` follow `mainSectionOrder`
-- Nav Book Now links to `/booking`
+- About Me + Policies in `#profile-book-intro` > `#profile-info-block` (unwrapped — not `.profile-ordered-block-section`)
+- Other sections in `<main>` follow `mainSectionOrder`
+- Nav `#profile-brand-name` hidden; Book Now links to `/booking`
 
 ### Rule D — Stack layout
 
@@ -142,7 +142,7 @@ Applies when **all** of:
 
 1. `populateAboutMe()` / `populatePolicies()` on `#profile-about-block` / `#profile-policy-block`
 2. If split home + Rule A → About in `#profile-info-block` beside photo via `layoutProfileInfo()`
-3. If `/book` + About first → About in `#profile-book-intro`; else About in main with `.profile-ordered-block-section` wrap
+3. If `/book` → About + Policies stay in `#profile-book-intro`; skip both in main loop
 4. Policies always appended to `<main>` at order position inside `.profile-ordered-block-section`
 5. Other sections appended to `<main>` in `resolveMainSectionOrder` order
 
