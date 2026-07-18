@@ -15,7 +15,211 @@ Use this when editing tenant sites on Vercel (`*.styldd.com`).
 | Profile layout + cover hero | `js/profile-content.js`, `css/styles.css`, `tenant/profile.html`, `tenant/book.html` |
 | Legacy index preview hero | `js/preview-content.js`, `tenant/index.html` |
 
-## Hero layout: `cover` (Full screen splash)
+## Header styles — Split, Cover, Minimal (live site reference)
+
+All three are **`site_theme.heroLayout`** values (app: **Photos → Header style**). Normalize on load via `StyldTenant.normalizeSiteTheme()` (`heroLayout` / `hero_layout`, lowercase).
+
+| App label | `heroLayout` |
+|-----------|--------------|
+| Split | `'split'` |
+| Full screen | `'cover'` |
+| No photo | `'minimal'` |
+
+Also available: **`'stack'`** (banner collage — see stack section in `SITE_QA_PROMPT.md`).
+
+### Related theme fields
+
+| Field | Split | Cover | Minimal |
+|-------|-------|-------|---------|
+| `heroPhotoEnabled` | Toggle portrait on/off | Splash always uses hero image | Effectively off (portrait hidden) |
+| `heroAboutBesidePhoto` | About Me beside photo when first in order | N/A on splash; N/A on `/book` | N/A |
+| `heroCoverBlur` | — | Optional splash blur | — |
+| `heroImagePath` | Portrait in left column | Full-viewport splash bg | Hidden (tagline headline may still show) |
+| `heroStackImagePaths` | — | — | — |
+
+Section order always comes from **`site_content.mainSectionOrder`**. Layout only changes *where* the hero and About Me render — not which sections exist.
+
+**Two renderers, one ruleset:**
+
+| Layer | File |
+|-------|------|
+| Live site | `js/profile-content.js` |
+| App preview | `src/lib/sitePreviewHtml.ts` (app repo) |
+| Shared order | `src/data/siteContent.ts` ↔ `resolveMainSectionOrder()` in JS |
+
+After changing layout or order logic, update **both** live JS and app preview.
+
+---
+
+### 1. Split (`heroLayout: 'split'`) — default
+
+Classic portfolio layout: portrait left, optional About Me beside it, everything else in `<main>`.
+
+**Live DOM (`tenant/profile.html`):**
+
+```
+NAV
+.profile-hero
+  .profile-hero__grid
+    #profile-photo-wrap / #profile-hero-photo   ← portrait
+    #profile-hero-about-slot                    ← About Me moved here by JS (optional)
+.profile-below-hero
+  #site-main-content > <main>
+    #profile-about-section, #profile-policies-section, reviews, portfolio, menu…
+```
+
+**CSS:** `.profile-hero__grid { grid-template-columns: 2fr 3fr; }` — single column on small screens.
+
+#### About Me beside photo (split home only)
+
+Only **`aboutMe`** may sit beside the photo — **Policies never**.
+
+Controlled by **`shouldPlaceAboutBesidePhoto(content, theme, order)`** — true only when **all** of:
+
+- Split home (`/` on `profile.html`, not `/book`, not cover splash)
+- `heroAboutBesidePhoto !== false`
+- `heroPhotoEnabled !== false`
+- `aboutMe` is **index 0** in `mainSectionOrder`
+- About Me has body text and is not in `hiddenSections`
+
+**Case A — About Me first in order**
+
+```json
+["aboutMe", "policies", "reviews", "portfolio", "menu", "faq", "visit"]
+```
+
+→ About Me in `#profile-hero-about-slot`; Policies + rest in `<main>` in order.
+
+**Case B — Another section before About Me**
+
+```json
+["portfolio", "aboutMe", "policies", "menu", …]
+```
+
+→ **No hero sidebar** (About is not first). About Me and Policies both render in `<main>` at their order positions. **Do not** use `#profile-header-main-section` or composite photo+about blocks — removed.
+
+**Case C — “About Me beside photo” OFF**
+
+→ About Me always in `<main>`; portrait stays in top hero alone (`profile-hero__grid--photo-only` when sidebar empty).
+
+#### JS flow (live)
+
+1. `resetHeroLayoutState()`
+2. Apply portrait URL, colors, layout classes
+3. Populate sections (`populateAboutMe`, `populatePolicies`, menu, FAQ, …)
+4. **`reorderMainSections(content, theme)`** last
+5. `hiddenSections` via populate fns + `applySectionVisibility`
+
+---
+
+### 2. Cover / Full screen (`heroLayout: 'cover'`) — two pages
+
+| Page | URL | File | Body classes (after JS) |
+|------|-----|------|-------------------------|
+| Splash | `/` | `profile.html` | `page-splash page-cover-splash` |
+| Book | `/book` | `book.html` | `page-book` |
+
+Middleware: `'/' → profile.html`, `'/book' → book.html`.
+
+#### Splash (`/`)
+
+- Full-viewport photo + `.profile-cover-overlay` (brand + **Book Now → `/book`**)
+- `.profile-below-hero` hidden — no menu, About, policies on splash
+- `body.page-cover-splash { overflow: hidden }`
+- Nav splash styling: `.profile-nav--cover-splash`; nav Book Now → **`/book`**
+- Optional `heroCoverBlur`
+
+**Do not** put `page-splash` on `profile.html` by default — only cover setup adds it via JS.
+
+#### Book page (`/book`)
+
+- **No hero** (`heroSection.hidden = true`)
+- **No** `.profile-book-intro` shell — removed
+- All sections in `<main>` per `mainSectionOrder` (About Me, Policies, reviews, portfolio, menu, FAQ, visit)
+- Nav brand → `/`; nav Book Now → **`/booking`**
+- `#site-main-content main` gets top padding for sticky nav
+
+App editor preview typically starts on the **book page** so stylists see full content; tap brand in preview nav to view splash.
+
+---
+
+### 3. Minimal / No photo (`heroLayout: 'minimal'`)
+
+App sets `heroLayout: 'minimal'` and `heroPhotoEnabled: false`.
+
+**Live site behavior:**
+
+- `.profile-hero--minimal` on hero section
+- `#profile-photo-wrap` hidden
+- Tagline headline injected via `buildHeroHeadlineHtml()` (brand + tagline lines) — compact text header, not a photo
+- **All content sections in `<main>`** per `mainSectionOrder` (About Me, Policies, reviews, …)
+- About Me **never** beside photo
+
+---
+
+### Side-by-side comparison
+
+| | **Split** | **Cover** | **Minimal** |
+|--|-----------|-----------|-------------|
+| Pages | One scrolling home | Splash `/` + book `/book` | One scrolling home |
+| Photo | Portrait column | Full viewport on splash only | None (optional tagline headline) |
+| About Me | Beside photo if first in order | In `<main>` on `/book` | In `<main>` only |
+| Policies | Always in `<main>` | In `<main>` on `/book` | In `<main>` only |
+| Order tab | “About Me + photo” may pin (split) | “Full-screen splash” pinned | All sections draggable |
+| Nav Book | → `/booking` | Splash → `/book`; book → `/booking` | → `/booking` |
+
+---
+
+### Shared ordering pipeline (all layouts)
+
+```
+mainSectionOrder (Supabase)
+  → resolveMainSectionOrder()
+  → populate* (content + hidden state)
+  → reorderMainSections(content, theme)   // always last
+```
+
+**Split:** optional About Me in `#profile-hero-about-slot`; Policies always in `<main>`.  
+**Cover:** splash ignores order; `/book` uses full order in `<main>`.  
+**Minimal:** no photo sidebar; 100% `<main>` order.
+
+---
+
+### Stable DOM IDs (live site — do not rename)
+
+| Order ID | Element ID |
+|----------|------------|
+| `aboutMe` | `#profile-about-section` |
+| `policies` | `#profile-policies-section` |
+| `reviews` | `#profile-reviews-section` |
+| `portfolio` | `#profile-portfolio-section` |
+| `menu` | `#profile-menu-section` |
+| `faq` | `#profile-faq-section` |
+| `visit` | `#profile-location-section` |
+| (split sidebar) | `#profile-hero-about-slot` |
+
+---
+
+### Outdated — do NOT reintroduce on live site
+
+- `#profile-about-block`, `#profile-policy-block`, `.profile-info`, `#profile-info-block`
+- `#profile-header-main-section` / composite photo+about in `<main>`
+- `.profile-book-intro` / `.profile-main-intro`
+- `.profile-ordered-block-section` wrappers for About/Policies
+- Policies beside photo or grouped with About Me in hero
+- `resolveHeroSidebarSections` / `isHeroProfileGroupInMain` (replaced by `shouldPlaceAboutBesidePhoto`)
+- `insertBefore` in populate fns for section order
+- Treating all `page-home` as splash (`isSplashPage` = **`page-cover-splash` only**)
+
+---
+
+### Site AI one-liner
+
+> **Split** = 2-column hero (portrait + optional About Me in `#profile-hero-about-slot` when first in order); Policies always in `<main>`. **Cover** = non-scrolling splash on `/`; full site on `/book` with hero hidden. **Minimal** = no portrait; tagline headline optional; all sections in `<main>`. Call **`resetHeroLayoutState()`** before applying `heroLayout`; call **`reorderMainSections()`** after all populates. Only **`aboutMe`** (not policies) may use the hero about slot.
+
+---
+
+## Hero layout: `cover` (Full screen splash) — quick reference
 
 When `site_theme.heroLayout === 'cover'`:
 
