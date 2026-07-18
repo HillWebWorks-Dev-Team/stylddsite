@@ -42,8 +42,14 @@
 
   function isSectionHidden(content, section) {
     if (!content || !Array.isArray(content.hiddenSections)) return false;
-    if (content.hiddenSections.indexOf(section) !== -1) return true;
-    if (section === 'aboutMe') {
+    var target = String(section || '').trim();
+    var targetLower = target.toLowerCase();
+    for (var i = 0; i < content.hiddenSections.length; i++) {
+      var hidden = String(content.hiddenSections[i] || '').trim();
+      if (!hidden) continue;
+      if (hidden === target || hidden.toLowerCase() === targetLower) return true;
+    }
+    if (target === 'aboutMe') {
       return (
         content.hiddenSections.indexOf('about') !== -1 ||
         content.hiddenSections.indexOf('about_me') !== -1
@@ -674,8 +680,6 @@
       if (profileInfo.parentElement !== introWrap) {
         introWrap.appendChild(profileInfo);
       }
-      profileInfo.hidden = false;
-      profileInfo.style.display = '';
       return;
     }
     if (!heroGrid) return;
@@ -1081,7 +1085,7 @@
     var treatAsSplit = options.treatAsSplit === true;
     var heroLayout = String((theme && theme.heroLayout) || 'split').trim();
     if (!isHeroAboutBesidePhotoEnabled(theme)) return [];
-    if (isCoverLayout(theme) && !treatAsSplit) return [];
+    if (isCoverLayout(theme)) return [];
     if (heroLayout !== 'split' && !treatAsSplit) return [];
     if (!treatAsSplit && !themeFlagEnabled(theme, 'heroPhotoEnabled', true)) return [];
 
@@ -1244,6 +1248,53 @@
     wrap.remove();
   }
 
+  function setMainSectionHidden(sectionId, hidden) {
+    var block = getMainSectionElement(sectionId);
+    if (block) block.hidden = !!hidden;
+    var wrap = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+    if (wrap) wrap.hidden = !!hidden;
+  }
+
+  function shouldHidePoliciesSection(content) {
+    content = content && typeof content === 'object' ? content : {};
+    var policyText = (content.bookingPolicy || '').trim();
+    var bullets = policyText
+      ? policyText.split('\n').map(function (line) { return line.trim(); }).filter(Boolean)
+      : [];
+    return isSectionHidden(content, 'policies') || bullets.length === 0;
+  }
+
+  function shouldHideReviewsSection(content) {
+    content = content && typeof content === 'object' ? content : {};
+    if (isSectionHidden(content, 'reviews')) return true;
+    var settings = window.__STYLD_REVIEWS_SETTINGS__ || { enabled: true };
+    if (settings.enabled === false) return true;
+    var reviews = window.__STYLD_SITE_REVIEWS__ || [];
+    return !reviews.some(function (review) {
+      return review && review.message;
+    });
+  }
+
+  function syncMainSectionVisibility(content, theme) {
+    content = content && typeof content === 'object' ? content : {};
+    theme = theme && typeof theme === 'object' ? theme : {};
+
+    setMainSectionHidden('aboutMe', isSectionHidden(content, 'aboutMe') || !resolveAboutBody(content));
+    setMainSectionHidden('policies', shouldHidePoliciesSection(content));
+    setMainSectionHidden('faq', isSectionHidden(content, 'faq') || !normalizeFaqItems(content).length);
+    setMainSectionHidden(
+      'portfolio',
+      isSectionHidden(content, 'portfolio') || !normalizePortfolioItems(theme).length,
+    );
+    setMainSectionHidden('reviews', shouldHideReviewsSection(content));
+    setMainSectionHidden('menu', isSectionHidden(content, 'menu'));
+
+    var visitSection = document.getElementById('profile-location-section');
+    if (visitSection) {
+      setMainSectionHidden('visit', !!visitSection.hidden);
+    }
+  }
+
   function reorderMainSections(content, theme) {
     if (
       isCertificationsPage() ||
@@ -1319,39 +1370,7 @@
     }
 
     var aboutBesideOn = isHeroAboutBesidePhotoEnabled(theme);
-
-    function hasVisibleSidebarBlock() {
-      return sidebarIds.some(function (sectionId) {
-        var block = getMainSectionElement(sectionId);
-        return block && !block.hidden;
-      });
-    }
-
-    if (profileInfo && isSplitHome && !profileGroupInMain) {
-      var showIntro = aboutBesideOn && hasVisibleSidebarBlock();
-      profileInfo.hidden = !showIntro;
-      profileInfo.style.display = showIntro ? '' : 'none';
-    } else if (profileInfo && isBookPage() && !profileGroupInMain) {
-      var showBookIntro = aboutBesideOn && hasVisibleSidebarBlock();
-      profileInfo.hidden = !showBookIntro;
-      profileInfo.style.display = showBookIntro ? '' : 'none';
-    } else if (profileInfo && !profileGroupInMain) {
-      profileInfo.hidden = false;
-      profileInfo.style.display = '';
-    }
-
-    var bookIntro = document.getElementById('profile-book-intro');
-    updateBookIntroVisibility(order, theme, profileInfo, profileGroupInMain, sidebarIds);
-
     var siteMain = document.getElementById('site-main-content');
-    var introShell = siteMain && siteMain.querySelector('.profile-main-intro');
-    if (introShell && profileInfo && !isBookPage() && !profileGroupInMain) {
-      introShell.hidden = profileInfo.hidden || profileInfo.children.length === 0;
-    } else if (introShell && profileGroupInMain) {
-      introShell.hidden = true;
-    } else if (introShell && isBookPage() && bookIntro) {
-      introShell.hidden = bookIntro.hidden;
-    }
 
     order.forEach(function (sectionId) {
       if (belongsInSidebar(sectionId)) return;
@@ -1372,10 +1391,40 @@
       }
 
       if (node) {
-        node.hidden = false;
         main.appendChild(node);
       }
     });
+
+    syncMainSectionVisibility(content, theme);
+
+    if (profileInfo && !profileGroupInMain) {
+      var introHasVisibleBlock =
+        aboutBesideOn &&
+        sidebarIds.some(function (sectionId) {
+          var block = getMainSectionElement(sectionId);
+          return block && !block.hidden;
+        });
+
+      if (isSplitHome || isBookPage()) {
+        profileInfo.hidden = !introHasVisibleBlock;
+        profileInfo.style.display = introHasVisibleBlock ? '' : 'none';
+      } else {
+        profileInfo.hidden = false;
+        profileInfo.style.display = '';
+      }
+
+      var introShell = siteMain && siteMain.querySelector('.profile-main-intro');
+      if (isBookPage()) {
+        var bookIntro = document.getElementById('profile-book-intro');
+        if (bookIntro) bookIntro.hidden = !introHasVisibleBlock;
+        if (introShell) introShell.hidden = !introHasVisibleBlock;
+      } else if (introShell) {
+        introShell.hidden = profileInfo.hidden || profileInfo.children.length === 0;
+      }
+    } else if (profileGroupInMain) {
+      var hiddenIntroShell = siteMain && siteMain.querySelector('.profile-main-intro');
+      if (hiddenIntroShell) hiddenIntroShell.hidden = true;
+    }
   }
 
   function populateReviews(content) {
@@ -2172,7 +2221,7 @@
     applySectionVisibility(content);
     populatePortfolio(content, theme);
     populateFaq(content);
-    populateReviews();
+    populateReviews(content);
     reorderMainSections(content, theme);
     populateSiteNav(content);
 
