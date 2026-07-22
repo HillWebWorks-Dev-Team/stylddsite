@@ -32,7 +32,9 @@
 
   function isSectionHidden(content, section) {
     if (!content || !Array.isArray(content.hiddenSections)) return false;
-    return content.hiddenSections.indexOf(section) !== -1;
+    if (content.hiddenSections.indexOf(section) !== -1) return true;
+    if (section === 'aboutMe' && content.hiddenSections.indexOf('about') !== -1) return true;
+    return false;
   }
 
   function isLocationPartHidden(content, part) {
@@ -136,14 +138,49 @@
     syncReviewsSectionHead(content);
   }
 
+  function escapeAboutPolicyFromHiddenBookIntro(main, profileInfo, order) {
+    if (!isBookPage() || !main) return;
+    var bookIntro = document.getElementById('profile-book-intro');
+    if (!bookIntro || !bookIntro.hidden) return;
+
+    ['aboutMe', 'policies'].forEach(function (sectionId) {
+      var block = getMainSectionElement(sectionId);
+      if (!block || !bookIntro.contains(block)) return;
+      detachOrderedBlockWrap(sectionId, profileInfo);
+      ensureOrderedBlockWrap(block, sectionId);
+    });
+
+    order.forEach(function (sectionId) {
+      if (sectionId !== 'aboutMe' && sectionId !== 'policies') return;
+      var node = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+      if (!node) return;
+      var start = order.indexOf(sectionId);
+      var anchor = null;
+      for (var i = start + 1; i < order.length; i++) {
+        var nextId = order[i];
+        var nextNode =
+          document.querySelector('[data-ordered-section-wrap="' + nextId + '"]') ||
+          getMainSectionElement(nextId);
+        if (nextNode && nextNode.parentElement === main) {
+          anchor = nextNode;
+          break;
+        }
+      }
+      if (anchor) main.insertBefore(node, anchor);
+      else if (node.parentElement !== main) main.appendChild(node);
+    });
+  }
+
   function refreshAboutPolicyAfterReorder(content, theme, order, profileInfo, profileGroupInMain, sidebarIds) {
     content = content && typeof content === 'object' ? content : {};
     theme = theme && typeof theme === 'object' ? theme : {};
     var isSplit = String(theme.heroLayout || 'split').trim() === 'split';
     var isCoverSplash = isCoverLayout(theme) && isSplashPage();
+    var main = document.querySelector('#site-main-content main') || document.querySelector('main');
 
     applyAboutPolicyVisibility(content, theme, isSplit, isCoverSplash);
     updateBookIntroVisibility(order, theme, profileInfo, profileGroupInMain, sidebarIds, content);
+    escapeAboutPolicyFromHiddenBookIntro(main, profileInfo, order);
 
     ['aboutMe', 'policies'].forEach(function (sectionId) {
       var block = getMainSectionElement(sectionId);
@@ -859,7 +896,7 @@
     var policyEl = document.getElementById('profile-policy-body');
     var profileInfo = document.getElementById('profile-info-block');
 
-    var policyText = (content.bookingPolicy || '').trim();
+    var policyText = resolveBookingPolicyText(content);
     var bullets = policyText
       ? policyText.split('\n').map(function (l) { return l.trim(); }).filter(Boolean)
       : [];
@@ -1107,7 +1144,18 @@
 
   function resolveAboutMeText(content) {
     content = content && typeof content === 'object' ? content : {};
-    return String(content.heroDescription || content.aboutBody || '').trim();
+    return String(
+      content.heroDescription ||
+        content.hero_description ||
+        content.aboutBody ||
+        content.about_body ||
+        '',
+    ).trim();
+  }
+
+  function resolveBookingPolicyText(content) {
+    content = content && typeof content === 'object' ? content : {};
+    return String(content.bookingPolicy || content.booking_policy || '').trim();
   }
 
   function resolveBookIntroAbout(order, content) {
