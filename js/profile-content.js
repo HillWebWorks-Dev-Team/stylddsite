@@ -120,16 +120,6 @@
     content = content && typeof content === 'object' ? content : {};
     theme = theme && typeof theme === 'object' ? theme : {};
 
-    var policyText = (content.bookingPolicy || '').trim();
-    var policyBullets = policyText
-      ? policyText.split('\n').map(function (l) { return l.trim(); }).filter(Boolean)
-      : [];
-
-    setMainSectionHidden('aboutMe', isSectionHidden(content, 'aboutMe') || !resolveAboutMeText(content));
-    setMainSectionHidden(
-      'policies',
-      isSectionHidden(content, 'policies') || !policyBullets.length
-    );
     setMainSectionHidden('faq', isSectionHidden(content, 'faq') || !normalizeFaqItems(content).length);
     setMainSectionHidden(
       'portfolio',
@@ -144,6 +134,24 @@
     }
 
     syncReviewsSectionHead(content);
+  }
+
+  function refreshAboutPolicyAfterReorder(content, theme, order, profileInfo, profileGroupInMain, sidebarIds) {
+    content = content && typeof content === 'object' ? content : {};
+    theme = theme && typeof theme === 'object' ? theme : {};
+    var isSplit = String(theme.heroLayout || 'split').trim() === 'split';
+    var isCoverSplash = isCoverLayout(theme) && isSplashPage();
+
+    applyAboutPolicyVisibility(content, theme, isSplit, isCoverSplash);
+    updateBookIntroVisibility(order, theme, profileInfo, profileGroupInMain, sidebarIds, content);
+
+    ['aboutMe', 'policies'].forEach(function (sectionId) {
+      var block = getMainSectionElement(sectionId);
+      var wrap = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+      if (wrap && block) {
+        wrap.hidden = !!block.hidden;
+      }
+    });
   }
 
   function formatMenuMoney(amount) {
@@ -849,7 +857,6 @@
     var aboutBlock = document.getElementById('profile-about-block');
     var policyBlock = document.getElementById('profile-policy-block');
     var policyEl = document.getElementById('profile-policy-body');
-    var bookIntro = document.getElementById('profile-book-intro');
     var profileInfo = document.getElementById('profile-info-block');
 
     var policyText = (content.bookingPolicy || '').trim();
@@ -871,10 +878,6 @@
 
     if (aboutBlock) aboutBlock.hidden = aboutHidden;
     if (policyBlock) policyBlock.hidden = policiesHidden;
-
-    if (isBookPage() && bookIntro) {
-      bookIntro.hidden = aboutHidden && policiesHidden;
-    }
 
     if (profileInfo && isSplit && !isCoverSplash) {
       profileInfo.hidden = aboutHidden;
@@ -1234,10 +1237,11 @@
     }
 
     var aboutBlock = getMainSectionElement('aboutMe');
+    var aboutHidden = isSectionHidden(content, 'aboutMe') || !resolveAboutMeText(content);
     var showIntro =
       resolveBookIntroAbout(order, content) &&
+      !aboutHidden &&
       aboutBlock &&
-      !aboutBlock.hidden &&
       aboutBlock.parentElement === profileInfo;
     bookIntro.hidden = !showIntro;
   }
@@ -1467,6 +1471,14 @@
     });
 
     syncMainSectionVisibility(content, theme);
+    refreshAboutPolicyAfterReorder(
+      content,
+      theme,
+      order,
+      profileInfo,
+      profileGroupInMain,
+      sidebarIds
+    );
   }
 
   function populateReviews(content) {
