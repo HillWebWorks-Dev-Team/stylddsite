@@ -138,37 +138,71 @@
     syncReviewsSectionHead(content);
   }
 
-  function escapeAboutPolicyFromHiddenBookIntro(main, profileInfo, order) {
-    if (!isBookPage() || !main) return;
-    var bookIntro = document.getElementById('profile-book-intro');
-    if (!bookIntro || !bookIntro.hidden) return;
+  function insertOrderedSectionInMain(main, order, sectionId) {
+    if (!main || !sectionId) return;
+    var block = getMainSectionElement(sectionId);
+    if (!block) return;
+    var node = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+    if (!node) node = ensureOrderedBlockWrap(block, sectionId);
+    if (!node) return;
 
-    ['aboutMe', 'policies'].forEach(function (sectionId) {
-      var block = getMainSectionElement(sectionId);
-      if (!block || !bookIntro.contains(block)) return;
-      detachOrderedBlockWrap(sectionId, profileInfo);
-      ensureOrderedBlockWrap(block, sectionId);
-    });
+    var start = order.indexOf(sectionId);
+    if (start === -1) {
+      if (node.parentElement !== main) main.appendChild(node);
+      return;
+    }
 
-    order.forEach(function (sectionId) {
-      if (sectionId !== 'aboutMe' && sectionId !== 'policies') return;
-      var node = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
-      if (!node) return;
-      var start = order.indexOf(sectionId);
-      var anchor = null;
-      for (var i = start + 1; i < order.length; i++) {
-        var nextId = order[i];
-        var nextNode =
-          document.querySelector('[data-ordered-section-wrap="' + nextId + '"]') ||
-          getMainSectionElement(nextId);
-        if (nextNode && nextNode.parentElement === main) {
-          anchor = nextNode;
-          break;
-        }
+    var anchor = null;
+    for (var i = start + 1; i < order.length; i++) {
+      var nextId = order[i];
+      var nextNode =
+        document.querySelector('[data-ordered-section-wrap="' + nextId + '"]') ||
+        getMainSectionElement(nextId);
+      if (nextNode && nextNode.parentElement === main) {
+        anchor = nextNode;
+        break;
       }
-      if (anchor) main.insertBefore(node, anchor);
-      else if (node.parentElement !== main) main.appendChild(node);
-    });
+    }
+    if (anchor) main.insertBefore(node, anchor);
+    else if (node.parentElement !== main) main.appendChild(node);
+  }
+
+  function ensureAboutPolicyInMainFlow(main, profileInfo, order, content) {
+    if (!isBookPage() || !main) return;
+    content = content && typeof content === 'object' ? content : {};
+    order = Array.isArray(order) ? order : resolveMainSectionOrder(content);
+
+    var bookIntro = document.getElementById('profile-book-intro');
+    var aboutBlock = getMainSectionElement('aboutMe');
+    var policyBlock = getMainSectionElement('policies');
+
+    if (policyBlock && bookIntro && bookIntro.contains(policyBlock)) {
+      detachOrderedBlockWrap('policies', profileInfo);
+      ensureOrderedBlockWrap(policyBlock, 'policies');
+    }
+
+    var aboutHidden = isSectionHidden(content, 'aboutMe') || !resolveAboutMeText(content);
+    var showBookIntro =
+      bookIntro &&
+      !bookIntro.hidden &&
+      resolveBookIntroAbout(order, content) &&
+      !aboutHidden &&
+      aboutBlock;
+
+    if (aboutBlock && bookIntro && bookIntro.contains(aboutBlock) && !showBookIntro) {
+      detachOrderedBlockWrap('aboutMe', profileInfo);
+      ensureOrderedBlockWrap(aboutBlock, 'aboutMe');
+    }
+
+    if (aboutBlock && showBookIntro && profileInfo && aboutBlock.parentElement !== profileInfo) {
+      detachOrderedBlockWrap('aboutMe', profileInfo);
+      profileInfo.appendChild(aboutBlock);
+    }
+
+    insertOrderedSectionInMain(main, order, 'policies');
+    if (!showBookIntro) {
+      insertOrderedSectionInMain(main, order, 'aboutMe');
+    }
   }
 
   function refreshAboutPolicyAfterReorder(content, theme, order, profileInfo, profileGroupInMain, sidebarIds) {
@@ -180,7 +214,7 @@
 
     applyAboutPolicyVisibility(content, theme, isSplit, isCoverSplash);
     updateBookIntroVisibility(order, theme, profileInfo, profileGroupInMain, sidebarIds, content);
-    escapeAboutPolicyFromHiddenBookIntro(main, profileInfo, order);
+    ensureAboutPolicyInMainFlow(main, profileInfo, order, content);
 
     ['aboutMe', 'policies'].forEach(function (sectionId) {
       var block = getMainSectionElement(sectionId);
