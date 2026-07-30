@@ -807,6 +807,11 @@ body.admin-drawer-open {
   gap: 0.55rem;
 }
 
+.admin-salon-row-wrap--pinned .admin-salon-row {
+  border-color: rgba(255, 45, 138, 0.35);
+  background: linear-gradient(160deg, rgba(255, 45, 138, 0.1), rgba(255, 255, 255, 0.02));
+}
+
 .admin-salon-row-wrap {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

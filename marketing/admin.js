@@ -74,6 +74,8 @@
 
   var HIDDEN_SALON_USER_IDS = ['f8e75013-9e0f-4377-9076-8ca1b0d0d529'];
   var HIDDEN_SALON_EMAILS = ['admin@styld.app'];
+  var PINNED_SALON_SUBDOMAINS = ['stylisting'];
+  var PINNED_SALON_USER_IDS = [];
   var HIDDEN_PRO_IDS_KEY = 'styld_admin_hidden_pro_ids';
 
   function readHiddenProIds() {
@@ -100,6 +102,29 @@
     if (HIDDEN_SALON_USER_IDS.indexOf(uid) >= 0) return true;
     var email = String(row.email || '').toLowerCase().trim();
     return HIDDEN_SALON_EMAILS.indexOf(email) >= 0;
+  }
+
+  function isPinnedSalonUser(row) {
+    if (!row) return false;
+    var uid = String(row.user_id || row.id || '').trim();
+    if (uid && PINNED_SALON_USER_IDS.indexOf(uid) >= 0) return true;
+    var subdomain = String(row.subdomain || '').trim().toLowerCase();
+    if (subdomain && PINNED_SALON_SUBDOMAINS.indexOf(subdomain) >= 0) return true;
+    var name = String(row.brand_name || row.business_name || row.full_name || '')
+      .trim()
+      .toLowerCase();
+    return name.indexOf('stylisting') >= 0;
+  }
+
+  function pinSalonsToTop(list) {
+    list = list || [];
+    var pinned = [];
+    var rest = [];
+    list.forEach(function (row) {
+      if (isPinnedSalonUser(row)) pinned.push(row);
+      else rest.push(row);
+    });
+    return pinned.concat(rest);
   }
 
   function isHiddenSalonUser(row) {
@@ -852,7 +877,7 @@
 
     var p = data.payments || {};
     var s = data.stripe_connect || {};
-    var topSalons = data.top_salons_by_collected || [];
+    var topSalons = pinSalonsToTop(data.top_salons_by_collected || []);
 
     var hero =
       '<div class="admin-overview-hero">' +
@@ -2774,14 +2799,17 @@
       }
     });
 
-    return list;
+    return pinSalonsToTop(list);
   }
 
   function salonRowHtml(u) {
     var name = u.brand_name || u.business_name || u.full_name || 'Pro';
     var img = renderSalonThumb(salonLogoUrl(u), name, 'admin-salon-row__media-inner');
+    var pinnedClass = isPinnedSalonUser(u) ? ' admin-salon-row-wrap--pinned' : '';
     return (
-      '<article class="admin-salon-row-wrap">' +
+      '<article class="admin-salon-row-wrap' +
+      pinnedClass +
+      '">' +
       '<button type="button" class="admin-salon-row" data-open-user="' +
       esc(u.user_id) +
       '">' +
