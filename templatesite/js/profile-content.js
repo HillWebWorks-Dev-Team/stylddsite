@@ -1242,16 +1242,9 @@
   ];
   function resolveAboutMeText(content) {
     content = content && typeof content === 'object' ? content : {};
-    var heroDesc = String(content.heroDescription || content.hero_description || '').trim();
-    var aboutBody = String(content.aboutBody || content.about_body || '').trim();
-    var defaultHero = 'Welcome — book online and pay securely.';
-
-    if (heroDesc === defaultHero) heroDesc = '';
-
-    // Mobile app bio → heroDescription. Web editor → aboutBody. Same About Me block.
-    // When both differ, prefer heroDescription (app is what stylists update most often).
-    if (heroDesc && aboutBody && heroDesc !== aboutBody) return heroDesc;
-    return aboutBody || heroDesc;
+    var text = String(content.heroDescription || content.hero_description || '').trim();
+    if (text === 'Welcome — book online and pay securely.') return '';
+    return text;
   }
 
   function resolveBookingPolicyText(content) {
@@ -2168,12 +2161,6 @@
       } else if (heroPhoto) {
         heroPhoto.style.backgroundImage = '';
       }
-    }
-
-    var aboutTitleEl = document.getElementById('profile-about-title');
-    if (aboutTitleEl) {
-      var aboutTitle = String(content.aboutTitle || content.about_title || 'About Me').trim();
-      aboutTitleEl.textContent = aboutTitle || 'About Me';
     }
 
     var aboutEl = document.getElementById('profile-about-body');

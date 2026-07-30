@@ -170,22 +170,6 @@ function bindInput(selector, obj, key, onChange) {
   });
 }
 
-function syncAboutBioFields(sourceKey) {
-  const c = state.editor.content;
-  if (sourceKey === 'aboutBody') {
-    c.heroDescription = c.aboutBody;
-  } else if (sourceKey === 'heroDescription') {
-    c.aboutBody = c.heroDescription;
-  }
-}
-
-function bindAboutBioInput(selector, key) {
-  bindInput(selector, state.editor.content, key, function () {
-    syncAboutBioFields(key);
-    scheduleContentSave();
-  });
-}
-
 function renderStyleTab() {
   const c = state.editor.content;
   const t = state.editor.theme;
@@ -195,7 +179,6 @@ function renderStyleTab() {
     field('Hero left', 'editor-tagline-left', c.taglineLeft) +
     field('Hero line 1', 'editor-tagline-r1', c.taglineRightLine1) +
     field('Hero line 2', 'editor-tagline-r2', c.taglineRightLine2) +
-    textarea('Bio (About Me on your site)', 'editor-hero-desc', c.heroDescription) +
     textarea('Footer text', 'editor-footer', c.footerText) +
     field('Meta description', 'editor-meta', c.metaDescription) +
     '</div>' +
@@ -269,9 +252,8 @@ function renderContentTab() {
 
   return (
     toggles +
-    '<div class="editor-section"><h3>About & policies</h3>' +
-    field('About title', 'editor-about-title', c.aboutTitle) +
-    textarea('Bio (About Me on your site)', 'editor-about-body', c.aboutBody) +
+    '<div class="editor-section"><h3>About Me & policies</h3>' +
+    textarea('Bio', 'editor-about-bio', c.heroDescription) +
     field('Visit title', 'editor-visit-title', c.visitTitle) +
     textarea('Visit blurb', 'editor-visit-body', c.visitBody) +
     textarea('Booking policy', 'editor-policy', c.bookingPolicy) +
@@ -595,11 +577,9 @@ function bindTabFields() {
   bindInput('#editor-tagline-left', c, 'taglineLeft', scheduleContentSave);
   bindInput('#editor-tagline-r1', c, 'taglineRightLine1', scheduleContentSave);
   bindInput('#editor-tagline-r2', c, 'taglineRightLine2', scheduleContentSave);
-  bindAboutBioInput('#editor-hero-desc', 'heroDescription');
   bindInput('#editor-footer', c, 'footerText', scheduleContentSave);
   bindInput('#editor-meta', c, 'metaDescription', scheduleContentSave);
-  bindInput('#editor-about-title', c, 'aboutTitle', scheduleContentSave);
-  bindAboutBioInput('#editor-about-body', 'aboutBody');
+  bindInput('#editor-about-bio', c, 'heroDescription', scheduleContentSave);
   bindInput('#editor-visit-title', c, 'visitTitle', scheduleContentSave);
   bindInput('#editor-visit-body', c, 'visitBody', scheduleContentSave);
   bindInput('#editor-policy', c, 'bookingPolicy', scheduleContentSave);
