@@ -157,8 +157,8 @@ All seven sections must exist with these IDs (static HTML order does not matter 
 
 | Section ID | Element |
 |------------|---------|
-| `aboutMe` | `#profile-about-block` — split hero sidebar or `/book` intro when first in order; otherwise `<main>` |
-| `policies` | `#profile-policy-block` — always in `<main>` (or cover `/book` main order); never split hero sidebar |
+| `aboutMe` | `#profile-about-block` — always in `<main>` via `.profile-ordered-block-section` |
+| `policies` | `#profile-policy-block` — always in `<main>` via `.profile-ordered-block-section` |
 | `reviews` | `#profile-reviews-section` inside `<main>` |
 | `portfolio` | `#profile-portfolio-section` inside `<main>` |
 | `menu` | `#profile-menu-section` inside `<main>` |
@@ -171,9 +171,9 @@ There must be a `<main>` element containing reviews, portfolio, menu, FAQ, and v
 
 1. **`resolveMainSectionOrder(content)`** — read `content.mainSectionOrder`, merge any missing IDs, fall back to `portfolioPlacement` for old sites
 2. **`reorderMainSections(content, theme)`** — apply the order:
-   - **Split hero:** only **About Me** (`HERO_SECTION_IDS = ['aboutMe']`) stays in `.profile-info` beside the photo when it is first in `mainSectionOrder` (nothing before it except optional reorder-only ids). **Policies never** sit in the split hero sidebar — they always render in `<main>` at their order position.
-   - If About Me is not eligible for the hero sidebar (e.g. portfolio/reviews/menu appears before it), About Me moves into `<main>` inside `.profile-ordered-block-section` (mini photo + About grid when split).
-   - **Cover `/book`:** About Me may appear in `.profile-book-intro .profile-info` when first in order; Policies stay in `<main>`. Cover splash `/` hides both.
+   - **About Me and Policies never sit beside the hero photo.** Legacy `split` / `image-below` layouts map to **`banner`** (photo-only hero).
+   - Both blocks are wrapped in `.profile-ordered-block-section` > `.container` and appended to `<main>` in `mainSectionOrder`.
+   - **Cover splash `/`:** both hidden (main hidden). **Cover `/book`:** both in `<main>` only. `.profile-book-intro` is always hidden after reorder.
    - All other sections: `main.appendChild()` in `mainSectionOrder` sequence (moves existing nodes)
 3. In **`applyStyldPreviewContent()`**, call **`reorderMainSections(content, theme)`** after:
    - `populateReviews()`
