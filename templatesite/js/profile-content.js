@@ -180,11 +180,27 @@
     return normalizeHeroLayout(theme) === 'cover';
   }
 
-  function prepareAboutPolicyBlocksForMain(profileInfo) {
+  function prepareAboutPolicyBlocksForMain() {
     ['aboutMe', 'policies'].forEach(function (sectionId) {
       var block = getMainSectionElement(sectionId);
       if (!block) return;
-      detachOrderedBlockWrap(sectionId, profileInfo);
+      detachOrderedBlockWrap(sectionId, null);
+      ensureOrderedBlockWrap(block, sectionId);
+    });
+  }
+
+  function releaseAboutPolicyFromHiddenHosts() {
+    var bookIntro = document.getElementById('profile-book-intro');
+    var profileInfo = document.getElementById('profile-info-block');
+    ['aboutMe', 'policies'].forEach(function (sectionId) {
+      var block = getMainSectionElement(sectionId);
+      if (!block) return;
+      var wrap = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+      var trappedInIntro =
+        (bookIntro && (bookIntro.contains(block) || (wrap && bookIntro.contains(wrap)))) ||
+        (profileInfo && (profileInfo.contains(block) || (wrap && profileInfo.contains(wrap))));
+      if (!trappedInIntro) return;
+      detachOrderedBlockWrap(sectionId, null);
       ensureOrderedBlockWrap(block, sectionId);
     });
   }
@@ -220,7 +236,8 @@
       var block = getMainSectionElement(sectionId);
       var wrap = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
       if (wrap && block) {
-        wrap.hidden = !!block.hidden;
+        wrap.hidden = block.hidden;
+        wrap.style.display = block.hidden ? 'none' : '';
       }
     });
   }
@@ -1153,7 +1170,13 @@
   ];
   function resolveAboutMeText(content) {
     content = content && typeof content === 'object' ? content : {};
-    return String(content.heroDescription || content.hero_description || '').trim();
+    return String(
+      content.aboutBody ||
+        content.about_body ||
+        content.heroDescription ||
+        content.hero_description ||
+        '',
+    ).trim();
   }
 
   function resolveBookingPolicyText(content) {
@@ -1287,7 +1310,8 @@
     }
     if (heroSection) heroSection.classList.remove('profile-hero--hidden');
 
-    prepareAboutPolicyBlocksForMain(profileInfo);
+    prepareAboutPolicyBlocksForMain();
+    releaseAboutPolicyFromHiddenHosts();
     hideLegacyAboutPolicyHosts();
 
     if (heroGrid && heroLayout === 'banner' && !isBookPage() && !isSplashPage()) {
@@ -2062,6 +2086,12 @@
       } else if (heroPhoto) {
         heroPhoto.style.backgroundImage = '';
       }
+    }
+
+    var aboutTitleEl = document.getElementById('profile-about-title');
+    if (aboutTitleEl) {
+      var aboutTitle = String(content.aboutTitle || content.about_title || 'About Me').trim();
+      aboutTitleEl.textContent = aboutTitle || 'About Me';
     }
 
     var aboutEl = document.getElementById('profile-about-body');
