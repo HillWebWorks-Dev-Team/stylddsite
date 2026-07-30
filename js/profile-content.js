@@ -919,8 +919,10 @@
     heroPhoto.classList.toggle('profile-photo__bg--blurred', !!(theme && theme.heroCoverBlur));
   }
 
-  function layoutProfileInfo(profileInfo, heroGrid, siteMain) {
+  function layoutProfileInfo(profileInfo, heroGrid, siteMain, theme) {
     if (!profileInfo || !siteMain) return;
+    theme = theme && typeof theme === 'object' ? theme : {};
+    var heroLayout = normalizeHeroLayout(theme);
     if (isBookPage()) {
       var bookIntro = document.getElementById('profile-book-intro') ||
         siteMain.querySelector('.profile-book-intro');
@@ -931,8 +933,13 @@
       if (profileInfo.parentElement !== introWrap) {
         introWrap.appendChild(profileInfo);
       }
-    } else if (heroGrid && profileInfo.parentElement !== heroGrid) {
+    } else if (heroLayout !== 'banner' && heroGrid && profileInfo.parentElement !== heroGrid) {
       heroGrid.appendChild(profileInfo);
+    } else {
+      var mainIntro = siteMain.querySelector('.profile-main-intro');
+      if (mainIntro && profileInfo.parentElement !== mainIntro) {
+        mainIntro.appendChild(profileInfo);
+      }
     }
     profileInfo.hidden = true;
     profileInfo.style.display = 'none';
@@ -1390,7 +1397,7 @@
     releaseAboutPolicyFromHiddenHosts(main);
     hideLegacyAboutPolicyHosts();
 
-    if (heroGrid && heroLayout === 'banner' && !isBookPage() && !isSplashPage()) {
+    if (heroGrid && heroLayout === 'banner' && !isBookPage()) {
       heroGrid.classList.add('profile-hero__grid--photo-only');
     } else if (heroGrid) {
       heroGrid.classList.remove('profile-hero__grid--photo-only');
@@ -2111,7 +2118,7 @@
       heroSection.classList.toggle('profile-hero--hidden', isMinimal);
     }
 
-    layoutProfileInfo(profileInfo, heroGrid, siteMain);
+    layoutProfileInfo(profileInfo, heroGrid, siteMain, theme);
 
     if (isCoverSplash) {
       setupCoverLayout(content, theme, heroSection, heroPhoto);
