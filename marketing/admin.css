@@ -900,42 +900,136 @@ body.admin-drawer-open {
 .admin-salon-row__media {
   width: 56px;
   height: 56px;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
-  background: var(--admin-surface-2);
   flex-shrink: 0;
 }
 
 .admin-salon-row__media-inner,
-.admin-salon-thumb {
-  position: relative;
+.admin-table-salon__thumb,
+.admin-salon-view__thumb,
+.admin-salon-hero__media-inner,
+.admin-biz-hero__avatar,
+.admin-account-block__avatar {
   width: 100%;
   height: 100%;
-  display: grid;
-  place-items: center;
+}
+
+.admin-table-salon__thumb {
+  width: 40px;
+  height: 40px;
+}
+
+.admin-salon-view__thumb-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   overflow: hidden;
-  border-radius: inherit;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
 }
 
-.admin-salon-row__media-inner__img,
-.admin-salon-thumb__img {
+.admin-salon-view__thumb {
+  width: 48px;
+  height: 48px;
+}
+
+.admin-biz-hero__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  flex-shrink: 0;
+  border: none;
+  overflow: hidden;
+}
+
+.admin-account-block__avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border: none;
+  overflow: hidden;
+}
+
+/* Unified pro logo tile */
+.admin-pro-logo {
+  position: relative;
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  display: block;
+  border-radius: inherit;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: hsl(var(--admin-logo-hue, 330) 38% 12%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 20px rgba(0, 0, 0, 0.22);
 }
 
-.admin-salon-row__media-inner__fallback,
-.admin-salon-thumb__fallback,
-.admin-salon-thumb--empty span {
+.admin-pro-logo--circle {
+  border-radius: 999px;
+}
+
+.admin-pro-logo__plate {
+  position: absolute;
+  inset: 0;
   display: grid;
   place-items: center;
-  width: 100%;
-  height: 100%;
-  font-size: 1rem;
+  padding: 10%;
+  background: linear-gradient(165deg, rgba(24, 24, 28, 0.98), rgba(10, 10, 12, 0.98));
+}
+
+.admin-pro-logo__img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.28));
+}
+
+.admin-pro-logo__initials {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-items: center;
+  font-size: clamp(0.72rem, 32%, 1.05rem);
   font-weight: 700;
-  color: var(--admin-accent);
-  background: linear-gradient(145deg, rgba(255, 45, 138, 0.18), rgba(255, 255, 255, 0.03));
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: hsl(var(--admin-logo-hue, 330) 92% 92%);
+  background: linear-gradient(
+    145deg,
+    hsl(var(--admin-logo-hue, 330) 52% 28%),
+    hsl(calc(var(--admin-logo-hue, 330) + 24) 42% 14%)
+  );
+}
+
+.admin-pro-logo:not([data-admin-pro-logo]) .admin-pro-logo__initials,
+.admin-pro-logo--failed .admin-pro-logo__initials {
+  display: grid;
+}
+
+.admin-pro-logo:not([data-admin-pro-logo]) .admin-pro-logo__plate,
+.admin-pro-logo--failed .admin-pro-logo__plate {
+  display: none;
+}
+
+.admin-salon-row__media .admin-pro-logo {
+  border-radius: 14px;
+}
+
+.admin-table-salon__thumb.admin-pro-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+}
+
+.admin-salon-hero__media .admin-pro-logo {
+  border-radius: 18px;
 }
 
 .admin-salon-row__title-row {
@@ -1167,31 +1261,18 @@ body.admin-drawer-open {
 }
 
 .admin-salon-hero__media {
-  width: 88px;
-  height: 88px;
-  border-radius: 14px;
+  width: 96px;
+  height: 96px;
+  border-radius: 18px;
   overflow: hidden;
   flex-shrink: 0;
-  border: 1px solid var(--admin-border);
-  background: var(--admin-surface-2);
+  background: transparent;
+  border: none;
 }
 
 .admin-salon-hero__media-inner {
-  width: 100%;
-  height: 100%;
-}
-
-.admin-salon-hero__img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.admin-salon-hero__fallback {
-  width: 88px;
-  height: 88px;
-  font-size: 1.25rem;
+  width: 96px;
+  height: 96px;
 }
 
 .admin-salon-hero__copy h3 {
@@ -1563,37 +1644,6 @@ body.admin-salon-open {
   min-width: 0;
 }
 
-.admin-salon-view__thumb-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  overflow: hidden;
-  flex-shrink: 0;
-  border: 1px solid var(--admin-border);
-  background: var(--admin-surface-2);
-}
-
-.admin-salon-view__thumb {
-  width: 100%;
-  height: 100%;
-}
-
-.admin-table-salon {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  min-width: 0;
-}
-
-.admin-table-salon__thumb {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  overflow: hidden;
-  flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: var(--admin-surface-2);
-}
 
 .admin-salon-view__title-wrap h2 {
   margin: 0;
@@ -2995,19 +3045,11 @@ body.admin-salon-open {
 }
 
 .admin-biz-hero__avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
   overflow: hidden;
-}
-
-.admin-biz-hero__avatar.admin-salon-thumb--empty span,
-.admin-biz-hero__avatar .admin-salon-thumb__fallback {
-  font-size: 0.95rem;
-  color: #fff;
-  background: linear-gradient(145deg, rgba(255, 45, 138, 0.9), rgba(160, 25, 90, 0.95));
 }
 
 .admin-biz-hero__main h3 {
@@ -3038,19 +3080,11 @@ body.admin-salon-open {
 }
 
 .admin-account-block__avatar {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 999px;
   overflow: hidden;
   flex-shrink: 0;
-}
-
-.admin-account-block__avatar.admin-salon-thumb--empty span,
-.admin-account-block__avatar .admin-salon-thumb__fallback {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(145deg, rgba(255, 45, 138, 0.85), rgba(180, 30, 100, 0.9));
 }
 
 .admin-account-block__name {

@@ -1000,6 +1000,7 @@
       topSalonsHtml +
       '</section>' +
       charts;
+    bindAdminProLogos(els.overviewPanel);
   }
 
   function currentMonthKey() {
@@ -1444,6 +1445,28 @@
       .toUpperCase();
   }
 
+  function salonAvatarHue(name) {
+    var hash = 0;
+    var s = String(name || 'S');
+    for (var i = 0; i < s.length; i++) {
+      hash = s.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return Math.abs(hash) % 360;
+  }
+
+  function bindAdminProLogos(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    scope.querySelectorAll('[data-admin-pro-logo]').forEach(function (el) {
+      if (el.dataset.logoBound === '1') return;
+      el.dataset.logoBound = '1';
+      var img = el.querySelector('.admin-pro-logo__img');
+      if (!img) return;
+      img.addEventListener('error', function () {
+        el.classList.add('admin-pro-logo--failed');
+      });
+    });
+  }
+
   function salonLogoUrl(row) {
     if (!row) return null;
     return row.logo_url || row.image_url || null;
@@ -1468,27 +1491,33 @@
     });
   }
 
-  function renderSalonThumb(imageUrl, name, className) {
-    className = className || 'admin-salon-thumb';
+  function renderSalonThumb(imageUrl, name, className, options) {
+    className = className || 'admin-pro-logo';
+    options = options || {};
     var initials = esc(salonInitials(name));
-    if (imageUrl) {
-      return (
-        '<div class="' +
-        className +
-        '">' +
-        '<img class="' +
-        className +
-        '__img" src="' +
-        esc(imageUrl) +
-        '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false">' +
-        '<span class="' +
-        className +
-        '__fallback" hidden>' +
-        initials +
-        '</span></div>'
-      );
-    }
-    return '<div class="' + className + ' ' + className + '--empty"><span>' + initials + '</span></div>';
+    var hue = salonAvatarHue(name);
+    var url = imageUrl ? String(imageUrl).trim() : '';
+    var hasImage = !!url;
+    var shapeClass = options.shape === 'circle' ? ' admin-pro-logo--circle' : '';
+
+    return (
+      '<div class="admin-pro-logo ' +
+      className +
+      shapeClass +
+      '"' +
+      (hasImage ? ' data-admin-pro-logo' : '') +
+      ' style="--admin-logo-hue:' +
+      hue +
+      '">' +
+      (hasImage
+        ? '<div class="admin-pro-logo__plate"><img class="admin-pro-logo__img" src="' +
+          esc(url) +
+          '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>'
+        : '') +
+      '<span class="admin-pro-logo__initials" aria-hidden="true">' +
+      initials +
+      '</span></div>'
+    );
   }
 
   function businessCategoryPill(category, label) {
@@ -2532,7 +2561,9 @@
     var accountCard = infoCard(
       'Account',
       '<div class="admin-account-block">' +
-        renderSalonThumb(salonLogoUrl(data), data.brand_name || ownerName, 'admin-account-block__avatar') +
+        renderSalonThumb(salonLogoUrl(data), data.brand_name || ownerName, 'admin-account-block__avatar', {
+          shape: 'circle',
+        }) +
         '<div>' +
         '<strong class="admin-account-block__name">' +
         esc(ownerName) +
@@ -2818,6 +2849,7 @@
       return;
     }
     target.innerHTML = list.map(salonRowHtml).join('');
+    bindAdminProLogos(target);
   }
 
   function renderUsersTable(users) {
@@ -3547,6 +3579,7 @@
     if (els.salonTabPanel && state.salonData) {
       els.salonTabPanel.innerHTML = renderSalonTab(state.salonData, tab);
       els.salonTabPanel.setAttribute('aria-labelledby', 'admin-salon-tab-' + tab);
+      bindAdminProLogos(els.salonTabPanel);
     }
 
     if (els.salonViewBody) {
@@ -3566,6 +3599,7 @@
     if (els.salonViewTitle) els.salonViewTitle.textContent = name;
     if (els.salonViewThumb) {
       els.salonViewThumb.innerHTML = renderSalonThumb(salonLogoUrl(data), name, 'admin-salon-view__thumb');
+      bindAdminProLogos(els.salonViewThumb);
     }
     if (els.salonViewSub) {
       var sub = data.subscription || {};
