@@ -140,10 +140,16 @@
 
   function insertOrderedSectionInMain(main, order, sectionId) {
     if (!main || !sectionId) return;
-    var block = getMainSectionElement(sectionId);
-    if (!block) return;
-    var node = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
-    if (!node) node = ensureOrderedBlockWrap(block, sectionId);
+    var node =
+      sectionId === 'aboutMe' || sectionId === 'policies'
+        ? resolveOrderedSectionWrap(sectionId, main)
+        : null;
+    if (!node) {
+      var block = getMainSectionElement(sectionId);
+      if (!block) return;
+      node = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+      if (!node) node = ensureOrderedBlockWrap(block, sectionId);
+    }
     if (!node) return;
 
     var start = order.indexOf(sectionId);
@@ -180,28 +186,82 @@
     return normalizeHeroLayout(theme) === 'cover';
   }
 
-  function prepareAboutPolicyBlocksForMain() {
+  var offDomOrderedWraps = {};
+
+  function findAboutPolicyBlock(sectionId) {
+    var block = getMainSectionElement(sectionId);
+    if (block) return block;
+    var pendingWrap = offDomOrderedWraps[sectionId];
+    if (pendingWrap) {
+      return pendingWrap.querySelector('[data-site-section="' + sectionId + '"]');
+    }
+    return null;
+  }
+
+  function ensureAboutPolicyBlockElement(sectionId, main) {
+    var block = findAboutPolicyBlock(sectionId);
+    if (block) return block;
+    if (!main) main = document.querySelector('#site-main-content main') || document.querySelector('main');
+    if (!main) return null;
+
+    block = document.createElement('div');
+    block.className = 'profile-section-block';
+    block.setAttribute('data-site-section', sectionId);
+    if (sectionId === 'aboutMe') {
+      block.id = 'profile-about-block';
+      block.innerHTML =
+        '<h2 class="profile-about-head" id="profile-about-title">About Me</h2>' +
+        '<p class="profile-about-body" id="profile-about-body"></p>';
+    } else if (sectionId === 'policies') {
+      block.id = 'profile-policy-block';
+      block.innerHTML =
+        '<h3 class="profile-policy-head">Policies</h3>' +
+        '<ul class="profile-policy-body" id="profile-policy-body"></ul>';
+    } else {
+      return null;
+    }
+    main.insertBefore(block, main.firstChild);
+    return block;
+  }
+
+  function resolveOrderedSectionWrap(sectionId, main) {
+    var inDoc = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+    if (inDoc) return inDoc;
+    if (offDomOrderedWraps[sectionId]) return offDomOrderedWraps[sectionId];
+
+    var block = findAboutPolicyBlock(sectionId) || ensureAboutPolicyBlockElement(sectionId, main);
+    if (!block) return null;
+    if (block.closest('[data-ordered-section-wrap="' + sectionId + '"]')) {
+      return block.closest('[data-ordered-section-wrap="' + sectionId + '"]');
+    }
+    return ensureOrderedBlockWrap(block, sectionId);
+  }
+
+  function prepareAboutPolicyBlocksForMain(main) {
+    main = main || document.querySelector('#site-main-content main') || document.querySelector('main');
     ['aboutMe', 'policies'].forEach(function (sectionId) {
-      var block = getMainSectionElement(sectionId);
+      var block = findAboutPolicyBlock(sectionId) || ensureAboutPolicyBlockElement(sectionId, main);
       if (!block) return;
-      detachOrderedBlockWrap(sectionId, null);
+      if (block.closest('[data-ordered-section-wrap="' + sectionId + '"]')) return;
       ensureOrderedBlockWrap(block, sectionId);
     });
   }
 
-  function releaseAboutPolicyFromHiddenHosts() {
+  function releaseAboutPolicyFromHiddenHosts(main) {
+    main = main || document.querySelector('#site-main-content main') || document.querySelector('main');
     var bookIntro = document.getElementById('profile-book-intro');
     var profileInfo = document.getElementById('profile-info-block');
     ['aboutMe', 'policies'].forEach(function (sectionId) {
-      var block = getMainSectionElement(sectionId);
+      var block = findAboutPolicyBlock(sectionId);
       if (!block) return;
-      var wrap = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+      var wrap = resolveOrderedSectionWrap(sectionId, main);
       var trappedInIntro =
         (bookIntro && (bookIntro.contains(block) || (wrap && bookIntro.contains(wrap)))) ||
         (profileInfo && (profileInfo.contains(block) || (wrap && profileInfo.contains(wrap))));
       if (!trappedInIntro) return;
-      detachOrderedBlockWrap(sectionId, null);
-      ensureOrderedBlockWrap(block, sectionId);
+      detachOrderedBlockWrap(sectionId, main);
+      block = findAboutPolicyBlock(sectionId) || ensureAboutPolicyBlockElement(sectionId, main);
+      if (block) ensureOrderedBlockWrap(block, sectionId);
     });
   }
 
@@ -1241,7 +1301,9 @@
 
   function ensureOrderedBlockWrap(blockEl, sectionId) {
     if (!blockEl) return null;
-    var existing = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+    var existing =
+      document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]') ||
+      offDomOrderedWraps[sectionId];
     if (existing) {
       var container = existing.querySelector(':scope > .container');
       if (container) {
@@ -1259,18 +1321,24 @@
     inner.className = 'container';
     inner.appendChild(blockEl);
     wrap.appendChild(inner);
+    offDomOrderedWraps[sectionId] = wrap;
     return wrap;
   }
 
-  function detachOrderedBlockWrap(sectionId, profileInfo) {
-    var wrap = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
+  function detachOrderedBlockWrap(sectionId, main) {
+    var wrap =
+      document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]') ||
+      offDomOrderedWraps[sectionId];
     if (!wrap) return;
-    var block = getMainSectionElement(sectionId);
+    var block = findAboutPolicyBlock(sectionId);
     if (block && wrap.contains(block)) {
-      if (profileInfo) profileInfo.appendChild(block);
-      else wrap.parentNode && wrap.parentNode.insertBefore(block, wrap);
+      if (!main) main = document.querySelector('#site-main-content main') || document.querySelector('main');
+      if (main) main.appendChild(block);
+      else if (wrap.parentNode) wrap.parentNode.insertBefore(block, wrap);
+      else document.body.appendChild(block);
     }
     wrap.remove();
+    delete offDomOrderedWraps[sectionId];
   }
 
   function reorderMainSections(content, theme) {
@@ -1310,8 +1378,8 @@
     }
     if (heroSection) heroSection.classList.remove('profile-hero--hidden');
 
-    prepareAboutPolicyBlocksForMain();
-    releaseAboutPolicyFromHiddenHosts();
+    prepareAboutPolicyBlocksForMain(main);
+    releaseAboutPolicyFromHiddenHosts(main);
     hideLegacyAboutPolicyHosts();
 
     if (heroGrid && heroLayout === 'banner' && !isBookPage() && !isSplashPage()) {
@@ -1323,15 +1391,14 @@
     order.forEach(function (sectionId) {
       var node;
       if (sectionId === 'aboutMe' || sectionId === 'policies') {
-        node = document.querySelector('[data-ordered-section-wrap="' + sectionId + '"]');
-        if (!node) {
-          var block = getMainSectionElement(sectionId);
-          if (block) node = ensureOrderedBlockWrap(block, sectionId);
-        }
+        node = resolveOrderedSectionWrap(sectionId, main);
       } else {
         node = getMainSectionElement(sectionId);
       }
-      if (node) main.appendChild(node);
+      if (node) {
+        main.appendChild(node);
+        delete offDomOrderedWraps[sectionId];
+      }
     });
 
     syncMainSectionVisibility(content, theme);
