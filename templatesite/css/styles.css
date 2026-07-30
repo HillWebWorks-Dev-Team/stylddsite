@@ -7932,8 +7932,14 @@ body.profile-nav-drawer-open {
 }
 
 .profile-hero__grid.profile-hero__grid--photo-only {
-  grid-template-columns: min(100%, 520px);
-  justify-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-hero__grid.profile-hero__grid--photo-only .profile-photo {
+  width: min(100%, 520px);
+  margin-inline: auto;
 }
 
 .profile-hero__grid.profile-hero__grid--photo-only .profile-info {
@@ -9596,6 +9602,12 @@ body.page-booking .booking-product-qty--disabled {
 }
 
 /* Responsive */
+@media (min-width: 701px) {
+  .profile-hero__grid.profile-hero__grid--photo-only .profile-photo__bg {
+    background-position: var(--hero-img-position, center center);
+  }
+}
+
 @media (max-width: 700px) {
   .profile-hero__grid { grid-template-columns: 1fr; }
   .profile-photo {
