@@ -1242,13 +1242,16 @@
   ];
   function resolveAboutMeText(content) {
     content = content && typeof content === 'object' ? content : {};
-    return String(
-      content.aboutBody ||
-        content.about_body ||
-        content.heroDescription ||
-        content.hero_description ||
-        '',
-    ).trim();
+    var heroDesc = String(content.heroDescription || content.hero_description || '').trim();
+    var aboutBody = String(content.aboutBody || content.about_body || '').trim();
+    var defaultHero = 'Welcome — book online and pay securely.';
+
+    if (heroDesc === defaultHero) heroDesc = '';
+
+    // Mobile app bio → heroDescription. Web editor → aboutBody. Same About Me block.
+    // When both differ, prefer heroDescription (app is what stylists update most often).
+    if (heroDesc && aboutBody && heroDesc !== aboutBody) return heroDesc;
+    return aboutBody || heroDesc;
   }
 
   function resolveBookingPolicyText(content) {

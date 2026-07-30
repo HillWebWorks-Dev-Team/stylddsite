@@ -10,13 +10,16 @@ const headers = { apikey: key, Authorization: 'Bearer ' + key };
 const subdomain = process.argv[2] || 'trialsyldd';
 
 function resolveAboutMeText(content) {
-  return String(
-    content.heroDescription ||
-      content.hero_description ||
-      content.aboutBody ||
-      content.about_body ||
-      '',
+  var heroDesc = String(
+    content.heroDescription || content.hero_description || '',
   ).trim();
+  var aboutBody = String(content.aboutBody || content.about_body || '').trim();
+  var defaultHero = 'Welcome — book online and pay securely.';
+
+  if (heroDesc === defaultHero) heroDesc = '';
+
+  if (heroDesc && aboutBody && heroDesc !== aboutBody) return heroDesc;
+  return aboutBody || heroDesc;
 }
 
 function resolveBookingPolicyText(content) {
