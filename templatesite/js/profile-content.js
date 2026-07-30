@@ -173,6 +173,18 @@
     else if (node.parentElement !== main) main.appendChild(node);
   }
 
+  function themeFlagEnabled(theme, camelKey, defaultValue) {
+    theme = theme && typeof theme === 'object' ? theme : {};
+    if (theme[camelKey] === false) return false;
+    if (theme[camelKey] === true) return true;
+    var snake = camelKey.replace(/[A-Z]/g, function (ch) {
+      return '_' + ch.toLowerCase();
+    });
+    if (theme[snake] === false) return false;
+    if (theme[snake] === true) return true;
+    return defaultValue;
+  }
+
   function normalizeHeroLayout(theme) {
     var layout = String((theme && theme.heroLayout) || 'split').trim();
     if (layout === 'split' || layout === 'image-below') return 'banner';
