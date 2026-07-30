@@ -162,11 +162,13 @@
       var reviews = [];
       var productsCatalog = [];
       var productsSettings = {};
+      var bookingHours = null;
 
       records.forEach(function (record) {
         var value = settingValue(record);
         if (record.record_type === 'site_setting' && record.record_key === 'site_content') content = value;
         if (record.record_type === 'site_setting' && record.record_key === 'site_theme') theme = Object.assign(theme, value || {});
+        if (record.record_type === 'site_setting' && record.record_key === 'booking_hours') bookingHours = value;
         if (record.record_type === 'site_setting' && record.record_key === 'style_catalog_meta') meta = value || {};
         if (record.record_type === 'site_setting' && record.record_key === 'style_price_overrides') prices = value || {};
         if (record.record_type === 'site_setting' && record.record_key === 'reviews_settings') {
@@ -208,43 +210,20 @@
       if (window.StyldTenant && window.StyldTenant.normalizeSiteContent) {
         content = window.StyldTenant.normalizeSiteContent(content);
       }
-      if (window.StyldTenant && window.StyldTenant.normalizeSiteTheme) {
-        theme = window.StyldTenant.normalizeSiteTheme(theme);
-      }
 
       var templateId = 'profile';
 
       window.__STYLD_SITE_CONTENT__ = content;
+      window.__STYLD_BOOKING_HOURS__ =
+        window.StyldTenant && window.StyldTenant.normalizeBookingHours
+          ? window.StyldTenant.normalizeBookingHours(bookingHours)
+          : bookingHours || {};
       window.__STYLD_SITE_PRODUCTS__ = {
         catalog: productsCatalog,
         settings: productsSettings,
       };
-      var heroStackImagePaths =
-        window.StyldTenant && window.StyldTenant.resolveHeroStackImagePaths
-          ? window.StyldTenant.resolveHeroStackImagePaths(theme)
-          : Array.isArray(theme.heroStackImagePaths)
-            ? theme.heroStackImagePaths
-            : [];
-      var heroStackImageUrls =
-        window.StyldTenant && window.StyldTenant.resolveHeroStackImageUrls
-          ? window.StyldTenant.resolveHeroStackImageUrls(theme, cfg.supabaseUrl)
-          : heroStackImagePaths
-              .map(function (p) {
-                return coverUrl(p);
-              })
-              .filter(Boolean);
-      var heroStackImageFocus =
-        window.StyldTenant && window.StyldTenant.resolveHeroStackImageFocus
-          ? window.StyldTenant.resolveHeroStackImageFocus(theme)
-          : Array.isArray(theme.heroStackImageFocus)
-            ? theme.heroStackImageFocus
-            : [];
-      var heroStackImageFormat =
-        window.StyldTenant && window.StyldTenant.resolveHeroStackImageFormat
-          ? window.StyldTenant.resolveHeroStackImageFormat(theme)
-          : theme.heroStackImageFormat === 'tall'
-            ? 'tall'
-            : 'wide';
+      var heroStackImagePaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
+      var heroStackImageFocus = Array.isArray(theme.heroStackImageFocus) ? theme.heroStackImageFocus : [];
       window.__STYLD_SITE_THEME__ = {
         heroLayout: theme.heroLayout || 'split',
         heroImagePosition: theme.heroImagePosition || 'center top',
@@ -252,9 +231,9 @@
         heroImageFocusY: theme.heroImageFocusY != null ? theme.heroImageFocusY : null,
         heroImageUrl: coverUrl(theme.heroImagePath),
         logoImageUrl: coverUrl(theme.logoImagePath),
-        heroStackImageUrls: heroStackImageUrls,
+        heroStackImageUrls: heroStackImagePaths.map(function(p) { return coverUrl(p); }),
         heroStackImageFocus: heroStackImageFocus,
-        heroStackImageFormat: heroStackImageFormat,
+        heroStackImageFormat: theme.heroStackImageFormat === 'tall' ? 'tall' : 'wide',
         primaryColor: theme.primaryColor || null,
         secondaryColor: theme.secondaryColor || null,
         navbarColor: theme.navbarColor || null,

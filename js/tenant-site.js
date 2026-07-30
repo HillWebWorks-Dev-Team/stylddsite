@@ -162,11 +162,13 @@
       var reviews = [];
       var productsCatalog = [];
       var productsSettings = {};
+      var bookingHours = null;
 
       records.forEach(function (record) {
         var value = settingValue(record);
         if (record.record_type === 'site_setting' && record.record_key === 'site_content') content = value;
         if (record.record_type === 'site_setting' && record.record_key === 'site_theme') theme = Object.assign(theme, value || {});
+        if (record.record_type === 'site_setting' && record.record_key === 'booking_hours') bookingHours = value;
         if (record.record_type === 'site_setting' && record.record_key === 'style_catalog_meta') meta = value || {};
         if (record.record_type === 'site_setting' && record.record_key === 'style_price_overrides') prices = value || {};
         if (record.record_type === 'site_setting' && record.record_key === 'reviews_settings') {
@@ -212,6 +214,10 @@
       var templateId = 'profile';
 
       window.__STYLD_SITE_CONTENT__ = content;
+      window.__STYLD_BOOKING_HOURS__ =
+        window.StyldTenant && window.StyldTenant.normalizeBookingHours
+          ? window.StyldTenant.normalizeBookingHours(bookingHours)
+          : bookingHours || {};
       window.__STYLD_SITE_PRODUCTS__ = {
         catalog: productsCatalog,
         settings: productsSettings,

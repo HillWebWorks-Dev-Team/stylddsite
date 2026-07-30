@@ -2319,6 +2319,50 @@ body.page-home--cover-preview .hero-landing {
   margin: 0;
 }
 
+.site-footer-hours {
+  margin: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.site-footer-hours__title {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.site-footer-hours__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.2rem 1.1rem;
+}
+
+.site-footer-hours__item {
+  white-space: nowrap;
+}
+
+.site-footer-hours__day {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.site-footer.site-footer--home-promo .site-footer-hours {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.site-footer.site-footer--home-promo .site-footer-hours__day {
+  color: rgba(255, 255, 255, 0.72);
+}
+
 .footer-styld-social {
   margin: 0;
   display: flex;

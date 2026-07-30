@@ -422,6 +422,157 @@
     }
     ensureStyldFooterSocial();
     applySiteContactPhones(content);
+    ensureSiteFooterHours();
+  }
+
+  function escapeHtml(text) {
+    return String(text == null ? '' : text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatHourMinute(h, m) {
+    h = Number(h);
+    m = Number(m) || 0;
+    if (!Number.isFinite(h)) return '';
+    var period = h >= 12 ? 'PM' : 'AM';
+    var hour12 = h % 12;
+    if (hour12 === 0) hour12 = 12;
+    if (m === 0) return hour12 + ' ' + period;
+    return hour12 + ':' + String(m).padStart(2, '0') + ' ' + period;
+  }
+
+  function parseClockLabel(label) {
+    label = String(label || '').trim();
+    if (!label) return null;
+    var match24 = label.match(/^(\d{1,2}):(\d{2})/);
+    if (match24) {
+      return { hour: Number(match24[1]), minute: Number(match24[2]) };
+    }
+    var match12 = label.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+    if (match12) {
+      var hour = Number(match12[1]);
+      var minute = match12[2] != null ? Number(match12[2]) : 0;
+      if (String(match12[3]).toUpperCase() === 'PM' && hour < 12) hour += 12;
+      if (String(match12[3]).toUpperCase() === 'AM' && hour === 12) hour = 0;
+      return { hour: hour, minute: minute };
+    }
+    return null;
+  }
+
+  function getDaySchedule(hours, weekdayIndex) {
+    hours = normalizeBookingHours(hours);
+    weekdayIndex = Number(weekdayIndex);
+
+    if (hours.days && typeof hours.days === 'object') {
+      var dayCfg = hours.days[String(weekdayIndex)] || hours.days[weekdayIndex];
+      if (!dayCfg || dayCfg.closed) return { closed: true, label: 'Closed' };
+      var openClock = parseClockLabel(dayCfg.open || dayCfg.start);
+      var closeClock = parseClockLabel(dayCfg.close || dayCfg.end);
+      if (!openClock || !closeClock) return { closed: true, label: 'Closed' };
+      return {
+        closed: false,
+        label:
+          formatHourMinute(openClock.hour, openClock.minute) +
+          ' \u2013 ' +
+          formatHourMinute(closeClock.hour, closeClock.minute),
+      };
+    }
+
+    if ((hours.closedWeekdays || []).indexOf(weekdayIndex) !== -1) {
+      return { closed: true, label: 'Closed' };
+    }
+
+    var weekdayHours = hours.weekdayHours || {};
+    var dayHours = weekdayHours[String(weekdayIndex)] || weekdayHours[weekdayIndex] || {};
+    var startHour = dayHours.startHour != null ? dayHours.startHour : hours.slotDayStartHour;
+    var startMinute = dayHours.startMinute != null ? dayHours.startMinute : hours.slotDayStartMinute;
+    var endHour = dayHours.endHour != null ? dayHours.endHour : hours.slotDayEndHour;
+    var endMinute = dayHours.endMinute != null ? dayHours.endMinute : hours.slotDayEndMinute;
+
+    return {
+      closed: false,
+      label:
+        formatHourMinute(startHour, startMinute) + ' \u2013 ' + formatHourMinute(endHour, endMinute),
+    };
+  }
+
+  function formatBookingHoursForFooter(hours) {
+    hours = normalizeBookingHours(hours);
+    var shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var schedules = shortDays.map(function (_label, index) {
+      return getDaySchedule(hours, index);
+    });
+
+    var groups = [];
+    schedules.forEach(function (schedule, index) {
+      var text = schedule.label || 'Closed';
+      var last = groups[groups.length - 1];
+      if (last && last.text === text && last.endDay === index - 1) {
+        last.endDay = index;
+        return;
+      }
+      groups.push({ startDay: index, endDay: index, text: text });
+    });
+
+    return groups.map(function (group) {
+      var dayLabel =
+        group.startDay === group.endDay
+          ? shortDays[group.startDay]
+          : shortDays[group.startDay] + '\u2013' + shortDays[group.endDay];
+      return { day: dayLabel, text: group.text };
+    });
+  }
+
+  function ensureSiteFooterHours() {
+    var hours = window.__STYLD_BOOKING_HOURS__;
+    if (!hours || typeof hours !== 'object') {
+      document.querySelectorAll('#preview-footer-hours').forEach(function (el) {
+        el.hidden = true;
+        el.innerHTML = '';
+      });
+      return;
+    }
+
+    var lines = formatBookingHoursForFooter(hours);
+    if (!lines.length) return;
+
+    document.querySelectorAll('.site-footer').forEach(function (footer) {
+      var bottom = footer.querySelector('.footer-bottom') || footer;
+      var el = bottom.querySelector('#preview-footer-hours');
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'site-footer-hours';
+        el.id = 'preview-footer-hours';
+        var brand = bottom.querySelector('#preview-footer-brand');
+        if (brand && brand.parentElement === bottom) {
+          bottom.insertBefore(el, brand.nextSibling);
+        } else {
+          bottom.insertBefore(el, bottom.firstChild);
+        }
+      }
+
+      el.innerHTML =
+        '<p class="site-footer-hours__title">Hours</p>' +
+        '<ul class="site-footer-hours__list">' +
+        lines
+          .map(function (line) {
+            return (
+              '<li class="site-footer-hours__item">' +
+              '<span class="site-footer-hours__day">' +
+              escapeHtml(line.day) +
+              '</span> ' +
+              '<span class="site-footer-hours__time">' +
+              escapeHtml(line.text) +
+              '</span></li>'
+            );
+          })
+          .join('') +
+        '</ul>';
+      el.hidden = false;
+    });
   }
 
   function normalizeWeekdayHours(raw) {
@@ -1053,6 +1204,9 @@
     };
 
     applySiteTheme(theme);
+    window.__STYLD_BOOKING_HOURS__ = normalizeBookingHours(
+      site.bookingHours || window.__STYLD_BOOKING_HOURS__ || null,
+    );
     applySiteFooter(content);
 
     var brandNameEl = document.getElementById('profile-brand-name');
@@ -1243,6 +1397,8 @@
     SITE_OFFLINE_MESSAGE: SITE_OFFLINE_MESSAGE,
     getSubdomain: getSubdomain,
     applySiteFooter: applySiteFooter,
+    formatBookingHoursForFooter: formatBookingHoursForFooter,
+    ensureSiteFooterHours: ensureSiteFooterHours,
     resolveSitePhone: resolveSitePhone,
     applySiteContactPhones: applySiteContactPhones,
     normalizeSiteContent: normalizeSiteContent,
