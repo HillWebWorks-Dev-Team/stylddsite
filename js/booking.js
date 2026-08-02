@@ -73,6 +73,7 @@
   var selectedVariantId = '';
   var stripeCard = null;
   var stripeElements = null;
+  var stripeCheckout = null;
   var stripeConnectAccountId = null;
   var stripeConnectAccountPromise = null;
   var appliedPromo = null;
@@ -2417,6 +2418,20 @@
     }
   }
 
+  function getStripePublishableKey() {
+    return cfg.stripePk || (window.__STYLD_TENANT__ && window.__STYLD_TENANT__.stripePk) || '';
+  }
+
+  function createStripeCheckoutInstance(connectAccountId) {
+    var pk = getStripePublishableKey();
+    if (!pk || !window.Stripe) return null;
+    connectAccountId = connectAccountId ? String(connectAccountId) : '';
+    if (connectAccountId) {
+      return window.Stripe(pk, { stripeAccount: connectAccountId });
+    }
+    return window.__STYLD_STRIPE__ || window.Stripe(pk);
+  }
+
   function resolveStripeConnectAccountId(result) {
     if (!result || typeof result !== 'object') return null;
     var id =
@@ -2449,31 +2464,32 @@
       stripeCard = null;
     }
     stripeElements = null;
+    stripeCheckout = null;
   }
 
   function setupStripe(connectAccountId) {
-    if (!window.__STYLD_STRIPE__) return;
     var mount = document.getElementById('stripe-card-element');
     if (!mount) return;
     connectAccountId = connectAccountId ? String(connectAccountId) : '';
-    if (stripeCard && stripeConnectAccountId === connectAccountId) return;
+    if (stripeCard && stripeConnectAccountId === connectAccountId && stripeCheckout) return;
     teardownStripeCard();
     stripeConnectAccountId = connectAccountId;
-    var elementsOptions = connectAccountId ? { stripeAccount: connectAccountId } : {};
-    stripeElements = window.__STYLD_STRIPE__.elements(elementsOptions);
+    stripeCheckout = createStripeCheckoutInstance(connectAccountId);
+    if (!stripeCheckout) return;
+    stripeElements = stripeCheckout.elements();
     stripeCard = stripeElements.create('card');
     stripeCard.mount('#stripe-card-element');
   }
 
   function prepareStripeForPayment() {
-    if (!window.__STYLD_STRIPE__) return Promise.resolve();
+    if (!getStripePublishableKey() || !window.Stripe) return Promise.resolve();
     return fetchStripeConnectAccount().then(function (accountId) {
       setupStripe(accountId);
     });
   }
 
   function initStripeIfNeeded() {
-    var pk = cfg.stripePk || '';
+    var pk = getStripePublishableKey();
     if (pk && window.Stripe && !window.__STYLD_STRIPE__) {
       window.__STYLD_STRIPE__ = window.Stripe(pk);
       window.__STYLD_STRIPE_READY__ = true;
@@ -2790,15 +2806,13 @@
         if (connectAccountId && connectAccountId !== stripeConnectAccountId) {
           setupStripe(connectAccountId);
         }
-        var confirmAccountOptions = connectAccountId ? { stripeAccount: connectAccountId } : undefined;
-        return window.__STYLD_STRIPE__
-          .confirmCardPayment(
-            payResult.clientSecret,
-            {
-              payment_method: { card: stripeCard },
-            },
-            confirmAccountOptions,
-          )
+        var checkoutStripe = stripeCheckout || window.__STYLD_STRIPE__;
+        if (!checkoutStripe || !stripeCard) {
+          throw new Error('Payment form is not ready. Please wait a moment and try again.');
+        }
+        return checkoutStripe.confirmCardPayment(payResult.clientSecret, {
+          payment_method: { card: stripeCard },
+        })
           .then(function (result) {
             if (result.error) {
               throw new Error(result.error.message || 'Payment failed.');
