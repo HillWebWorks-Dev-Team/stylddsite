@@ -2474,18 +2474,28 @@
     if (stripeCard && stripeConnectAccountId === connectAccountId && stripeCheckout) return;
     teardownStripeCard();
     stripeConnectAccountId = connectAccountId;
-    stripeCheckout = createStripeCheckoutInstance(connectAccountId);
+    initStripeIfNeeded();
+    stripeCheckout = connectAccountId
+      ? createStripeCheckoutInstance(connectAccountId)
+      : window.__STYLD_STRIPE__ || createStripeCheckoutInstance(null);
     if (!stripeCheckout) return;
     stripeElements = stripeCheckout.elements();
     stripeCard = stripeElements.create('card');
     stripeCard.mount('#stripe-card-element');
   }
 
+  function shouldUseConnectCheckout(payResult) {
+    if (!payResult || typeof payResult !== 'object') return false;
+    if (payResult.chargeOn === 'platform' || payResult.charge_on === 'platform') return false;
+    if (payResult.chargeOn === 'connected' || payResult.charge_on === 'connected') return true;
+    return false;
+  }
+
   function prepareStripeForPayment() {
     if (!getStripePublishableKey() || !window.Stripe) return Promise.resolve();
-    return fetchStripeConnectAccount().then(function (accountId) {
-      setupStripe(accountId);
-    });
+    initStripeIfNeeded();
+    setupStripe(null);
+    return Promise.resolve();
   }
 
   function initStripeIfNeeded() {
@@ -2801,17 +2811,32 @@
         if (!payResult.clientSecret) {
           throw new Error('Could not start payment.');
         }
-        var connectAccountId =
-          resolveStripeConnectAccountId(payResult) || stripeConnectAccountId || null;
-        if (connectAccountId && connectAccountId !== stripeConnectAccountId) {
-          setupStripe(connectAccountId);
+        function ensureCheckoutReady() {
+          if (shouldUseConnectCheckout(payResult)) {
+            var connectAccountId =
+              resolveStripeConnectAccountId(payResult) || stripeConnectAccountId || null;
+            if (connectAccountId) {
+              setupStripe(connectAccountId);
+              return Promise.resolve();
+            }
+            return fetchStripeConnectAccount().then(function (accountId) {
+              if (!accountId) {
+                throw new Error('Could not prepare Stripe Connect checkout.');
+              }
+              setupStripe(accountId);
+            });
+          }
+          setupStripe(null);
+          return Promise.resolve();
         }
-        var checkoutStripe = stripeCheckout || window.__STYLD_STRIPE__;
-        if (!checkoutStripe || !stripeCard) {
-          throw new Error('Payment form is not ready. Please wait a moment and try again.');
-        }
-        return checkoutStripe.confirmCardPayment(payResult.clientSecret, {
-          payment_method: { card: stripeCard },
+        return ensureCheckoutReady().then(function () {
+          var checkoutStripe = stripeCheckout || window.__STYLD_STRIPE__;
+          if (!checkoutStripe || !stripeCard) {
+            throw new Error('Payment form is not ready. Please wait a moment and try again.');
+          }
+          return checkoutStripe.confirmCardPayment(payResult.clientSecret, {
+            payment_method: { card: stripeCard },
+          });
         })
           .then(function (result) {
             if (result.error) {
