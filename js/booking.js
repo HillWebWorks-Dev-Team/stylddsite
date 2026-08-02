@@ -2659,6 +2659,9 @@
     var phone = (document.getElementById('phone') || {}).value || '';
     var notes = (document.getElementById('notes') || {}).value || '';
     var awaitingPayment = !!options.awaitingPayment;
+    var paymentIntentId = options.paymentIntentId || null;
+    var paymentStatusValue = options.paymentStatus || null;
+    var paymentComplete = !!(paymentIntentId && paymentStatusValue);
     var serviceAddress = getServiceAddress();
     var travelBooking = isTravelBooking();
 
@@ -2696,9 +2699,15 @@
         : null,
       products_subtotal: pricing.productsSubtotal > 0 ? pricing.productsSubtotal : null,
       fulfillment_method: pricing.productsSubtotal > 0 ? 'at_appointment' : null,
-      booking_status: resolveBookingStatus(awaitingPayment),
-      payment_status: awaitingPayment ? 'unpaid' : pricing.deposit > 0 ? 'unpaid' : 'none',
-      stripe_payment_intent_id: null,
+      booking_status: resolveBookingStatus(paymentComplete ? false : awaitingPayment),
+      payment_status: paymentComplete
+        ? paymentStatusValue
+        : awaitingPayment
+          ? 'unpaid'
+          : pricing.deposit > 0
+            ? 'unpaid'
+            : 'none',
+      stripe_payment_intent_id: paymentIntentId,
       current_hair_photo_path: options.hairPath || null,
       reference_photo_path: options.refPath || null,
       source: 'website',
@@ -2786,7 +2795,8 @@
       });
   }
 
-  function runStripePayment(bookingId, pricing, email, paymentStatus) {
+  function runStripePayment(bookingId, pricing, email, paymentStatus, options) {
+    options = options || {};
     var paymentIntentId = null;
     var ids = stripeIds(bookingId);
     var payBody = {
@@ -2859,6 +2869,9 @@
             return new Promise(function (resolve) {
               setTimeout(resolve, 600);
             }).then(function () {
+              if (options.skipServerConfirm) {
+                return { bookingId: payBookingId, paymentIntentId: paymentIntentId };
+              }
               return confirmBookingPayment(payBookingId, paymentIntentId, paymentStatus).then(function () {
                 return { bookingId: payBookingId, paymentIntentId: paymentIntentId };
               });
@@ -2944,13 +2957,24 @@
 
     var pricing = computePricing(selectedStyle);
     var slotStart = selectedSlotStart;
+    var requiresOnlinePayment =
+      pricing.deposit > 0 && (pricing.mode === 'deposit' || pricing.mode === 'full');
+
+    if (requiresOnlinePayment && !window.__STYLD_STRIPE__) {
+      showFeedback(
+        'Online payment is required for this booking but could not be loaded. Please refresh the page or contact the salon.',
+        true,
+      );
+      return;
+    }
 
     if (submitBtn) submitBtn.disabled = true;
     showFeedback('Checking availability…', false);
 
     var bookingId = createBookingUuid();
-    var needsPayment = pricing.deposit > 0 && window.__STYLD_STRIPE__;
+    var needsPayment = requiresOnlinePayment && !!window.__STYLD_STRIPE__;
     var paymentStatus = pricing.mode === 'full' ? 'paid' : 'deposit_paid';
+    var chargedPaymentIntentId = null;
 
     ensureSlotStillAvailable(slotStart, pricing.duration)
       .then(function () {
@@ -2958,34 +2982,68 @@
         return uploadBookingPhotos(bookingId);
       })
       .then(function (photoPaths) {
-        var payload = buildBookingPayload({
-          bookingId: bookingId,
-          hairPath: photoPaths.hairPath,
-          refPath: photoPaths.refPath,
-          awaitingPayment: needsPayment,
-        });
+        var contactEmail = (document.getElementById('email') || {}).value || '';
 
-        showFeedback('Saving your booking…', false);
-        return insertBookingRecord(payload).then(function (savedId) {
-          if (!needsPayment) {
-            redirectSuccess(savedId, pricing, payload.email);
-            return null;
+        if (!needsPayment) {
+          var freePayload = buildBookingPayload({
+            bookingId: bookingId,
+            hairPath: photoPaths.hairPath,
+            refPath: photoPaths.refPath,
+            awaitingPayment: false,
+          });
+          showFeedback('Saving your booking…', false);
+          return insertBookingRecord(freePayload).then(function (savedId) {
+            redirectSuccess(savedId, pricing, contactEmail);
+          });
+        }
+
+        showFeedback('Preparing payment…', false);
+        return prepareStripeForPayment().then(function () {
+          if (!stripeCard) {
+            throw new Error('Payment form is not ready yet. Please wait a moment and try again.');
           }
-
-          showFeedback('Preparing payment…', false);
-          return prepareStripeForPayment().then(function () {
-            if (!stripeCard) {
-              throw new Error('Payment form is not ready yet. Please wait a moment and try again.');
-            }
-            showFeedback('Processing payment…', false);
-            return runStripePayment(savedId, pricing, payload.email, paymentStatus).then(function () {
-              redirectSuccess(savedId, pricing, payload.email);
+          showFeedback('Processing payment…', false);
+          return runStripePayment(bookingId, pricing, contactEmail, paymentStatus, {
+            skipServerConfirm: true,
+          });
+        }).then(function (paymentResult) {
+          chargedPaymentIntentId = paymentResult.paymentIntentId;
+          showFeedback('Confirming availability…', false);
+          return ensureSlotStillAvailable(slotStart, pricing.duration).then(function () {
+            return paymentResult;
+          });
+        }).then(function (paymentResult) {
+          showFeedback('Saving your booking…', false);
+          var paidPayload = buildBookingPayload({
+            bookingId: bookingId,
+            hairPath: photoPaths.hairPath,
+            refPath: photoPaths.refPath,
+            awaitingPayment: false,
+            paymentIntentId: paymentResult.paymentIntentId,
+            paymentStatus: paymentStatus,
+          });
+          return insertBookingRecord(paidPayload).then(function (savedId) {
+            return confirmBookingPayment(
+              savedId,
+              paymentResult.paymentIntentId,
+              paymentStatus,
+            ).catch(function () {
+              return savedId;
             });
+          }).then(function (savedId) {
+            redirectSuccess(savedId, pricing, contactEmail);
           });
         });
       })
       .catch(function (err) {
         var msg = formatBookingError(err);
+        if (chargedPaymentIntentId) {
+          msg =
+            msg +
+            ' Your card was charged — payment ref ' +
+            chargedPaymentIntentId +
+            '. Please contact the salon with this reference.';
+        }
         showFeedback(msg, true);
         if (submitBtn) submitBtn.disabled = false;
         if (isSlotConflictMessage(msg)) {
