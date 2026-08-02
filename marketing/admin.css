@@ -807,11 +807,6 @@ body.admin-drawer-open {
   gap: 0.55rem;
 }
 
-.admin-salon-row-wrap--pinned .admin-salon-row {
-  border-color: rgba(255, 45, 138, 0.35);
-  background: linear-gradient(160deg, rgba(255, 45, 138, 0.1), rgba(255, 255, 255, 0.02));
-}
-
 .admin-salon-row-wrap {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -823,8 +818,20 @@ body.admin-drawer-open {
   min-width: 0;
 }
 
-.admin-salon-row__hide {
+.admin-salon-row-wrap--pinned .admin-salon-row {
+  border-color: rgba(255, 45, 138, 0.38);
+  box-shadow: var(--admin-shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.admin-salon-row__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
   align-self: center;
+  flex-shrink: 0;
+}
+
+.admin-salon-row__action {
   appearance: none;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.03);
@@ -834,13 +841,20 @@ body.admin-drawer-open {
   font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
-.admin-salon-row__hide:hover {
+.admin-salon-row__action:hover {
   color: var(--admin-text);
   border-color: rgba(255, 255, 255, 0.22);
   background: rgba(255, 255, 255, 0.06);
+}
+
+.admin-salon-row__pin.is-active {
+  color: var(--admin-accent);
+  border-color: rgba(255, 45, 138, 0.45);
+  background: rgba(255, 45, 138, 0.12);
 }
 
 .admin-hidden-pros-wrap {
@@ -1664,6 +1678,12 @@ body.admin-salon-open {
 .admin-salon-view__head .admin-salon-view__title-wrap {
   flex: 1;
   min-width: 0;
+}
+
+#admin-salon-pin-btn.is-active {
+  color: var(--admin-accent);
+  border-color: rgba(255, 45, 138, 0.45);
+  background: rgba(255, 45, 138, 0.12);
 }
 
 .admin-salon-view__tabs {

@@ -74,9 +74,84 @@
 
   var HIDDEN_SALON_USER_IDS = ['f8e75013-9e0f-4377-9076-8ca1b0d0d529'];
   var HIDDEN_SALON_EMAILS = ['admin@styld.app'];
-  var PINNED_SALON_SUBDOMAINS = ['stylisting'];
-  var PINNED_SALON_USER_IDS = [];
   var HIDDEN_PRO_IDS_KEY = 'styld_admin_hidden_pro_ids';
+  var PINNED_PRO_IDS_KEY = 'styld_admin_pinned_pro_ids';
+
+  function readPinnedProIds() {
+    try {
+      var raw = localStorage.getItem(PINNED_PRO_IDS_KEY);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map(String).filter(Boolean);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function writePinnedProIds(ids) {
+    try {
+      localStorage.setItem(PINNED_PRO_IDS_KEY, JSON.stringify(ids || []));
+    } catch (e) {}
+  }
+
+  function isPinnedProUser(row) {
+    var uid = String((row && (row.user_id || row.id)) || '').trim();
+    if (!uid) return false;
+    return readPinnedProIds().indexOf(uid) >= 0;
+  }
+
+  function pinPro(userId) {
+    var uid = String(userId || '').trim();
+    if (!uid) return;
+    var ids = readPinnedProIds();
+    if (ids.indexOf(uid) < 0) ids.push(uid);
+    writePinnedProIds(ids);
+    refreshSalonsListUI();
+  }
+
+  function unpinPro(userId) {
+    var uid = String(userId || '').trim();
+    if (!uid) return;
+    var ids = readPinnedProIds().filter(function (id) {
+      return id !== uid;
+    });
+    writePinnedProIds(ids);
+    refreshSalonsListUI();
+  }
+
+  function togglePinPro(userId) {
+    if (isPinnedProUser({ user_id: userId })) unpinPro(userId);
+    else pinPro(userId);
+  }
+
+  function applyPinnedProOrder(list) {
+    list = list || [];
+    var pinnedIds = readPinnedProIds();
+    if (!pinnedIds.length) return list;
+    var pinnedSet = {};
+    var pinned = [];
+    pinnedIds.forEach(function (id) {
+      pinnedSet[id] = true;
+      var match = list.find(function (u) {
+        return String(u.user_id || u.id || '') === id;
+      });
+      if (match) pinned.push(match);
+    });
+    var rest = list.filter(function (u) {
+      return !pinnedSet[String(u.user_id || u.id || '')];
+    });
+    return pinned.concat(rest);
+  }
+
+  function refreshSalonsListUI() {
+    if (state.tab === 'salons' && state.users) {
+      renderUsersTable(state.users);
+    }
+    if (state.salonData) {
+      updateSalonActionButtons(state.salonData);
+    }
+  }
 
   function readHiddenProIds() {
     try {
@@ -102,29 +177,6 @@
     if (HIDDEN_SALON_USER_IDS.indexOf(uid) >= 0) return true;
     var email = String(row.email || '').toLowerCase().trim();
     return HIDDEN_SALON_EMAILS.indexOf(email) >= 0;
-  }
-
-  function isPinnedSalonUser(row) {
-    if (!row) return false;
-    var uid = String(row.user_id || row.id || '').trim();
-    if (uid && PINNED_SALON_USER_IDS.indexOf(uid) >= 0) return true;
-    var subdomain = String(row.subdomain || '').trim().toLowerCase();
-    if (subdomain && PINNED_SALON_SUBDOMAINS.indexOf(subdomain) >= 0) return true;
-    var name = String(row.brand_name || row.business_name || row.full_name || '')
-      .trim()
-      .toLowerCase();
-    return name.indexOf('stylisting') >= 0;
-  }
-
-  function pinSalonsToTop(list) {
-    list = list || [];
-    var pinned = [];
-    var rest = [];
-    list.forEach(function (row) {
-      if (isPinnedSalonUser(row)) pinned.push(row);
-      else rest.push(row);
-    });
-    return pinned.concat(rest);
   }
 
   function isHiddenSalonUser(row) {
@@ -877,7 +929,7 @@
 
     var p = data.payments || {};
     var s = data.stripe_connect || {};
-    var topSalons = pinSalonsToTop(data.top_salons_by_collected || []);
+    var topSalons = data.top_salons_by_collected || [];
 
     var hero =
       '<div class="admin-overview-hero">' +
@@ -2799,16 +2851,29 @@
       }
     });
 
-    return pinSalonsToTop(list);
+    return applyPinnedProOrder(list);
+  }
+
+  function salonRowActionBtn(label, className, attrs) {
+    attrs = attrs || {};
+    var html =
+      '<button type="button" class="admin-salon-row__action ' +
+      className +
+      '"';
+    Object.keys(attrs).forEach(function (key) {
+      html += ' ' + key + '="' + esc(attrs[key]) + '"';
+    });
+    html += '>' + esc(label) + '</button>';
+    return html;
   }
 
   function salonRowHtml(u) {
     var name = u.brand_name || u.business_name || u.full_name || 'Pro';
+    var pinned = isPinnedProUser(u);
     var img = renderSalonThumb(salonLogoUrl(u), name, 'admin-salon-row__media-inner');
-    var pinnedClass = isPinnedSalonUser(u) ? ' admin-salon-row-wrap--pinned' : '';
     return (
       '<article class="admin-salon-row-wrap' +
-      pinnedClass +
+      (pinned ? ' admin-salon-row-wrap--pinned' : '') +
       '">' +
       '<button type="button" class="admin-salon-row" data-open-user="' +
       esc(u.user_id) +
@@ -2860,12 +2925,19 @@
       '</div>' +
       '<span class="admin-salon-row__arrow" aria-hidden="true">→</span>' +
       '</button>' +
-      '<button type="button" class="admin-salon-row__hide" data-hide-pro="' +
-      esc(u.user_id) +
-      '" title="Hide from dashboard stats" aria-label="Hide ' +
-      esc(name) +
-      ' from dashboard stats">Hide</button>' +
-      '</article>'
+      '<div class="admin-salon-row__actions">' +
+      salonRowActionBtn(pinned ? 'Unpin' : 'Pin', 'admin-salon-row__action admin-salon-row__pin' + (pinned ? ' is-active' : ''), {
+        'data-pin-pro': u.user_id,
+        title: pinned ? 'Remove from top of list' : 'Pin to top of list',
+        'aria-label': (pinned ? 'Unpin ' : 'Pin ') + name,
+        'data-pro-pinned': pinned ? '1' : '0',
+      }) +
+      salonRowActionBtn('Hide', 'admin-salon-row__action admin-salon-row__hide', {
+        'data-hide-pro': u.user_id,
+        title: 'Hide from dashboard stats',
+        'aria-label': 'Hide ' + name + ' from dashboard stats',
+      }) +
+      '</div></article>'
     );
   }
 
@@ -3620,6 +3692,26 @@
     setSalonTab(state.salonTab || 'analytics');
   }
 
+  function updateSalonActionButtons(data) {
+    if (!data) return;
+    var uid = String(data.user_id || (data.profile && data.profile.id) || '');
+    if (els.salonHideBtn) {
+      var hidden = isHiddenSalonUser({ user_id: uid, email: data.email });
+      els.salonHideBtn.hidden = isHardcodedHiddenSalonUser({ user_id: uid, email: data.email });
+      els.salonHideBtn.textContent = hidden ? 'Show in dashboard' : 'Hide from dashboard';
+      els.salonHideBtn.setAttribute('data-hide-pro', uid);
+      els.salonHideBtn.setAttribute('data-pro-hidden', hidden ? '1' : '0');
+    }
+    if (els.salonPinBtn) {
+      var pinned = isPinnedProUser({ user_id: uid });
+      els.salonPinBtn.hidden = !uid;
+      els.salonPinBtn.textContent = pinned ? 'Unpin from top' : 'Pin to top';
+      els.salonPinBtn.setAttribute('data-pin-pro', uid);
+      els.salonPinBtn.setAttribute('data-pro-pinned', pinned ? '1' : '0');
+      els.salonPinBtn.classList.toggle('is-active', pinned);
+    }
+  }
+
   function openSalonDashboard(data, initialTab) {
     state.salonData = data;
     state.salonTab = initialTab || 'analytics';
@@ -3644,14 +3736,7 @@
         els.salonViewLink.hidden = true;
       }
     }
-    if (els.salonHideBtn) {
-      var uid = String(data.user_id || data.profile && data.profile.id || '');
-      var hidden = isHiddenSalonUser({ user_id: uid, email: data.email });
-      els.salonHideBtn.hidden = isHardcodedHiddenSalonUser({ user_id: uid, email: data.email });
-      els.salonHideBtn.textContent = hidden ? 'Show in dashboard' : 'Hide from dashboard';
-      els.salonHideBtn.setAttribute('data-hide-pro', uid);
-      els.salonHideBtn.setAttribute('data-pro-hidden', hidden ? '1' : '0');
-    }
+    updateSalonActionButtons(data);
     renderSalonDashboard(data);
     if (els.salonView) {
       els.salonView.hidden = false;
@@ -3902,6 +3987,13 @@
     }
 
     document.body.addEventListener('click', function (e) {
+      var pinBtn = e.target.closest('[data-pin-pro]');
+      if (pinBtn && !pinBtn.closest('[data-open-user]')) {
+        e.preventDefault();
+        e.stopPropagation();
+        togglePinPro(pinBtn.getAttribute('data-pin-pro'));
+        return;
+      }
       var hideBtn = e.target.closest('[data-hide-pro]');
       if (hideBtn && !hideBtn.closest('[data-open-user]')) {
         e.preventDefault();
@@ -4056,6 +4148,7 @@
       hiddenProsBtn: $('admin-hidden-pros-btn'),
       hiddenProsPanel: $('admin-hidden-pros-panel'),
       salonHideBtn: $('admin-salon-hide-btn'),
+      salonPinBtn: $('admin-salon-pin-btn'),
       salonView: $('admin-salon-view'),
       salonViewTitle: $('admin-salon-view-title'),
       salonViewThumb: $('admin-salon-view-thumb'),

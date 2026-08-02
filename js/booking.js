@@ -73,6 +73,8 @@
   var selectedVariantId = '';
   var stripeCard = null;
   var stripeElements = null;
+  var stripeConnectAccountId = null;
+  var stripeConnectAccountPromise = null;
   var appliedPromo = null;
   var lastValidatedSubtotalCents = null;
   var productsCatalogRaw =
@@ -2136,6 +2138,9 @@
       paymentSection.classList.toggle('hidden', !showPayment);
       paymentSection.setAttribute('aria-hidden', showPayment ? 'false' : 'true');
     }
+    if (showPayment) {
+      prepareStripeForPayment();
+    }
 
     updateCancellationPolicyDisplay();
   }
@@ -2412,13 +2417,59 @@
     }
   }
 
-  function setupStripe() {
-    if (!window.__STYLD_STRIPE__ || !paymentSection) return;
+  function resolveStripeConnectAccountId(result) {
+    if (!result || typeof result !== 'object') return null;
+    var id =
+      result.stripeAccountId ||
+      result.stripe_account_id ||
+      result.connectedAccountId ||
+      result.connected_account_id ||
+      null;
+    return id ? String(id) : null;
+  }
+
+  function fetchStripeConnectAccount() {
+    if (stripeConnectAccountPromise) return stripeConnectAccountPromise;
+    stripeConnectAccountPromise = edgeFunction('stripe-booking-connect', { subdomain: subdomain })
+      .then(function (result) {
+        return resolveStripeConnectAccountId(result);
+      })
+      .catch(function () {
+        stripeConnectAccountPromise = null;
+        return null;
+      });
+    return stripeConnectAccountPromise;
+  }
+
+  function teardownStripeCard() {
+    if (stripeCard) {
+      try {
+        stripeCard.destroy();
+      } catch (e) {}
+      stripeCard = null;
+    }
+    stripeElements = null;
+  }
+
+  function setupStripe(connectAccountId) {
+    if (!window.__STYLD_STRIPE__) return;
     var mount = document.getElementById('stripe-card-element');
-    if (!mount || stripeCard) return;
-    stripeElements = window.__STYLD_STRIPE__.elements();
+    if (!mount) return;
+    connectAccountId = connectAccountId ? String(connectAccountId) : '';
+    if (stripeCard && stripeConnectAccountId === connectAccountId) return;
+    teardownStripeCard();
+    stripeConnectAccountId = connectAccountId;
+    var elementsOptions = connectAccountId ? { stripeAccount: connectAccountId } : {};
+    stripeElements = window.__STYLD_STRIPE__.elements(elementsOptions);
     stripeCard = stripeElements.create('card');
     stripeCard.mount('#stripe-card-element');
+  }
+
+  function prepareStripeForPayment() {
+    if (!window.__STYLD_STRIPE__) return Promise.resolve();
+    return fetchStripeConnectAccount().then(function (accountId) {
+      setupStripe(accountId);
+    });
   }
 
   function initStripeIfNeeded() {
@@ -2427,7 +2478,6 @@
       window.__STYLD_STRIPE__ = window.Stripe(pk);
       window.__STYLD_STRIPE_READY__ = true;
     }
-    setupStripe();
   }
 
   function requiresBookingApprovalSetting() {
@@ -2735,10 +2785,20 @@
         if (!payResult.clientSecret) {
           throw new Error('Could not start payment.');
         }
+        var connectAccountId =
+          resolveStripeConnectAccountId(payResult) || stripeConnectAccountId || null;
+        if (connectAccountId && connectAccountId !== stripeConnectAccountId) {
+          setupStripe(connectAccountId);
+        }
+        var confirmAccountOptions = connectAccountId ? { stripeAccount: connectAccountId } : undefined;
         return window.__STYLD_STRIPE__
-          .confirmCardPayment(payResult.clientSecret, {
-            payment_method: { card: stripeCard },
-          })
+          .confirmCardPayment(
+            payResult.clientSecret,
+            {
+              payment_method: { card: stripeCard },
+            },
+            confirmAccountOptions,
+          )
           .then(function (result) {
             if (result.error) {
               throw new Error(result.error.message || 'Payment failed.');
@@ -2850,7 +2910,7 @@
     showFeedback('Checking availability…', false);
 
     var bookingId = createBookingUuid();
-    var needsPayment = pricing.deposit > 0 && window.__STYLD_STRIPE__ && stripeCard;
+    var needsPayment = pricing.deposit > 0 && window.__STYLD_STRIPE__;
     var paymentStatus = pricing.mode === 'full' ? 'paid' : 'deposit_paid';
 
     ensureSlotStillAvailable(slotStart, pricing.duration)
@@ -2873,9 +2933,15 @@
             return null;
           }
 
-          showFeedback('Processing payment…', false);
-          return runStripePayment(savedId, pricing, payload.email, paymentStatus).then(function () {
-            redirectSuccess(savedId, pricing, payload.email);
+          showFeedback('Preparing payment…', false);
+          return prepareStripeForPayment().then(function () {
+            if (!stripeCard) {
+              throw new Error('Payment form is not ready yet. Please wait a moment and try again.');
+            }
+            showFeedback('Processing payment…', false);
+            return runStripePayment(savedId, pricing, payload.email, paymentStatus).then(function () {
+              redirectSuccess(savedId, pricing, payload.email);
+            });
           });
         });
       })
