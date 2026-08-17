@@ -3,20 +3,6 @@
   "framework": null,
   "buildCommand": "npm run build",
   "outputDirectory": ".",
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "mayaafricanhairbraid.com" }],
-      "destination": "https://mayahair.styldd.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.mayaafricanhairbraid.com" }],
-      "destination": "https://mayahair.styldd.com/:path*",
-      "permanent": true
-    }
-  ],
   "rewrites": [
     { "source": "/tenant", "destination": "/tenant/index.html" },
     { "source": "/marketing", "destination": "/marketing/index.html" },

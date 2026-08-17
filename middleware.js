@@ -11,6 +11,12 @@ const ROOT_DOMAIN = process.env.STYLD_ROOT_DOMAIN || 'styldd.com';
 const SUPABASE_URL = process.env.STYLD_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.STYLD_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 
+const MAYA_CUSTOM_HOSTS = new Set([
+  'mayaafricanhairbraid.com',
+  'www.mayaafricanhairbraid.com',
+]);
+const MAYA_CANONICAL_ORIGIN = 'https://mayahair.styldd.com';
+
 const MARKETING_PAGES = {
   '/support': '/marketing/support.html',
   '/privacy': '/marketing/privacy.html',
@@ -126,6 +132,10 @@ async function htmlWithTenantShareMeta(request, subdomain, htmlPath) {
 export default async function middleware(request) {
   const host = (request.headers.get('host') || '').split(':')[0].toLowerCase();
   const url = new URL(request.url);
+
+  if (MAYA_CUSTOM_HOSTS.has(host)) {
+    return Response.redirect(new URL(url.pathname + url.search, MAYA_CANONICAL_ORIGIN), 308);
+  }
 
   if (!host || host.endsWith('.vercel.app')) {
     return;
