@@ -217,10 +217,27 @@
     return !!(toggle && toggle.checked);
   }
 
+  function isPrimaryTravelArtist() {
+    if (!isTravelStylistConfigured() || !travelStylist) return false;
+    return (travelStylist.bookingMode || 'optional') === 'primary';
+  }
+
+  function usesTravelAddressFields() {
+    return isPrimaryTravelArtist();
+  }
+
   function isTravelBooking() {
     if (!isTravelStylistConfigured() || !selectedStyle) return false;
+    if (isPrimaryTravelArtist()) return true;
     if (isHouseCallStyle(selectedStyle)) return true;
     return isTravelRequestChecked();
+  }
+
+  function getTravelAddressFieldPrefix() {
+    if (!selectedStyle) return 'travel-addr';
+    if (usesTravelAddressFields()) return 'travel-addr';
+    if (isHouseCallStyle(selectedStyle)) return 'house-addr';
+    return 'travel-addr';
   }
 
   function readAddressFields(prefix) {
@@ -265,6 +282,7 @@
 
   function getServiceAddress() {
     if (!selectedStyle) return null;
+    if (usesTravelAddressFields()) return readAddressFields('travel-addr');
     if (isHouseCallStyle(selectedStyle)) return readAddressFields('house-addr');
     if (isTravelRequestChecked()) return readAddressFields('travel-addr');
     return null;
@@ -602,7 +620,10 @@
       if (showOnVisibleWrapOnly && target.wrap && target.wrap.hidden) show = false;
       target.el.hidden = !show;
       target.el.textContent = show ? text : '';
-      target.el.classList.toggle('booking-travel-fee-preview--ready', !!text && !travelFeeLoading && !travelFeeError && travelFeeUsd > 0);
+      target.el.classList.toggle(
+        'booking-travel-fee-preview--ready',
+        !!text && !travelFeeLoading && !travelFeeError && (travelFeeUsd > 0 || text === 'No travel fee'),
+      );
     });
   }
 
@@ -636,6 +657,11 @@
       return;
     }
 
+    if (addressReady && travelFeeUsd <= 0) {
+      setTravelFeePreviewText('No travel fee', true);
+      return;
+    }
+
     setTravelFeePreviewText('');
   }
 
@@ -662,6 +688,16 @@
 
     if (travelStylist.feeMode === 'flat') {
       travelFeeUsd = Math.max(0, Number(travelStylist.flatFeeUsd) || 0);
+      updateTravelFeePreviewText();
+      updatePricingDisplay();
+      return Promise.resolve();
+    }
+
+    var perMileRate = Math.max(0, Number(travelStylist.perMileRateUsd) || 0);
+    if (perMileRate <= 0) {
+      travelFeeUsd = 0;
+      travelDistanceMiles = null;
+      travelFeeLoading = false;
       updateTravelFeePreviewText();
       updatePricingDisplay();
       return Promise.resolve();
@@ -701,9 +737,14 @@
     var mapsHint = document.getElementById('travel-addr-maps-hint');
     var active = isTravelStylistConfigured();
     var style = selectedStyle;
-    var showHouse = !!(active && style && isHouseCallStyle(style));
-    var showTravelCheckbox = !!(active && style && !isHouseCallStyle(style));
-    var showTravelAddr = showTravelCheckbox && isTravelRequestChecked();
+    var primary = isPrimaryTravelArtist();
+    var showHouse = !!(active && style && isHouseCallStyle(style) && !primary);
+    var showTravelCheckbox = !!(active && style && !isHouseCallStyle(style) && !primary);
+    var showTravelAddr = !!(
+      active &&
+      style &&
+      (primary || (!isHouseCallStyle(style) && isTravelRequestChecked()))
+    );
 
     if (travelWrap) travelWrap.hidden = !showTravelCheckbox;
     if (houseWrap) houseWrap.hidden = !showHouse;
@@ -1993,9 +2034,7 @@
         var travelAddress = getServiceAddress();
         if (!isAddressComplete(travelAddress)) {
           showFeedback('Pick your address from the suggestions to continue.', true);
-          var travelStreet = document.getElementById(
-            isHouseCallStyle(selectedStyle) ? 'house-addr-street' : 'travel-addr-street',
-          );
+          var travelStreet = document.getElementById(getTravelAddressFieldPrefix() + '-street');
           if (travelStreet) travelStreet.focus();
           return false;
         }
@@ -2006,6 +2045,7 @@
         if (
           travelStylist &&
           travelStylist.feeMode === 'per_mile' &&
+          (Number(travelStylist.perMileRateUsd) || 0) > 0 &&
           travelFeeUsd <= 0
         ) {
           showFeedback(

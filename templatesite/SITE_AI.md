@@ -513,16 +513,20 @@ Stylists configure travel in the app: **Profile → Payments → Booking → Tra
 | **Travel fee** | `flat` (`flatFeeUsd`) or `per_mile` (`perMileRateUsd`) |
 | **Home base address** | Origin for distance (required for per-mile; must be set for travel UI to show) |
 | **Extra travel minutes** | Added to `duration_minutes` on travel bookings |
+| **Booking experience** (`bookingMode`) | `optional` (default) = travel add-on checkbox; `primary` = travel-only artist (every booking at client address) |
 
 **Rule:** Travel bookings **always** require stylist approval — even when `requireBookingApproval` is off. Status → `pending_approval`; no client confirmation email until accepted.
 
-House-call styles (`style_id` starting with `house-`) count as travel when travel mode is enabled.
+House-call styles (`style_id` starting with `house-`) count as travel when travel mode is enabled **in `optional` mode**. In **`primary` mode**, use `#travel-address-field-wrap` for all styles (hide `#house-address-field-wrap`).
+
+Fee fields may be **$0**: `flatFeeUsd` and `perMileRateUsd` can both be zero. When `perMileRateUsd` is 0, skip Distance Matrix on submit; show **"No travel fee"** in `#travel-fee-preview`; hide `#side-travel-fee-row` when `travelFeeUsd` is 0.
 
 ### Data shape (`travel_stylist`)
 
 ```json
 {
   "enabled": true,
+  "bookingMode": "optional",
   "feeType": "flat",
   "flatFeeUsd": 35,
   "perMileRateUsd": 2.5,
@@ -537,6 +541,8 @@ House-call styles (`style_id` starting with `house-`) count as travel when trave
 }
 ```
 
+`bookingMode`: `optional` (default) or `primary`. Aliases: `booking_mode`.
+
 Snake_case aliases (`fee_type`, `flat_fee_usd`, `home_base_address`, `extra_travel_minutes`) should be normalized in `styld-tenant-shared.js`.
 
 ### Loader (`js/styld-tenant-shared.js` + `js/styld-tenant-booking.js`)
@@ -546,7 +552,7 @@ Snake_case aliases (`fee_type`, `flat_fee_usd`, `home_base_address`, `extra_trav
 3. Expose on the booking page:
 
 ```js
-window.__SALON_SITE_BOOKING__.travelStylist = { enabled, feeType, flatFeeUsd, perMileRateUsd, homeBaseAddress, extraTravelMinutes };
+window.__SALON_SITE_BOOKING__.travelStylist = { enabled, bookingMode, feeType, flatFeeUsd, perMileRateUsd, homeBaseAddress, extraTravelMinutes };
 ```
 
 Travel is active only when `enabled === true` **and** `homeBaseAddress` is complete enough to geocode.
@@ -555,11 +561,11 @@ Travel is active only when `enabled === true` **and** `homeBaseAddress` is compl
 
 When travel is active:
 
-1. **Studio services** (not `house-*`): show checkbox `#travel-request-toggle` — *"I want the stylist to travel to me"*.
-2. When checked: show `#travel-address-field-wrap` (reuse house-address field pattern: street, unit, city, state, zip).
-3. **Flat fee:** show immediately in `#travel-fee-preview` (service step) and `#line-travel-fee-row` (pricing step).
-4. **Per mile:** call Google Distance Matrix from `homeBaseAddress` → client address. Requires `googleMapsApiKey` in `js/booking-config.js` / `booking-config.local.js` (Distance Matrix API enabled).
-5. Add travel fee to `estimated_total` / pricing `grandTotal`.
+1. **`optional` mode** (default): **Studio services** (not `house-*`): show checkbox `#travel-request-toggle` — *"I want the stylist to travel to me"*. When checked: show `#travel-address-field-wrap`.
+2. **`primary` mode** (travel-only artist): hide `#travel-request-wrap`. When a style is selected, always show `#travel-address-field-wrap`; hide `#house-address-field-wrap` even for `house-*` styles. Every booking is `is_travel_booking=true`.
+3. **Flat fee:** show in `#travel-fee-preview` (or **"No travel fee"** when `flatFeeUsd` is 0).
+4. **Per mile:** call Google Distance Matrix when `perMileRateUsd > 0`; skip Distance Matrix when rate is 0.
+5. Add travel fee to `estimated_total` / pricing `grandTotal` (may be $0).
 6. Add `extraTravelMinutes` to slot `duration_minutes` when travel applies.
 7. On submit, save booking fields:
    - `is_travel_booking` (boolean)
@@ -578,16 +584,22 @@ When travel is active:
 ### Copy-paste prompt for Site AI
 
 ```
-Travel stylist is configured in styld_site_records site_setting record_key travel_stylist.
+Travel stylist settings now include `bookingMode`:
 
-When value.enabled is true and homeBaseAddress is set:
-- Expose window.__SALON_SITE_BOOKING__.travelStylist on the tenant booking page (styld-tenant-booking.js).
-- On booking.html / booking.js, show checkbox #travel-request-toggle: "I want the stylist to travel to me" for non-house-call styles.
-- When checked, show #travel-address-field-wrap; client enters address; calculate travel fee from homeBaseAddress using Google Distance Matrix (per_mile) or flatFeeUsd (flat).
-- Add travel fee to estimated_total; show in #line-travel-fee-row and #travel-fee-preview.
-- Add extraTravelMinutes to duration_minutes for travel bookings.
-- Save booking fields: is_travel_booking, travel_fee_usd, travel_distance_miles, travel_extra_minutes, service_address.
-- Travel bookings ALWAYS use requiresBookingApproval() → booking_status pending_approval, skip confirmation email until stylist accepts, success URL ?pending_approval=1.
+- `optional` (default): show checkbox "I want the stylist to travel to me" for non–house-call styles.
+- `primary`: travel-only artist — hide #travel-request-wrap; always show #travel-address-field-wrap when a style is selected; every booking is is_travel_booking=true. Use travel address fields even for house-* style ids (hide #house-address-field-wrap in primary mode).
+
+Fee fields may be 0:
+- flatFeeUsd and perMileRateUsd can be 0
+- When perMileRateUsd is 0, skip Distance Matrix requirement on submit
+- Show "No travel fee" in #travel-fee-preview when fee is 0; hide #side-travel-fee-row when travelFeeUsd is 0
+
+Helpers in booking.js:
+- isPrimaryTravelArtist() = travel enabled && homeBaseAddress && bookingMode === 'primary'
+- isTravelBooking() = primary + style selected, OR house style (optional mode), OR checkbox checked
+- usesTravelAddressFields() = true in primary mode
+
+Travel bookings still always require stylist approval (pending_approval).
 
 See templatesite/SITE_AI.md section "Travel stylist (travel_stylist)" for full spec.
 ```
@@ -601,10 +613,12 @@ See templatesite/SITE_AI.md section "Travel stylist (travel_stylist)" for full s
 ### Regression checklist
 
 - [ ] Travel off → no checkbox; normal auto-confirm if approval off
-- [ ] Travel on + studio style + checkbox → address + fee + extra minutes + `pending_approval`
-- [ ] Travel on + `house-*` style → travel flow without checkbox
+- [ ] Travel on + optional + studio style + checkbox → address + fee + extra minutes + `pending_approval`
+- [ ] Travel on + optional + `house-*` style → travel flow without checkbox
+- [ ] Travel on + primary mode → address fields on style select, no checkbox, all bookings travel
+- [ ] $0 flat or per-mile rate → "No travel fee", no Distance Matrix required
 - [ ] Flat fee shows without Maps key
-- [ ] Per-mile requires Maps key; fee updates when address complete
+- [ ] Per-mile with rate > 0 requires Maps key; fee updates when address complete
 - [ ] Deposit / pay-in-person paths both skip client email until accept
 
 ## Promo codes (booking checkout)

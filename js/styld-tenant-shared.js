@@ -750,8 +750,14 @@
     var lat = typeof homeBaseLat === 'number' && Number.isFinite(homeBaseLat) ? homeBaseLat : null;
     var lng = typeof homeBaseLng === 'number' && Number.isFinite(homeBaseLng) ? homeBaseLng : null;
 
+    var bookingMode = trimContactValue(
+      value.bookingMode || value.booking_mode || 'optional',
+    ).toLowerCase();
+    if (bookingMode !== 'primary') bookingMode = 'optional';
+
     return {
       enabled: value.enabled === true,
+      bookingMode: bookingMode,
       feeMode: feeMode,
       flatFeeUsd: Math.max(0, Number(value.flatFeeUsd != null ? value.flatFeeUsd : value.flat_fee_usd) || 0),
       perMileRateUsd: Math.max(
