@@ -3720,6 +3720,8 @@
     els.salonPreviewBtn.title = hasContent
       ? 'Preview saved site content (published or draft)'
       : 'Preview site from database (may be empty if they have not started)';
+  }
+
   function updateSalonActionButtons(data) {
     if (!data) return;
     var uid = String(data.user_id || (data.profile && data.profile.id) || '');
