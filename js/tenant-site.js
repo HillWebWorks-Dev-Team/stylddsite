@@ -2,10 +2,17 @@
   var cfg = window.__STYLD_TENANT__ || {};
   var rootDomain = cfg.rootDomain || 'styldd.com';
   var host = (window.location.hostname || '').toLowerCase();
-  var subdomain = new URLSearchParams(window.location.search).get('subdomain');
+  var params = new URLSearchParams(window.location.search);
+  var previewUserId = String(params.get('styld_admin_preview') || '').trim();
+  var subdomain = params.get('subdomain');
   var offlineMessage =
     (window.StyldTenant && window.StyldTenant.SITE_OFFLINE_MESSAGE) ||
     'This site is temporarily offline. The owner needs an active Styld subscription to keep their booking site live.';
+  var PREVIEW_STORAGE_KEY = 'styld_admin_site_preview';
+
+  function isRootMarketingHost() {
+    return host === rootDomain || host === 'www.' + rootDomain;
+  }
 
   if (!subdomain && host.endsWith('.' + rootDomain) && host !== rootDomain && host !== 'www.' + rootDomain) {
     subdomain = host.slice(0, -(rootDomain.length + 1));
@@ -21,8 +28,13 @@
     document.body.classList.add('tenant-error');
   }
 
-  if (!subdomain) {
+  if (!previewUserId && !subdomain) {
     showError('Site not found.');
+    return;
+  }
+
+  if (previewUserId && !isRootMarketingHost()) {
+    showError('Preview is only available from the admin portal.');
     return;
   }
 
@@ -135,6 +147,239 @@
     }).catch(function () {});
   }
 
+  function applyTenantRecords(records, displaySubdomain, options) {
+    options = options || {};
+    var content = null;
+    var theme = { heroLayout: 'split', heroImageUrl: null, logoImageUrl: null };
+    var meta = {};
+    var prices = {};
+    var covers = {};
+    var reviewsSettings = { enabled: true };
+    var reviews = [];
+    var productsCatalog = [];
+    var productsSettings = {};
+    var bookingHours = null;
+
+    records.forEach(function (record) {
+      var value = settingValue(record);
+      if (record.record_type === 'site_setting' && record.record_key === 'site_content') content = value;
+      if (record.record_type === 'site_setting' && record.record_key === 'site_theme') theme = Object.assign(theme, value || {});
+      if (record.record_type === 'site_setting' && record.record_key === 'booking_hours') bookingHours = value;
+      if (record.record_type === 'site_setting' && record.record_key === 'style_catalog_meta') meta = value || {};
+      if (record.record_type === 'site_setting' && record.record_key === 'style_price_overrides') prices = value || {};
+      if (record.record_type === 'site_setting' && record.record_key === 'reviews_settings') {
+        reviewsSettings = value || reviewsSettings;
+      }
+      if (record.record_type === 'site_setting' && record.record_key === 'products_catalog') {
+        productsCatalog =
+          window.StyldTenant && window.StyldTenant.normalizeSiteProducts
+            ? window.StyldTenant.normalizeSiteProducts(value)
+            : Array.isArray(value)
+              ? value
+              : [];
+      }
+      if (record.record_type === 'site_setting' && record.record_key === 'products_settings') {
+        productsSettings = value && typeof value === 'object' ? value : {};
+      }
+      if (record.record_type === 'review') {
+        var reviewData = record.data && typeof record.data === 'object' ? record.data : value;
+        if (reviewData && reviewData.published !== false) {
+          reviews.push({
+            id: record.id,
+            clientName: reviewData.client_name || '',
+            rating: reviewData.rating || 5,
+            message: reviewData.message || '',
+            createdAt: reviewData.created_at || record.created_at || null,
+          });
+        }
+      }
+      if (record.record_type === 'style_cover_image' && record.record_key) {
+        var coverPath = coverStoragePath(value);
+        if (typeof coverPath === 'string') covers[record.record_key] = coverPath;
+      }
+    });
+
+    if (!content) {
+      throw new Error('Site content not found.');
+    }
+
+    if (window.StyldTenant && window.StyldTenant.normalizeSiteContent) {
+      content = window.StyldTenant.normalizeSiteContent(content);
+    }
+
+    var templateId = 'profile';
+
+    window.__STYLD_SITE_CONTENT__ = content;
+    window.__STYLD_BOOKING_HOURS__ =
+      window.StyldTenant && window.StyldTenant.normalizeBookingHours
+        ? window.StyldTenant.normalizeBookingHours(bookingHours)
+        : bookingHours || {};
+    window.__STYLD_SITE_PRODUCTS__ = {
+      catalog: productsCatalog,
+      settings: productsSettings,
+    };
+    var heroStackImagePaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
+    var heroStackImageFocus = Array.isArray(theme.heroStackImageFocus) ? theme.heroStackImageFocus : [];
+    window.__STYLD_SITE_THEME__ = {
+      heroLayout: theme.heroLayout || 'split',
+      heroImagePosition: theme.heroImagePosition || 'center top',
+      heroImageFocusX: theme.heroImageFocusX != null ? theme.heroImageFocusX : null,
+      heroImageFocusY: theme.heroImageFocusY != null ? theme.heroImageFocusY : null,
+      heroImageUrl: coverUrl(theme.heroImagePath),
+      logoImageUrl: coverUrl(theme.logoImagePath),
+      heroStackImageUrls: heroStackImagePaths.map(function (p) {
+        return coverUrl(p);
+      }),
+      heroStackImageFocus: heroStackImageFocus,
+      heroStackImageFormat: theme.heroStackImageFormat === 'tall' ? 'tall' : 'wide',
+      primaryColor: theme.primaryColor || null,
+      secondaryColor: theme.secondaryColor || null,
+      navbarColor: theme.navbarColor || null,
+      cardOutlineColor: theme.cardOutlineColor || null,
+      styleCardLayout: theme.styleCardLayout || 'card',
+      fontFamily: theme.fontFamily || 'cormorant',
+      hideBookNowButton: !!theme.hideBookNowButton,
+      heroPhotoEnabled: theme.heroPhotoEnabled !== false && theme.hero_photo_enabled !== false,
+      heroAboutBesidePhoto:
+        theme.heroAboutBesidePhoto !== false && theme.hero_about_beside_photo !== false,
+      templateId: templateId,
+      textColors: theme.textColors && typeof theme.textColors === 'object' ? theme.textColors : null,
+      textColorSources:
+        theme.textColorSources && typeof theme.textColorSources === 'object' ? theme.textColorSources : null,
+      heroCoverBlur: !!theme.heroCoverBlur,
+      portfolioItems: Array.isArray(theme.portfolioItems) ? theme.portfolioItems : [],
+      galleryImagePaths: Array.isArray(theme.galleryImagePaths) ? theme.galleryImagePaths : [],
+      certificationItems: Array.isArray(theme.certificationItems) ? theme.certificationItems : [],
+    };
+
+    if (options.previewMode) {
+      window.__STYLD_ADMIN_PREVIEW__ = {
+        userId: options.previewUserId || null,
+        subdomain: displaySubdomain || null,
+      };
+      document.documentElement.classList.add('styld-admin-preview');
+      document.body.classList.add('styld-admin-preview');
+    }
+
+    if (window.StyldTenant && window.StyldTenant.applySiteTheme) {
+      window.StyldTenant.applySiteTheme(theme);
+    }
+
+    var styleIds = {};
+    Object.keys(meta || {}).forEach(function (id) {
+      styleIds[id] = true;
+    });
+    Object.keys(prices || {}).forEach(function (id) {
+      styleIds[id] = true;
+    });
+    Object.keys(covers || {}).forEach(function (id) {
+      styleIds[id] = true;
+    });
+
+    var logoFallbackUrl = coverUrl(theme.logoImagePath);
+
+    var styles = Object.keys(styleIds).map(function (styleId) {
+      var item = meta[styleId] || {};
+      var sizeLabel = item.sizeLabel || item.variant || sizeLabelFromStyleId(styleId);
+      var basePrice = prices[styleId];
+      if (typeof basePrice !== 'number' || Number.isNaN(basePrice)) basePrice = 0;
+      return {
+        id: styleId,
+        title: item.title || styleId,
+        description: item.description || '',
+        priceLabel: formatStylePriceRange(basePrice, item.addons, item.variants),
+        base: basePrice,
+        defaultVariantLabel: item.defaultVariantLabel != null ? String(item.defaultVariantLabel).trim() : '',
+        variants:
+          window.StyldTenant && window.StyldTenant.normalizeVariants
+            ? window.StyldTenant.normalizeVariants(item.variants)
+            : [],
+        sizeLabel: sizeLabel || undefined,
+        durationLabel: formatStyleDuration(item.durationMinutes),
+        imageUrl: coverUrl(covers[styleId]) || logoFallbackUrl,
+        category: item.category || '',
+      };
+    });
+
+    window.__STYLD_SITE_STYLES__ = styles;
+    window.__STYLD_REVIEWS_SETTINGS__ = {
+      enabled: reviewsSettings.enabled !== false,
+    };
+    window.__STYLD_SITE_REVIEWS__ = reviews.sort(function (a, b) {
+      var aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      var bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+
+    if (theme.hideBookNowButton) {
+      document.querySelectorAll('.profile-nav .profile-book-btn').forEach(function (btn) {
+        btn.style.display = 'none';
+      });
+    }
+
+    if (statusEl) statusEl.hidden = true;
+    if (window.applyStyldPreviewContent) {
+      window.applyStyldPreviewContent();
+    }
+
+    if (theme.hideBookNowButton) {
+      document.querySelectorAll('.profile-nav .profile-book-btn').forEach(function (btn) {
+        btn.style.display = 'none';
+      });
+    }
+
+    var logo = document.querySelector('.hero-brand__logo');
+    if (logo && window.__STYLD_SITE_THEME__.logoImageUrl) {
+      logo.src = window.__STYLD_SITE_THEME__.logoImageUrl;
+    }
+
+    var shareImageUrl = window.__STYLD_SITE_THEME__.logoImageUrl;
+    if (window.StyldTenant && window.StyldTenant.resolveShareImageUrl) {
+      shareImageUrl =
+        window.StyldTenant.resolveShareImageUrl(theme, covers, cfg.supabaseUrl) || shareImageUrl;
+    }
+    if (window.StyldTenant && window.StyldTenant.applySiteShareBranding) {
+      window.StyldTenant.applySiteShareBranding({
+        brandName: content.brandName || displaySubdomain,
+        imageUrl: shareImageUrl,
+        description:
+          content.tagline ||
+          content.heroDescription ||
+          content.menuBlurb ||
+          ('Book appointments with ' + (content.brandName || displaySubdomain) + ' online.'),
+        pageUrl: window.location.href,
+      });
+    } else {
+      document.title = (content.brandName || displaySubdomain) + (options.previewMode ? ' | Admin preview' : ' | Book online');
+    }
+  }
+
+  if (previewUserId) {
+    var previewPayload = null;
+    try {
+      previewPayload = JSON.parse(sessionStorage.getItem(PREVIEW_STORAGE_KEY) || 'null');
+    } catch (previewErr) {
+      previewPayload = null;
+    }
+    if (!previewPayload || String(previewPayload.userId) !== previewUserId) {
+      showError('Preview session expired. Re-open preview from the admin portal.');
+      return;
+    }
+    if (!previewPayload.records || !previewPayload.records.length) {
+      showError('Preview data is empty for this pro.');
+      return;
+    }
+    try {
+      applyTenantRecords(previewPayload.records, previewPayload.subdomain || previewPayload.brandName || 'preview', {
+        previewMode: true,
+        previewUserId: previewUserId,
+      });
+    } catch (previewApplyErr) {
+      showError(previewApplyErr && previewApplyErr.message ? previewApplyErr.message : 'Could not render preview.');
+    }
+    return;
+  }
+
   Promise.all([
     rest('styld_site_subdomains?subdomain=eq.' + encodeURIComponent(subdomain) + '&select=user_id,published_at'),
     Promise.resolve(null),
@@ -153,194 +398,7 @@
       );
     })
     .then(function (records) {
-      var content = null;
-      var theme = { heroLayout: 'split', heroImageUrl: null, logoImageUrl: null };
-      var meta = {};
-      var prices = {};
-      var covers = {};
-      var reviewsSettings = { enabled: true };
-      var reviews = [];
-      var productsCatalog = [];
-      var productsSettings = {};
-      var bookingHours = null;
-
-      records.forEach(function (record) {
-        var value = settingValue(record);
-        if (record.record_type === 'site_setting' && record.record_key === 'site_content') content = value;
-        if (record.record_type === 'site_setting' && record.record_key === 'site_theme') theme = Object.assign(theme, value || {});
-        if (record.record_type === 'site_setting' && record.record_key === 'booking_hours') bookingHours = value;
-        if (record.record_type === 'site_setting' && record.record_key === 'style_catalog_meta') meta = value || {};
-        if (record.record_type === 'site_setting' && record.record_key === 'style_price_overrides') prices = value || {};
-        if (record.record_type === 'site_setting' && record.record_key === 'reviews_settings') {
-          reviewsSettings = value || reviewsSettings;
-        }
-        if (record.record_type === 'site_setting' && record.record_key === 'products_catalog') {
-          productsCatalog =
-            window.StyldTenant && window.StyldTenant.normalizeSiteProducts
-              ? window.StyldTenant.normalizeSiteProducts(value)
-              : Array.isArray(value)
-                ? value
-                : [];
-        }
-        if (record.record_type === 'site_setting' && record.record_key === 'products_settings') {
-          productsSettings = value && typeof value === 'object' ? value : {};
-        }
-        if (record.record_type === 'review') {
-          var reviewData = record.data && typeof record.data === 'object' ? record.data : value;
-          if (reviewData && reviewData.published !== false) {
-            reviews.push({
-              id: record.id,
-              clientName: reviewData.client_name || '',
-              rating: reviewData.rating || 5,
-              message: reviewData.message || '',
-              createdAt: reviewData.created_at || record.created_at || null,
-            });
-          }
-        }
-        if (record.record_type === 'style_cover_image' && record.record_key) {
-          var coverPath = coverStoragePath(value);
-          if (typeof coverPath === 'string') covers[record.record_key] = coverPath;
-        }
-      });
-
-      if (!content) {
-        throw new Error('Site content not found.');
-      }
-
-      if (window.StyldTenant && window.StyldTenant.normalizeSiteContent) {
-        content = window.StyldTenant.normalizeSiteContent(content);
-      }
-
-      var templateId = 'profile';
-
-      window.__STYLD_SITE_CONTENT__ = content;
-      window.__STYLD_BOOKING_HOURS__ =
-        window.StyldTenant && window.StyldTenant.normalizeBookingHours
-          ? window.StyldTenant.normalizeBookingHours(bookingHours)
-          : bookingHours || {};
-      window.__STYLD_SITE_PRODUCTS__ = {
-        catalog: productsCatalog,
-        settings: productsSettings,
-      };
-      var heroStackImagePaths = Array.isArray(theme.heroStackImagePaths) ? theme.heroStackImagePaths : [];
-      var heroStackImageFocus = Array.isArray(theme.heroStackImageFocus) ? theme.heroStackImageFocus : [];
-      window.__STYLD_SITE_THEME__ = {
-        heroLayout: theme.heroLayout || 'split',
-        heroImagePosition: theme.heroImagePosition || 'center top',
-        heroImageFocusX: theme.heroImageFocusX != null ? theme.heroImageFocusX : null,
-        heroImageFocusY: theme.heroImageFocusY != null ? theme.heroImageFocusY : null,
-        heroImageUrl: coverUrl(theme.heroImagePath),
-        logoImageUrl: coverUrl(theme.logoImagePath),
-        heroStackImageUrls: heroStackImagePaths.map(function(p) { return coverUrl(p); }),
-        heroStackImageFocus: heroStackImageFocus,
-        heroStackImageFormat: theme.heroStackImageFormat === 'tall' ? 'tall' : 'wide',
-        primaryColor: theme.primaryColor || null,
-        secondaryColor: theme.secondaryColor || null,
-        navbarColor: theme.navbarColor || null,
-        cardOutlineColor: theme.cardOutlineColor || null,
-        styleCardLayout: theme.styleCardLayout || 'card',
-        fontFamily: theme.fontFamily || 'cormorant',
-        hideBookNowButton: !!theme.hideBookNowButton,
-        heroPhotoEnabled: theme.heroPhotoEnabled !== false && theme.hero_photo_enabled !== false,
-        heroAboutBesidePhoto:
-          theme.heroAboutBesidePhoto !== false && theme.hero_about_beside_photo !== false,
-        templateId: templateId,
-        textColors: theme.textColors && typeof theme.textColors === 'object' ? theme.textColors : null,
-        textColorSources:
-          theme.textColorSources && typeof theme.textColorSources === 'object' ? theme.textColorSources : null,
-        heroCoverBlur: !!theme.heroCoverBlur,
-        portfolioItems: Array.isArray(theme.portfolioItems) ? theme.portfolioItems : [],
-        galleryImagePaths: Array.isArray(theme.galleryImagePaths) ? theme.galleryImagePaths : [],
-        certificationItems: Array.isArray(theme.certificationItems) ? theme.certificationItems : [],
-      };
-
-      if (window.StyldTenant && window.StyldTenant.applySiteTheme) {
-        window.StyldTenant.applySiteTheme(theme);
-      }
-
-      var styleIds = {};
-      Object.keys(meta || {}).forEach(function (id) { styleIds[id] = true; });
-      Object.keys(prices || {}).forEach(function (id) { styleIds[id] = true; });
-      Object.keys(covers || {}).forEach(function (id) { styleIds[id] = true; });
-
-      var logoFallbackUrl = coverUrl(theme.logoImagePath);
-
-      var styles = Object.keys(styleIds)
-        .map(function (styleId) {
-          var item = meta[styleId] || {};
-          var sizeLabel = item.sizeLabel || item.variant || sizeLabelFromStyleId(styleId);
-          var basePrice = prices[styleId];
-          if (typeof basePrice !== 'number' || Number.isNaN(basePrice)) basePrice = 0;
-          return {
-            id: styleId,
-            title: item.title || styleId,
-            description: item.description || '',
-            priceLabel: formatStylePriceRange(basePrice, item.addons, item.variants),
-            base: basePrice,
-            defaultVariantLabel:
-              item.defaultVariantLabel != null ? String(item.defaultVariantLabel).trim() : '',
-            variants:
-              window.StyldTenant && window.StyldTenant.normalizeVariants
-                ? window.StyldTenant.normalizeVariants(item.variants)
-                : [],
-            sizeLabel: sizeLabel || undefined,
-            durationLabel: formatStyleDuration(item.durationMinutes),
-            imageUrl: coverUrl(covers[styleId]) || logoFallbackUrl,
-            category: item.category || '',
-          };
-        });
-
-      window.__STYLD_SITE_STYLES__ = styles;
-      window.__STYLD_REVIEWS_SETTINGS__ = {
-        enabled: reviewsSettings.enabled !== false,
-      };
-      window.__STYLD_SITE_REVIEWS__ = reviews.sort(function (a, b) {
-        var aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        var bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return bTime - aTime;
-      });
-
-      if (theme.hideBookNowButton) {
-        document.querySelectorAll('.profile-nav .profile-book-btn').forEach(function (btn) {
-          btn.style.display = 'none';
-        });
-      }
-
-      if (statusEl) statusEl.hidden = true;
-      if (window.applyStyldPreviewContent) {
-        window.applyStyldPreviewContent();
-      }
-
-      if (theme.hideBookNowButton) {
-        document.querySelectorAll('.profile-nav .profile-book-btn').forEach(function (btn) {
-          btn.style.display = 'none';
-        });
-      }
-
-      var logo = document.querySelector('.hero-brand__logo');
-      if (logo && window.__STYLD_SITE_THEME__.logoImageUrl) {
-        logo.src = window.__STYLD_SITE_THEME__.logoImageUrl;
-      }
-
-      var shareImageUrl = window.__STYLD_SITE_THEME__.logoImageUrl;
-      if (window.StyldTenant && window.StyldTenant.resolveShareImageUrl) {
-        shareImageUrl =
-          window.StyldTenant.resolveShareImageUrl(theme, covers, cfg.supabaseUrl) || shareImageUrl;
-      }
-      if (window.StyldTenant && window.StyldTenant.applySiteShareBranding) {
-        window.StyldTenant.applySiteShareBranding({
-          brandName: content.brandName || subdomain,
-          imageUrl: shareImageUrl,
-          description:
-            content.tagline ||
-            content.heroDescription ||
-            content.menuBlurb ||
-            ('Book appointments with ' + (content.brandName || subdomain) + ' online.'),
-          pageUrl: window.location.href,
-        });
-      } else {
-        document.title = (content.brandName || subdomain) + ' | Book online';
-      }
+      applyTenantRecords(records, subdomain, {});
     })
     .catch(function (err) {
       showError(err && err.message ? err.message : 'Site not found.');

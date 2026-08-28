@@ -7,6 +7,7 @@
     { "source": "/tenant", "destination": "/tenant/index.html" },
     { "source": "/marketing", "destination": "/marketing/index.html" },
     { "source": "/marketing/admin", "destination": "/marketing/admin.html" },
+    { "source": "/marketing/admin-site-preview", "destination": "/marketing/admin-site-preview.html" },
     { "source": "/login", "destination": "/marketing/login.html" },
     { "source": "/signup", "destination": "/login" },
     { "source": "/onboarding", "destination": "/marketing/onboarding.html" },

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Site preview · Styld Admin</title>
+    <link rel="stylesheet" href="/marketing/admin.css?v=32" />
+  </head>
+  <body class="admin-site-preview-page">
+    <header class="admin-site-preview__head">
+      <div class="admin-site-preview__title-wrap">
+        <a class="admin-btn admin-btn--ghost" href="/marketing/admin.html">← Admin</a>
+        <div>
+          <h1 id="admin-preview-title">Site preview</h1>
+          <p id="admin-preview-sub" class="admin-muted"></p>
+        </div>
+      </div>
+      <div class="admin-site-preview__actions">
+        <nav id="admin-preview-pages" class="admin-site-preview__pages" aria-label="Preview pages"></nav>
+        <a id="admin-preview-live-link" class="admin-btn admin-btn--ghost" href="#" target="_blank" rel="noopener noreferrer" hidden>Open live site</a>
+      </div>
+    </header>
+    <div class="admin-site-preview__notice" id="admin-preview-notice" hidden></div>
+    <div class="admin-site-preview__frame-wrap">
+      <iframe id="admin-preview-frame" class="admin-site-preview__frame" title="Site preview" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+    </div>
+    <p id="admin-preview-status" class="admin-site-preview__status admin-muted">Loading preview…</p>
+    <script src="/js/marketing-config.js?v=2"></script>
+    <script src="/js/marketing-config.local.js?v=2"></script>
+    <script src="/marketing/admin-site-preview.js?v=1"></script>
+  </body>
+</html>

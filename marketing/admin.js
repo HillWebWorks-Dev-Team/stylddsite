@@ -2627,6 +2627,9 @@
           esc(data.subdomain ? data.subdomain + '.styldd.com' : data.public_url) +
           '</a>'
         : '<span class="admin-muted">Site not published</span>') +
+      ' · <button type="button" class="admin-link-btn" data-preview-site="' +
+      esc(data.user_id || (data.profile && data.profile.id) || '') +
+      '">Preview saved site</button>' +
       '</div></div>' +
       '<div class="admin-biz-hero__badges">' +
       businessCategoryPill(data.business_category, data.business_category_label) +
@@ -3692,9 +3695,35 @@
     setSalonTab(state.salonTab || 'analytics');
   }
 
+  function adminSitePreviewUrl(userId) {
+    return '/marketing/admin-site-preview.html?user_id=' + encodeURIComponent(String(userId || '').trim());
+  }
+
+  function openSalonPreview(data) {
+    var uid = String((data && (data.user_id || (data.profile && data.profile.id))) || '').trim();
+    if (!uid) {
+      setStatus('Missing pro id for preview.', true);
+      return;
+    }
+    window.open(adminSitePreviewUrl(uid), '_blank', 'noopener,noreferrer');
+  }
+
+  function updateSalonPreviewButton(data) {
+    if (!els.salonPreviewBtn) return;
+    var uid = String((data && (data.user_id || (data.profile && data.profile.id))) || '').trim();
+    var hasContent =
+      !!(data && data.site_content_summary) ||
+      !!(data && data.site_settings && data.site_settings.site_content) ||
+      (typeof data.style_count === 'number' && data.style_count > 0);
+    els.salonPreviewBtn.hidden = !uid;
+    els.salonPreviewBtn.disabled = !uid;
+    els.salonPreviewBtn.title = hasContent
+      ? 'Preview saved site content (published or draft)'
+      : 'Preview site from database (may be empty if they have not started)';
   function updateSalonActionButtons(data) {
     if (!data) return;
     var uid = String(data.user_id || (data.profile && data.profile.id) || '');
+    updateSalonPreviewButton(data);
     if (els.salonHideBtn) {
       var hidden = isHiddenSalonUser({ user_id: uid, email: data.email });
       els.salonHideBtn.hidden = isHardcodedHiddenSalonUser({ user_id: uid, email: data.email });
@@ -4018,6 +4047,14 @@
         unhidePro(unhideBtn.getAttribute('data-unhide-pro'));
         return;
       }
+      var previewSiteBtn = e.target.closest('[data-preview-site]');
+      if (previewSiteBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        var previewId = previewSiteBtn.getAttribute('data-preview-site');
+        if (previewId) window.open(adminSitePreviewUrl(previewId), '_blank', 'noopener,noreferrer');
+        return;
+      }
       var userBtn = e.target.closest('[data-open-user]');
       if (userBtn) {
         closeDrawer();
@@ -4105,6 +4142,11 @@
     if (els.salonBack) {
       els.salonBack.addEventListener('click', closeSalonDashboard);
     }
+    if (els.salonPreviewBtn) {
+      els.salonPreviewBtn.addEventListener('click', function () {
+        if (state.salonData) openSalonPreview(state.salonData);
+      });
+    }
 
     if (els.salonSort) {
       els.salonSort.value = state.salonSort || 'revenue_desc';
@@ -4154,6 +4196,7 @@
       salonViewThumb: $('admin-salon-view-thumb'),
       salonViewSub: $('admin-salon-view-sub'),
       salonViewLink: $('admin-salon-view-link'),
+      salonPreviewBtn: $('admin-salon-preview-btn'),
       salonViewBody: $('admin-salon-view-body'),
       salonTabs: $('admin-salon-tabs'),
       salonTabPanel: $('admin-salon-tab-panel'),

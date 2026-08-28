@@ -1768,6 +1768,78 @@ function buildSalonAnalytics(
   };
 }
 
+async function actionSitePreview(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
+  const userId = String(filters.user_id || '');
+  if (!userId) return { error: 'user_id required' };
+
+  const [profile, records, userSite, subdomains] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+    safeTable<Record<string, unknown>>(supabase, 'styld_site_records', (q) =>
+      q.select('id,record_type,record_key,data,created_at').eq('user_id', userId),
+    ),
+    supabase.from('styld_user_sites').select('*').eq('user_id', userId).maybeSingle(),
+    safeTable<{ subdomain: string; published_at: string | null }>(supabase, 'styld_site_subdomains', (q) =>
+      q.select('subdomain,published_at').eq('user_id', userId).limit(1),
+    ),
+  ]);
+
+  const siteSettings: Record<string, unknown> = {};
+  for (const row of records) {
+    if (row.record_type === 'site_setting' && row.record_key) {
+      siteSettings[String(row.record_key)] = pickData(row);
+    }
+  }
+
+  const profileRow = (profile.data || {}) as Record<string, unknown>;
+  const siteContent = (siteSettings.site_content || {}) as Record<string, unknown>;
+  const sitePublish = (siteSettings.site_publish || {}) as Record<string, unknown>;
+  const subdomainRow = subdomains[0];
+  const subdomain = String(
+    sitePublish.subdomain ||
+      (userSite.data as Record<string, unknown> | null)?.subdomain ||
+      subdomainRow?.subdomain ||
+      '',
+  ).trim();
+  const publishedAt =
+    (userSite.data as Record<string, unknown> | null)?.published_at ||
+    sitePublish.publishedAt ||
+    subdomainRow?.published_at ||
+    null;
+  const brandName = resolveBrandName(siteContent, profileRow);
+  const hasContent = records.some(
+    (row) => row.record_type === 'site_setting' && row.record_key === 'site_content' && pickData(row),
+  );
+
+  if (!hasContent) {
+    return {
+      error: 'No site content saved yet for this pro.',
+      user_id: userId,
+      brand_name: brandName,
+      subdomain: subdomain || null,
+      published_at: publishedAt,
+      public_url: subdomain ? `https://${subdomain}.${ROOT_DOMAIN}` : null,
+      has_content: false,
+    };
+  }
+
+  return {
+    user_id: userId,
+    brand_name: brandName,
+    subdomain: subdomain || null,
+    published_at: publishedAt,
+    public_url: subdomain ? `https://${subdomain}.${ROOT_DOMAIN}` : null,
+    has_content: true,
+    preview_expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+    records: records.map((row) => ({
+      id: row.id,
+      record_type: row.record_type,
+      record_key: row.record_key,
+      data: pickData(row),
+      created_at: row.created_at,
+    })),
+  };
+}
+
 async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filters: Record<string, unknown>) {
   const userId = String(filters.user_id || '');
   if (!userId) return { error: 'user_id required' };
@@ -1888,6 +1960,7 @@ async function actionUserDetail(supabase: ReturnType<typeof adminClient>, filter
   ]);
 
   return {
+    user_id: userId,
     profile: profile.data,
     brand_name: resolveBrandName(siteContent, profileRow),
     tagline: siteContent.tagline || null,
@@ -2488,6 +2561,8 @@ Deno.serve(async (req) => {
         return json(await actionStyles(supabase, filters));
       case 'user_detail':
         return json(await actionUserDetail(supabase, filters));
+      case 'site_preview':
+        return json(await actionSitePreview(supabase, filters));
       case 'bookings':
         return json(await actionBookings(supabase, filters));
       case 'booking_detail':

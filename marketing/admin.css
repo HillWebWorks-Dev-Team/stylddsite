@@ -3863,3 +3863,121 @@ body.admin-salon-open {
     grid-template-columns: 1fr;
   }
 }
+
+.admin-site-preview-page {
+  min-height: 100vh;
+  background: #070708;
+  color: var(--admin-text);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-site-preview__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--admin-border);
+  background: rgba(7, 7, 8, 0.96);
+  flex-wrap: wrap;
+}
+
+.admin-site-preview__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.admin-site-preview__title-wrap h1 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.admin-site-preview__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin-site-preview__pages {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.admin-site-preview__page {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--admin-muted);
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-site-preview__page.is-active,
+.admin-site-preview__page:hover {
+  color: var(--admin-text);
+  border-color: rgba(255, 45, 138, 0.45);
+  background: rgba(255, 45, 138, 0.1);
+}
+
+.admin-site-preview__notice {
+  margin: 0;
+  padding: 0.65rem 1.25rem;
+  background: rgba(255, 45, 138, 0.1);
+  border-bottom: 1px solid rgba(255, 45, 138, 0.22);
+  color: #ffd7eb;
+  font-size: 0.82rem;
+}
+
+.admin-site-preview__frame-wrap {
+  flex: 1;
+  min-height: 0;
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.admin-site-preview__frame {
+  width: 100%;
+  height: calc(100vh - 170px);
+  min-height: 480px;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.admin-site-preview__status {
+  padding: 0.35rem 1.25rem 1rem;
+  font-size: 0.78rem;
+}
+
+.admin-site-preview__status--error {
+  color: #ff8aa8;
+}
+
+html.styld-admin-preview::before,
+body.styld-admin-preview::before {
+  content: 'Admin preview — draft content from database';
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100000;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 45, 138, 0.92);
+  color: #fff;
+  font: 600 0.72rem/1.4 system-ui, sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+
+html.styld-admin-preview,
+body.styld-admin-preview {
+  padding-top: 1.75rem;
+}
