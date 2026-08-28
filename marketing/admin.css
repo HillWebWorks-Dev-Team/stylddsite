@@ -3864,6 +3864,73 @@ body.admin-salon-open {
   }
 }
 
+.admin-salon-view--preview-tab .admin-salon-view__body {
+  padding-top: 0;
+}
+
+.admin-salon-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.admin-salon-preview__intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-salon-preview__pages {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.admin-salon-preview__page {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--admin-muted);
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-salon-preview__page.is-active,
+.admin-salon-preview__page:hover {
+  color: var(--admin-text);
+  border-color: rgba(255, 45, 138, 0.45);
+  background: rgba(255, 45, 138, 0.1);
+}
+
+.admin-salon-preview__frame-wrap {
+  flex: 1;
+  min-height: 520px;
+}
+
+.admin-salon-preview__frame {
+  width: 100%;
+  height: min(72vh, 920px);
+  min-height: 520px;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.admin-salon-preview__status {
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+.admin-salon-preview__status--error {
+  color: #ff8aa8;
+}
+
 .admin-site-preview-page {
   min-height: 100vh;
   background: #070708;

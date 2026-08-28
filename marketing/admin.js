@@ -76,6 +76,14 @@
   var HIDDEN_SALON_EMAILS = ['admin@styld.app'];
   var HIDDEN_PRO_IDS_KEY = 'styld_admin_hidden_pro_ids';
   var PINNED_PRO_IDS_KEY = 'styld_admin_pinned_pro_ids';
+  var ADMIN_PREVIEW_STORAGE_KEY = 'styld_admin_site_preview';
+  var SALON_PREVIEW_PAGES = [
+    { label: 'Home', path: '/tenant/profile.html' },
+    { label: 'Book', path: '/tenant/book.html' },
+    { label: 'Portfolio', path: '/tenant/portfolio.html' },
+    { label: 'Certifications', path: '/tenant/certifications.html' },
+    { label: 'Shop', path: '/tenant/products.html' },
+  ];
 
   function readPinnedProIds() {
     try {
@@ -892,8 +900,9 @@
     clients: [],
     overview: null,
     search: '',
-    salonTab: 'analytics',
+    salonPreviewCache: null,
     salonData: null,
+    salonTab: 'analytics',
     salonSort: 'revenue_desc',
     salonTypeFilter: 'all',
     revenueRange: 'month',
@@ -2627,9 +2636,9 @@
           esc(data.subdomain ? data.subdomain + '.styldd.com' : data.public_url) +
           '</a>'
         : '<span class="admin-muted">Site not published</span>') +
-      ' · <button type="button" class="admin-link-btn" data-preview-site="' +
+      ' · <button type="button" class="admin-link-btn" data-open-preview-tab="' +
       esc(data.user_id || (data.profile && data.profile.id) || '') +
-      '">Preview saved site</button>' +
+      '">View site preview</button>' +
       '</div></div>' +
       '<div class="admin-biz-hero__badges">' +
       businessCategoryPill(data.business_category, data.business_category_label) +
@@ -3494,6 +3503,10 @@
       return '<div class="admin-salon-section" data-salon-section="business">' + renderBusinessTab(data) + '</div>';
     }
 
+    if (tab === 'preview') {
+      return renderSalonSitePreviewTab(data);
+    }
+
     return '<p class="admin-empty-note">Unknown section.</p>';
   }
 
@@ -3668,8 +3681,128 @@
     );
   }
 
+  function renderSalonSitePreviewTab(data) {
+    var subdomain = String(data.subdomain || '').trim();
+    var published = !!data.published_at;
+    var liveUrl = data.public_url && published ? String(data.public_url) : '';
+    var intro = published && subdomain
+      ? 'Built from saved database content. Live at ' + subdomain + '.styldd.com when published.'
+      : subdomain
+        ? 'Built from saved database content. Subdomain ' + subdomain + ' is reserved but not live yet.'
+        : 'Built from saved database content. No subdomain yet — this is how their site would look.';
+
+    return (
+      '<div class="admin-salon-section admin-salon-preview" data-salon-section="preview">' +
+      '<div class="admin-salon-preview__intro">' +
+      '<p class="admin-muted">' +
+      esc(intro) +
+      '</p>' +
+      (liveUrl
+        ? '<a class="admin-info-link" href="' + esc(liveUrl) + '" target="_blank" rel="noopener noreferrer">Open live site</a>'
+        : '') +
+      '</div>' +
+      '<nav class="admin-salon-preview__pages" id="admin-salon-preview-pages" aria-label="Preview pages">' +
+      SALON_PREVIEW_PAGES.map(function (page, index) {
+        return (
+          '<button type="button" class="admin-salon-preview__page' +
+          (index === 0 ? ' is-active' : '') +
+          '" data-preview-page="' +
+          esc(page.path) +
+          '">' +
+          esc(page.label) +
+          '</button>'
+        );
+      }).join('') +
+      '</nav>' +
+      '<div class="admin-salon-preview__frame-wrap">' +
+      '<iframe id="admin-salon-preview-frame" class="admin-salon-preview__frame" title="Site preview" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>' +
+      '</div>' +
+      '<p id="admin-salon-preview-status" class="admin-salon-preview__status admin-muted">Loading preview…</p>' +
+      '</div>'
+    );
+  }
+
+  function saveSalonPreviewPayload(payload) {
+    try {
+      sessionStorage.setItem(
+        ADMIN_PREVIEW_STORAGE_KEY,
+        JSON.stringify({
+          userId: payload.user_id,
+          brandName: payload.brand_name,
+          subdomain: payload.subdomain,
+          publishedAt: payload.published_at,
+          publicUrl: payload.public_url,
+          savedAt: Date.now(),
+          records: payload.records || [],
+        }),
+      );
+    } catch (e) {}
+  }
+
+  function setSalonPreviewStatus(text, isError) {
+    var el = document.getElementById('admin-salon-preview-status');
+    if (!el) return;
+    el.textContent = text || '';
+    el.classList.toggle('admin-salon-preview__status--error', !!isError);
+  }
+
+  function loadSalonSitePreview(data, pagePath) {
+    pagePath = pagePath || '/tenant/profile.html';
+    var uid = String((data && (data.user_id || (data.profile && data.profile.id))) || '').trim();
+    if (!uid) {
+      setSalonPreviewStatus('Missing pro id for preview.', true);
+      return;
+    }
+
+    function mountPreview(payload) {
+      saveSalonPreviewPayload(payload);
+      var frame = document.getElementById('admin-salon-preview-frame');
+      if (frame) {
+        frame.src = pagePath + '?styld_admin_preview=' + encodeURIComponent(uid);
+      }
+      setSalonPreviewStatus('');
+    }
+
+    if (state.salonPreviewCache && state.salonPreviewCache.user_id === uid && state.salonPreviewCache.records) {
+      mountPreview(state.salonPreviewCache);
+      return;
+    }
+
+    setSalonPreviewStatus('Loading site content from database…');
+    api('site_preview', { user_id: uid }, state.pin)
+      .then(function (payload) {
+        if (payload.error) throw new Error(payload.error);
+        if (!payload.records || !payload.records.length) {
+          throw new Error('No site content saved for this pro yet.');
+        }
+        state.salonPreviewCache = payload;
+        mountPreview(payload);
+      })
+      .catch(function (err) {
+        setSalonPreviewStatus((err && err.message) || 'Could not load preview.', true);
+        var frame = document.getElementById('admin-salon-preview-frame');
+        if (frame) frame.removeAttribute('src');
+      });
+  }
+
+  function bindSalonSitePreview(data) {
+    var nav = document.getElementById('admin-salon-preview-pages');
+    if (nav) {
+      nav.querySelectorAll('[data-preview-page]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var path = btn.getAttribute('data-preview-page');
+          nav.querySelectorAll('.admin-salon-preview__page').forEach(function (item) {
+            item.classList.toggle('is-active', item === btn);
+          });
+          loadSalonSitePreview(data, path);
+        });
+      });
+    }
+    loadSalonSitePreview(data, '/tenant/profile.html');
+  }
+
   function setSalonTab(tab) {
-    var valid = ['analytics', 'bookings', 'styles', 'clients', 'reviews', 'emails', 'business'];
+    var valid = ['analytics', 'preview', 'bookings', 'styles', 'clients', 'reviews', 'emails', 'business'];
     if (valid.indexOf(tab) === -1) tab = 'analytics';
     state.salonTab = tab;
 
@@ -3683,6 +3816,13 @@
       els.salonTabPanel.innerHTML = renderSalonTab(state.salonData, tab);
       els.salonTabPanel.setAttribute('aria-labelledby', 'admin-salon-tab-' + tab);
       bindAdminProLogos(els.salonTabPanel);
+      if (tab === 'preview') {
+        bindSalonSitePreview(state.salonData);
+      }
+    }
+
+    if (els.salonView) {
+      els.salonView.classList.toggle('admin-salon-view--preview-tab', tab === 'preview');
     }
 
     if (els.salonViewBody) {
@@ -3695,17 +3835,9 @@
     setSalonTab(state.salonTab || 'analytics');
   }
 
-  function adminSitePreviewUrl(userId) {
-    return '/marketing/admin-site-preview.html?user_id=' + encodeURIComponent(String(userId || '').trim());
-  }
-
   function openSalonPreview(data) {
-    var uid = String((data && (data.user_id || (data.profile && data.profile.id))) || '').trim();
-    if (!uid) {
-      setStatus('Missing pro id for preview.', true);
-      return;
-    }
-    window.open(adminSitePreviewUrl(uid), '_blank', 'noopener,noreferrer');
+    if (data) state.salonData = data;
+    setSalonTab('preview');
   }
 
   function updateSalonPreviewButton(data) {
@@ -3744,6 +3876,10 @@
   }
 
   function openSalonDashboard(data, initialTab) {
+    var uid = String(data.user_id || (data.profile && data.profile.id) || '');
+    if (state.salonPreviewCache && String(state.salonPreviewCache.user_id || '') !== uid) {
+      state.salonPreviewCache = null;
+    }
     state.salonData = data;
     state.salonTab = initialTab || 'analytics';
     var name = data.brand_name || 'Pro';
@@ -4049,12 +4185,16 @@
         unhidePro(unhideBtn.getAttribute('data-unhide-pro'));
         return;
       }
-      var previewSiteBtn = e.target.closest('[data-preview-site]');
-      if (previewSiteBtn) {
+      var previewTabBtn = e.target.closest('[data-open-preview-tab]');
+      if (previewTabBtn) {
         e.preventDefault();
         e.stopPropagation();
-        var previewId = previewSiteBtn.getAttribute('data-preview-site');
-        if (previewId) window.open(adminSitePreviewUrl(previewId), '_blank', 'noopener,noreferrer');
+        var previewUid = previewTabBtn.getAttribute('data-open-preview-tab');
+        if (state.salonData && String(state.salonData.user_id || '') === String(previewUid)) {
+          setSalonTab('preview');
+        } else if (previewUid) {
+          openUserDrawer(previewUid, 'preview');
+        }
         return;
       }
       var userBtn = e.target.closest('[data-open-user]');
