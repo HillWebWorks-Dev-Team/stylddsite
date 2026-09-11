@@ -171,11 +171,12 @@ Deno.serve(async (req) => {
       amount: fees.totalChargeCents,
       currency: 'usd',
       automatic_payment_methods: { enabled: true },
+      // Destination charge with an explicit transfer amount only.
+      // Do not also set application_fee_amount — Stripe treats them as mutually exclusive.
       transfer_data: {
         destination: destinationAccountId,
         amount: fees.transferAmountCents,
       },
-      application_fee_amount: fees.platformFeeCents,
       metadata: {
         bookingId,
         subdomain,
